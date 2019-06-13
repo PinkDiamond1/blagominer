@@ -224,6 +224,9 @@ int load_config(wchar_t const *const filename)
 					Log(L"Port %S", burst->network->nodeport.c_str());
 				}
 
+				if (settingsBurst.HasMember("RootUrl") && settingsBurst["RootUrl"].IsString())	burst->network->noderoot = settingsBurst["RootUrl"].GetString();
+				Log(L"RootUrl: %S", burst->network->noderoot.c_str());
+
 				if (settingsBurst.HasMember("SubmitTimeout") && (settingsBurst["SubmitTimeout"].IsUint())) {
 					burst->network->submitTimeout = (size_t)settingsBurst["SubmitTimeout"].GetUint();
 				}
@@ -238,6 +241,9 @@ int load_config(wchar_t const *const filename)
 					else if (settingsBurst["UpdaterPort"].IsUint())	 burst->network->updaterport = std::to_string(settingsBurst["UpdaterPort"].GetUint());
 				}
 				Log(L"Updater port: %S", burst->network->updaterport.c_str());
+
+				if (settingsBurst.HasMember("UpdaterRootUrl") && settingsBurst["UpdaterRootUrl"].IsString())	burst->network->updaterroot = settingsBurst["UpdaterRootUrl"].GetString();
+				Log(L"UpdaterRootUrl: %S", burst->network->updaterroot.c_str());
 
 				if (settingsBurst.HasMember("SendInterval") && (settingsBurst["SendInterval"].IsUint())) burst->network->send_interval = (size_t)settingsBurst["SendInterval"].GetUint();
 				Log(L"SendInterval: %zu", burst->network->send_interval);
@@ -361,6 +367,9 @@ int load_config(wchar_t const *const filename)
 					Log(L"Port: %S", bhd->network->nodeport.c_str());
 				}
 
+				if (settingsBhd.HasMember("RootUrl") && settingsBhd["RootUrl"].IsString())	bhd->network->noderoot = settingsBhd["RootUrl"].GetString();
+				Log(L"RootUrl: %S", bhd->network->noderoot.c_str());
+
 				if (settingsBhd.HasMember("SubmitTimeout") && (settingsBhd["SubmitTimeout"].IsUint())) {
 					bhd->network->submitTimeout = (size_t)settingsBhd["SubmitTimeout"].GetUint();
 				}
@@ -375,6 +384,9 @@ int load_config(wchar_t const *const filename)
 					else if (settingsBhd["UpdaterPort"].IsUint())	 bhd->network->updaterport = std::to_string(settingsBhd["UpdaterPort"].GetUint());
 				}
 				Log(L"Updater port: %S", bhd->network->updaterport.c_str());
+
+				if (settingsBhd.HasMember("UpdaterRootUrl") && settingsBhd["UpdaterRootUrl"].IsString())	bhd->network->updaterroot = settingsBhd["UpdaterRootUrl"].GetString();
+				Log(L"UpdaterRootUrl: %S", bhd->network->updaterroot.c_str());
 
 				if (settingsBhd.HasMember("SendInterval") && (settingsBhd["SendInterval"].IsUint())) bhd->network->send_interval = (size_t)settingsBhd["SendInterval"].GetUint();
 				Log(L"SendInterval: %zu", bhd->network->send_interval);
@@ -1287,12 +1299,12 @@ int wmain(int argc, wchar_t **argv) {
 		if (nodeipBurst == nullptr) ShowMemErrorExit();
 		
 		hostname_to_ip(burst->network->nodeaddr.c_str(), nodeipBurst);
-		printToConsole(-1, false, false, true, false, L"BURST pool address    %S (ip %S:%S)",
-			burst->network->nodeaddr.c_str(), nodeipBurst, burst->network->nodeport.c_str());
+		printToConsole(-1, false, false, true, false, L"BURST pool address    %S (ip %S:%S) %S",
+			burst->network->nodeaddr.c_str(), nodeipBurst, burst->network->nodeport.c_str(), ((burst->network->noderoot.length() ? "on /" : "") + burst->network->noderoot).c_str());
 
 		if (burst->network->updateraddr.length() > 3) hostname_to_ip(burst->network->updateraddr.c_str(), updateripBurst);
-		printToConsole(-1, false, false, true, false, L"BURST updater address %S (ip %S:%S)",
-			burst->network->updateraddr.c_str(), updateripBurst, burst->network->updaterport.c_str());
+		printToConsole(-1, false, false, true, false, L"BURST updater address %S (ip %S:%S) %S",
+			burst->network->updateraddr.c_str(), updateripBurst, burst->network->updaterport.c_str(), ((burst->network->updaterroot.length() ? "on /" : "") + burst->network->updaterroot).c_str());
 
 		if (updateripBurst != nullptr) {
 			HeapFree(hHeap, 0, updateripBurst);
@@ -1323,12 +1335,12 @@ int wmain(int argc, wchar_t **argv) {
 		if (nodeipBhd == nullptr) ShowMemErrorExit();
 		
 		hostname_to_ip(bhd->network->nodeaddr.c_str(), nodeipBhd);
-		printToConsole(-1, false, false, true, false, L"BHD pool address    %S (ip %S:%S)",
-			bhd->network->nodeaddr.c_str(), nodeipBhd, bhd->network->nodeport.c_str());
+		printToConsole(-1, false, false, true, false, L"BHD pool address    %S (ip %S:%S) %S",
+			bhd->network->nodeaddr.c_str(), nodeipBhd, bhd->network->nodeport.c_str(), ((bhd->network->noderoot.length() ? "on /" : "") + bhd->network->noderoot).c_str());
 
 		if (bhd->network->updateraddr.length() > 3) hostname_to_ip(bhd->network->updateraddr.c_str(), updateripBhd);
-		printToConsole(-1, false, false, true, false, L"BHD updater address %S (ip %S:%S)",
-			bhd->network->updateraddr.c_str(), updateripBhd, bhd->network->updaterport.c_str());
+		printToConsole(-1, false, false, true, false, L"BHD updater address %S (ip %S:%S) %S",
+			bhd->network->updateraddr.c_str(), updateripBhd, bhd->network->updaterport.c_str(), ((bhd->network->updaterroot.length() ? "on /" : "") + bhd->network->updaterroot).c_str());
 		
 		if (updateripBhd != nullptr) {
 			HeapFree(hHeap, 0, updateripBhd);

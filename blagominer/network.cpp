@@ -10,9 +10,11 @@ void init_network_info() {
 	burst->network = std::make_shared<t_network_info>();
 	burst->network->nodeaddr = "localhost";
 	burst->network->nodeport = "8125";
+	burst->network->noderoot = "burst";
 	burst->network->submitTimeout = 1000;
 	burst->network->updateraddr = "localhost";
 	burst->network->updaterport = "8125";
+	burst->network->updaterroot = "burst";
 	burst->network->enable_proxy = false;
 	burst->network->proxyport = "8125";
 	burst->network->send_interval = 100;
@@ -23,9 +25,11 @@ void init_network_info() {
 	bhd->network = std::make_shared<t_network_info>();
 	bhd->network->nodeaddr = "localhost";
 	bhd->network->nodeport = "8732";
+	bhd->network->noderoot = "burst";
 	bhd->network->submitTimeout = 1000;
 	bhd->network->updateraddr = "localhost";
 	bhd->network->updaterport = "8732";
+	bhd->network->updaterroot = "burst";
 	bhd->network->enable_proxy = false;
 	bhd->network->proxyport = "8732";
 	bhd->network->send_interval = 100;
@@ -337,15 +341,18 @@ void __impl__send_i__sockets(char* buffer, size_t buffer_size, std::shared_ptr<t
 		RtlSecureZeroMemory(buffer, buffer_size);
 		if (coinInfo->mining->miner_mode == 0)
 		{
-			bytes = sprintf_s(buffer, buffer_size, "POST /burst?requestType=submitNonce&secretPhrase=%s&nonce=%llu HTTP/1.0\r\nConnection: close\r\n\r\n", pass, share->nonce);
+			bytes = sprintf_s(buffer, buffer_size, "POST /%s?requestType=submitNonce&secretPhrase=%s&nonce=%llu HTTP/1.0\r\nConnection: close\r\n\r\n",
+				coinInfo->network->noderoot.c_str(), pass, share->nonce);
 		}
 		if (coinInfo->mining->miner_mode == 1)
 		{
 			unsigned long long total = total_size / 1024 / 1024 / 1024;
 			for (auto It = satellite_size.begin(); It != satellite_size.end(); ++It) total = total + It->second;
 
-			char const* format = "POST /burst?requestType=submitNonce&accountId=%llu&nonce=%llu&deadline=%llu%s HTTP/1.0\r\nHost: %s:%s\r\nX-Miner: Blago %S\r\nX-Capacity: %llu\r\n%sContent-Length: 0\r\nConnection: close\r\n\r\n";
-			bytes = sprintf_s(buffer, buffer_size, format, share->account_id, share->nonce, share->best, coinInfo->network->sendextraquery.c_str(), coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str(), version.c_str(), total, coinInfo->network->sendextraheader.c_str());
+			char const* format = "POST /%s?requestType=submitNonce&accountId=%llu&nonce=%llu&deadline=%llu%s HTTP/1.0\r\nHost: %s:%s\r\nX-Miner: Blago %S\r\nX-Capacity: %llu\r\n%sContent-Length: 0\r\nConnection: close\r\n\r\n";
+			bytes = sprintf_s(buffer, buffer_size, format,
+				coinInfo->network->noderoot.c_str(), share->account_id, share->nonce, share->best, coinInfo->network->sendextraquery.c_str(),
+				coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str(), version.c_str(), total, coinInfo->network->sendextraheader.c_str());
 		}
 
 		// Sending to server
@@ -448,15 +455,18 @@ void __impl__send_i__curl(std::shared_ptr<t_coin_info> coinInfo, std::vector<std
 			int bytes = 0;
 			if (coinInfo->mining->miner_mode == 0)
 			{
-				bytes = sprintf_s(buffer, buffer_size, "POST /burst?requestType=submitNonce&secretPhrase=%s&nonce=%llu HTTP/1.0\r\nConnection: close\r\n\r\n", pass, share->nonce);
+				bytes = sprintf_s(buffer, buffer_size, "POST /%s?requestType=submitNonce&secretPhrase=%s&nonce=%llu HTTP/1.0\r\nConnection: close\r\n\r\n",
+					coinInfo->network->noderoot.c_str(), pass, share->nonce);
 			}
 			if (coinInfo->mining->miner_mode == 1)
 			{
 				unsigned long long total = total_size / 1024 / 1024 / 1024;
 				for (auto It = satellite_size.begin(); It != satellite_size.end(); ++It) total = total + It->second;
 
-				char const* format = "POST /burst?requestType=submitNonce&accountId=%llu&nonce=%llu&deadline=%llu%s HTTP/1.0\r\nHost: %s:%s\r\nX-Miner: Blago %S\r\nX-Capacity: %llu\r\n%sContent-Length: 0\r\nConnection: close\r\n\r\n";
-				bytes = sprintf_s(buffer, buffer_size, format, share->account_id, share->nonce, share->best, coinInfo->network->sendextraquery.c_str(), coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str(), version.c_str(), total, coinInfo->network->sendextraheader.c_str());
+				char const* format = "POST /%s?requestType=submitNonce&accountId=%llu&nonce=%llu&deadline=%llu%s HTTP/1.0\r\nHost: %s:%s\r\nX-Miner: Blago %S\r\nX-Capacity: %llu\r\n%sContent-Length: 0\r\nConnection: close\r\n\r\n";
+				bytes = sprintf_s(buffer, buffer_size, format,
+					coinInfo->network->noderoot.c_str(), share->account_id, share->nonce, share->best, coinInfo->network->sendextraquery.c_str(),
+					coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str(), version.c_str(), total, coinInfo->network->sendextraheader.c_str());
 			}
 
 			struct timeval tv;
@@ -1184,7 +1194,8 @@ bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, rapidjson
 				failed = true;
 			}
 			else {
-				int bytes = sprintf_s(buffer, buffer_size, "POST /burst?requestType=getMiningInfo HTTP/1.0\r\nHost: %s:%s\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str());
+				int bytes = sprintf_s(buffer, buffer_size, "POST /%s?requestType=getMiningInfo HTTP/1.0\r\nHost: %s:%s\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+					coinInfo->network->noderoot.c_str(), coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str());
 				iResult = send(UpdaterSocket, buffer, bytes, 0);
 				if (iResult == SOCKET_ERROR)
 				{
@@ -1304,7 +1315,8 @@ bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
 		}
 
-		int bytes = sprintf_s(buffer, buffer_size, "https://%s:%s/burst?requestType=getMiningInfo", coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str());
+		int bytes = sprintf_s(buffer, buffer_size, "https://%s:%s/%s?requestType=getMiningInfo",
+			coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str(), coinInfo->network->noderoot.c_str());
 		curl_easy_setopt(curl, CURLOPT_URL, buffer);
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, ""); // wee need to send a POST but body may be left empty
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, 0);
