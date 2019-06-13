@@ -101,15 +101,15 @@ bool allDirsDone(std::shared_ptr<t_coin_info> coinInfo) {
 	return true;
 }
 
-int load_config(char const *const filename)
+int load_config(wchar_t const *const filename)
 {
 	FILE * pFile;
 
-	fopen_s(&pFile, filename, "rt");
+	_wfopen_s(&pFile, filename, L"rt");
 
 	if (pFile == nullptr)
 	{
-		fprintf(stderr, "\nError. config file %s not found\n", filename);
+		fwprintf(stderr, L"\nError. config file %s not found\n", filename);
 		system("pause > nul");
 		exit(-1);
 	}
@@ -1168,7 +1168,7 @@ BOOL WINAPI OnConsoleClose(DWORD dwCtrlType)
 }
 
 
-int main(int argc, char **argv) {
+int wmain(int argc, wchar_t **argv) {
 	//init
 	SetConsoleCtrlHandler(OnConsoleClose, TRUE);
 	atexit(closeMiner);
@@ -1198,7 +1198,7 @@ int main(int argc, char **argv) {
 	strcat_s(p_minerPath, cwdsz + 2, "\\");
 
 
-	char* conf_filename = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, MAX_PATH);
+	wchar_t* conf_filename = (wchar_t*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, MAX_PATH * sizeof(wchar_t));
 	if (conf_filename == nullptr)
 	{
 		fprintf(stderr, "\nError allocating memory\n");
@@ -1207,11 +1207,11 @@ int main(int argc, char **argv) {
 	}
 
 	//config-file: check -config flag or default to miner.conf
-	if ((argc >= 2) && (strcmp(argv[1], "-config") == 0)) {
-		if (strstr(argv[2], ":\\")) sprintf_s(conf_filename, MAX_PATH, "%s", argv[2]);
-		else sprintf_s(conf_filename, MAX_PATH, "%s%s", p_minerPath, argv[2]);
+	if ((argc >= 2) && (wcscmp(argv[1], L"-config") == 0)) {
+		if (wcsstr(argv[2], L":\\")) swprintf_s(conf_filename, MAX_PATH, L"%s", argv[2]);
+		else swprintf_s(conf_filename, MAX_PATH, L"%S%s", p_minerPath, argv[2]);
 	}
-	else sprintf_s(conf_filename, MAX_PATH, "%s%s", p_minerPath, "miner.conf");
+	else swprintf_s(conf_filename, MAX_PATH, L"%S%s", p_minerPath, L"miner.conf");
 	
 	// init 3rd party libs
 	curl_global_init(CURL_GLOBAL_DEFAULT);
