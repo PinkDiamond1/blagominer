@@ -1351,6 +1351,19 @@ int wmain(int argc, wchar_t **argv) {
 	std::vector<t_files> all_files;
 	total_size = getPlotFilesSize(paths_dir, true, all_files, bfsDetected);
 
+	if (bfsDetected && !IsElevated()) {
+		Log(L"BFS path detected and elevation is missing, attempting to elevate");
+		printToConsole(12, false, true, true, false, L"BFS path detected and elevation is missing, attempting to elevate.");
+		if (RestartWithElevation(argc, argv)) {
+			Log(L"Elevation succeeded. New process will takeover. Exiting.");
+			printToConsole(12, false, true, true, false, L"Elevation succeeded. New process will takeover. Exiting.");
+			exit(0);
+		}
+
+		Log(L"Elevation failed. BFS plots cannot be accessed and will be ignored.");
+		printToConsole(12, false, true, true, false, L"Elevation failed. BFS plots cannot be accessed and will be ignored.");
+	}
+
 	printToConsole(15, false, false, true, false, L"TOTAL: %llu GiB (%llu TiB)",
 		total_size / 1024 / 1024 / 1024, total_size / 1024 / 1024 / 1024 / 1024);
 	
