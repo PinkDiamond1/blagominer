@@ -1238,11 +1238,12 @@ int wmain(int argc, wchar_t **argv) {
 	Csv_Init();
 
 	Log(L"Miner path: %S", p_minerPath);
+	Log(L"Miner process elevation: %S", IsElevated() ? "active" : "inactive");
 
 	resizeConsole(win_size_x, win_size_y);
 	
 	bm_init();
-	printToConsole(12, false, false, true, false, L"BURST/BHD miner, %s", version.c_str());
+	printToConsole(12, false, false, true, false, L"BURST/BHD miner, %s %s", version.c_str(), IsElevated() ? L"(elevated)" : L"(nonelevated)");
 	printToConsole(4, false, false, true, false, L"Programming: dcct (Linux) & Blago (Windows)");
 	printToConsole(4, false, false, true, false, L"POC2 mod: Quibus & Johnny (5/2018)");
 	printToConsole(4, false, false, true, false, L"Dual mining mod: andz (2/2019)");

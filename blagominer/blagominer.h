@@ -6,6 +6,7 @@
 #include "common.h"
 #include "filemonitor.h"
 #include "updateChecker.h"
+#include "elevate.h"
 
 // miner
 extern volatile bool stopThreads;
