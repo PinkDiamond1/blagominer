@@ -101,15 +101,15 @@ bool allDirsDone(std::shared_ptr<t_coin_info> coinInfo) {
 	return true;
 }
 
-int load_config(char const *const filename)
+int load_config(wchar_t const *const filename)
 {
 	FILE * pFile;
 
-	fopen_s(&pFile, filename, "rt");
+	_wfopen_s(&pFile, filename, L"rt");
 
 	if (pFile == nullptr)
 	{
-		fprintf(stderr, "\nError. config file %s not found\n", filename);
+		fwprintf(stderr, L"\nError. config file %s not found\n", filename);
 		system("pause > nul");
 		exit(-1);
 	}
@@ -618,7 +618,7 @@ void GetPass(char const *const p_strFolderPath)
 
 
 
-size_t GetFiles(const std::string &str, std::vector <t_files> *p_files)
+size_t GetFiles(const std::string &str, std::vector <t_files> *p_files, bool* bfsDetected)
 {
 	HANDLE hFile = INVALID_HANDLE_VALUE;
 	WIN32_FIND_DATAA   FindFileData;
@@ -646,6 +646,8 @@ size_t GetFiles(const std::string &str, std::vector <t_files> *p_files)
 		//check if BFS
 		if (((std::string)*iter).find("\\\\.") == 0)
 		{
+			*bfsDetected = true;
+
 			//load bfstoc
 			if (!LoadBFSTOC(*path.begin()))
 			{
@@ -922,11 +924,11 @@ bool needToInterruptMining(const std::vector<std::shared_ptr<t_coin_info>>& allC
 	return false;
 }
 
-unsigned long long getPlotFilesSize(std::vector<std::string>& directories, bool log, std::vector<t_files>& all_files) {
+unsigned long long getPlotFilesSize(std::vector<std::string>& directories, bool log, std::vector<t_files>& all_files, bool& bfsDetected) {
 	unsigned long long size = 0;
 	for (auto iter = directories.begin(); iter != directories.end(); ++iter) {
 		std::vector<t_files> files;
-		GetFiles(*iter, &files);
+		GetFiles(*iter, &files, &bfsDetected);
 
 		unsigned long long tot_size = 0;
 		for (auto it = files.begin(); it != files.end(); ++it) {
@@ -943,8 +945,9 @@ unsigned long long getPlotFilesSize(std::vector<std::string>& directories, bool 
 }
 
 unsigned long long getPlotFilesSize(std::vector<std::string>& directories, bool log) {
+	bool dummyvar;
 	std::vector<t_files> dump;
-	return getPlotFilesSize(directories, log, dump);
+	return getPlotFilesSize(directories, log, dump, dummyvar);
 }
 
 unsigned long long getPlotFilesSize(std::vector<std::shared_ptr<t_directory_info>> dirs) {
@@ -1168,7 +1171,7 @@ BOOL WINAPI OnConsoleClose(DWORD dwCtrlType)
 }
 
 
-int main(int argc, char **argv) {
+int wmain(int argc, wchar_t **argv) {
 	//init
 	SetConsoleCtrlHandler(OnConsoleClose, TRUE);
 	atexit(closeMiner);
@@ -1198,7 +1201,7 @@ int main(int argc, char **argv) {
 	strcat_s(p_minerPath, cwdsz + 2, "\\");
 
 
-	char* conf_filename = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, MAX_PATH);
+	wchar_t* conf_filename = (wchar_t*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, MAX_PATH * sizeof(wchar_t));
 	if (conf_filename == nullptr)
 	{
 		fprintf(stderr, "\nError allocating memory\n");
@@ -1207,11 +1210,11 @@ int main(int argc, char **argv) {
 	}
 
 	//config-file: check -config flag or default to miner.conf
-	if ((argc >= 2) && (strcmp(argv[1], "-config") == 0)) {
-		if (strstr(argv[2], ":\\")) sprintf_s(conf_filename, MAX_PATH, "%s", argv[2]);
-		else sprintf_s(conf_filename, MAX_PATH, "%s%s", p_minerPath, argv[2]);
+	if ((argc >= 2) && (wcscmp(argv[1], L"-config") == 0)) {
+		if (wcsstr(argv[2], L":\\")) swprintf_s(conf_filename, MAX_PATH, L"%s", argv[2]);
+		else swprintf_s(conf_filename, MAX_PATH, L"%S%s", p_minerPath, argv[2]);
 	}
-	else sprintf_s(conf_filename, MAX_PATH, "%s%s", p_minerPath, "miner.conf");
+	else swprintf_s(conf_filename, MAX_PATH, L"%S%s", p_minerPath, L"miner.conf");
 	
 	// init 3rd party libs
 	curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -1238,11 +1241,12 @@ int main(int argc, char **argv) {
 	Csv_Init();
 
 	Log(L"Miner path: %S", p_minerPath);
+	Log(L"Miner process elevation: %S", IsElevated() ? "active" : "inactive");
 
 	resizeConsole(win_size_x, win_size_y);
 	
 	bm_init();
-	printToConsole(12, false, false, true, false, L"BURST/BHD miner, %s", version.c_str());
+	printToConsole(12, false, false, true, false, L"BURST/BHD miner, %s %s", version.c_str(), IsElevated() ? L"(elevated)" : L"(nonelevated)");
 	printToConsole(4, false, false, true, false, L"Programming: dcct (Linux) & Blago (Windows)");
 	printToConsole(4, false, false, true, false, L"POC2 mod: Quibus & Johnny (5/2018)");
 	printToConsole(4, false, false, true, false, L"Dual mining mod: andz (2/2019)");
@@ -1343,8 +1347,23 @@ int main(int argc, char **argv) {
 	// Инфа по файлам
 	printToConsole(15, false, false, true, false, L"Using plots:");
 	
+	bool bfsDetected = false;
 	std::vector<t_files> all_files;
-	total_size = getPlotFilesSize(paths_dir, true, all_files);
+	total_size = getPlotFilesSize(paths_dir, true, all_files, bfsDetected);
+
+	if (bfsDetected && !IsElevated()) {
+		Log(L"BFS path detected and elevation is missing, attempting to elevate");
+		printToConsole(12, false, true, true, false, L"BFS path detected and elevation is missing, attempting to elevate.");
+		if (RestartWithElevation(argc, argv)) {
+			Log(L"Elevation succeeded. New process will takeover. Exiting.");
+			printToConsole(12, false, true, true, false, L"Elevation succeeded. New process will takeover. Exiting.");
+			exit(0);
+		}
+
+		Log(L"Elevation failed. BFS plots cannot be accessed and will be ignored.");
+		printToConsole(12, false, true, true, false, L"Elevation failed. BFS plots cannot be accessed and will be ignored.");
+	}
+
 	printToConsole(15, false, false, true, false, L"TOTAL: %llu GiB (%llu TiB)",
 		total_size / 1024 / 1024 / 1024, total_size / 1024 / 1024 / 1024 / 1024);
 	
@@ -1669,8 +1688,9 @@ int main(int argc, char **argv) {
 						QueryPerformanceCounter((LARGE_INTEGER*)&curr_time);
 						if ((curr_time - end_threads_time) / pcFreq > hddWakeUpTimer)
 						{
+							bool dummyvar;
 							std::vector<t_files> tmp_files;
-							for (size_t i = 0; i < paths_dir.size(); i++)		GetFiles(paths_dir[i], &tmp_files);
+							for (size_t i = 0; i < paths_dir.size(); i++)		GetFiles(paths_dir[i], &tmp_files, &dummyvar);
 							if (use_debug)
 							{
 								printToConsole(7, true, false, true, false, L"HDD, WAKE UP !");
