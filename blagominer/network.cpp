@@ -1195,7 +1195,7 @@ bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, rapidjson
 			}
 			else {
 				int bytes = sprintf_s(buffer, buffer_size, "POST /%s?requestType=getMiningInfo HTTP/1.0\r\nHost: %s:%s\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
-					coinInfo->network->noderoot.c_str(), coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str());
+					coinInfo->network->updaterroot.c_str(), coinInfo->network->updateraddr.c_str(), coinInfo->network->updaterport.c_str());
 				iResult = send(UpdaterSocket, buffer, bytes, 0);
 				if (iResult == SOCKET_ERROR)
 				{
@@ -1316,7 +1316,7 @@ bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 		}
 
 		int bytes = sprintf_s(buffer, buffer_size, "https://%s:%s/%s?requestType=getMiningInfo",
-			coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str(), coinInfo->network->noderoot.c_str());
+			coinInfo->network->updateraddr.c_str(), coinInfo->network->updaterport.c_str(), coinInfo->network->updaterroot.c_str());
 		curl_easy_setopt(curl, CURLOPT_URL, buffer);
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, ""); // wee need to send a POST but body may be left empty
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, 0);
