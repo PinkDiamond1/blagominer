@@ -23,4 +23,4 @@ extern bool POC2;								// true if PoC2 is activated
 #include "worker.h"
 
 //headers
-size_t GetFiles(const std::string &str, std::vector <t_files> *p_files);
+size_t GetFiles(const std::string &str, std::vector <t_files> *p_files, bool* bfsDetected);

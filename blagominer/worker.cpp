@@ -30,7 +30,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 	Log(L"Start thread: [%zu] %S", local_num, path_loc_str.c_str());
 
 	if (directory->files.empty()) {
-		GetFiles(path_loc_str, &directory->files);
+		bool dummyvar;
+		GetFiles(path_loc_str, &directory->files, &dummyvar);
 	}
 
 	size_t cache_size_local;

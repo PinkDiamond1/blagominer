@@ -618,7 +618,7 @@ void GetPass(char const *const p_strFolderPath)
 
 
 
-size_t GetFiles(const std::string &str, std::vector <t_files> *p_files)
+size_t GetFiles(const std::string &str, std::vector <t_files> *p_files, bool* bfsDetected)
 {
 	HANDLE hFile = INVALID_HANDLE_VALUE;
 	WIN32_FIND_DATAA   FindFileData;
@@ -646,6 +646,8 @@ size_t GetFiles(const std::string &str, std::vector <t_files> *p_files)
 		//check if BFS
 		if (((std::string)*iter).find("\\\\.") == 0)
 		{
+			*bfsDetected = true;
+
 			//load bfstoc
 			if (!LoadBFSTOC(*path.begin()))
 			{
@@ -922,11 +924,11 @@ bool needToInterruptMining(const std::vector<std::shared_ptr<t_coin_info>>& allC
 	return false;
 }
 
-unsigned long long getPlotFilesSize(std::vector<std::string>& directories, bool log, std::vector<t_files>& all_files) {
+unsigned long long getPlotFilesSize(std::vector<std::string>& directories, bool log, std::vector<t_files>& all_files, bool& bfsDetected) {
 	unsigned long long size = 0;
 	for (auto iter = directories.begin(); iter != directories.end(); ++iter) {
 		std::vector<t_files> files;
-		GetFiles(*iter, &files);
+		GetFiles(*iter, &files, &bfsDetected);
 
 		unsigned long long tot_size = 0;
 		for (auto it = files.begin(); it != files.end(); ++it) {
@@ -943,8 +945,9 @@ unsigned long long getPlotFilesSize(std::vector<std::string>& directories, bool 
 }
 
 unsigned long long getPlotFilesSize(std::vector<std::string>& directories, bool log) {
+	bool dummyvar;
 	std::vector<t_files> dump;
-	return getPlotFilesSize(directories, log, dump);
+	return getPlotFilesSize(directories, log, dump, dummyvar);
 }
 
 unsigned long long getPlotFilesSize(std::vector<std::shared_ptr<t_directory_info>> dirs) {
@@ -1344,8 +1347,10 @@ int wmain(int argc, wchar_t **argv) {
 	// Инфа по файлам
 	printToConsole(15, false, false, true, false, L"Using plots:");
 	
+	bool bfsDetected = false;
 	std::vector<t_files> all_files;
-	total_size = getPlotFilesSize(paths_dir, true, all_files);
+	total_size = getPlotFilesSize(paths_dir, true, all_files, bfsDetected);
+
 	printToConsole(15, false, false, true, false, L"TOTAL: %llu GiB (%llu TiB)",
 		total_size / 1024 / 1024 / 1024, total_size / 1024 / 1024 / 1024 / 1024);
 	
@@ -1670,8 +1675,9 @@ int wmain(int argc, wchar_t **argv) {
 						QueryPerformanceCounter((LARGE_INTEGER*)&curr_time);
 						if ((curr_time - end_threads_time) / pcFreq > hddWakeUpTimer)
 						{
+							bool dummyvar;
 							std::vector<t_files> tmp_files;
-							for (size_t i = 0; i < paths_dir.size(); i++)		GetFiles(paths_dir[i], &tmp_files);
+							for (size_t i = 0; i < paths_dir.size(); i++)		GetFiles(paths_dir[i], &tmp_files, &dummyvar);
 							if (use_debug)
 							{
 								printToConsole(7, true, false, true, false, L"HDD, WAKE UP !");
