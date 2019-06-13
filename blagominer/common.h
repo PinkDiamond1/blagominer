@@ -150,9 +150,11 @@ struct t_mining_info {
 struct t_network_info {
 	std::string nodeaddr;
 	std::string nodeport;
+	std::string noderoot;
 	unsigned submitTimeout;
 	std::string updateraddr;
 	std::string updaterport;
+	std::string updaterroot;
 	bool enable_proxy;						// enable client/server functionality
 	std::string proxyport;
 	size_t send_interval;
