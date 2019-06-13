@@ -1,6 +1,6 @@
 #include "updateChecker.h"
 
-LPCWSTR versionUrl = L"https://raw.githubusercontent.com/andzno1/blagominer/master/.version";
+LPCWSTR versionUrl = L"https://raw.githubusercontent.com/quetzalcoatl/blagominer/master/.version";
 
 double getDiffernceinDays(const std::time_t end, std::time_t beginning) {
 	return std::difftime(end, beginning) / (60 * 60 * 24);

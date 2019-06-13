@@ -1262,6 +1262,7 @@ int wmain(int argc, wchar_t **argv) {
 	printToConsole(4, false, false, true, false, L"Programming: dcct (Linux) & Blago (Windows)");
 	printToConsole(4, false, false, true, false, L"POC2 mod: Quibus & Johnny (5/2018)");
 	printToConsole(4, false, false, true, false, L"Dual mining mod: andz (2/2019)");
+	printToConsole(4, false, false, true, false, L"HTTPS and patches: quetzalcoatl (6/2019)");
 
 	GetCPUInfo();
 
