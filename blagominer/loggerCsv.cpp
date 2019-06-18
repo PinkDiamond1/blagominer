@@ -22,7 +22,7 @@ void Csv_Init()
 	}
 
 	std::wstring burstNameW(coinNames[BURST]);
-	std::wstring bhdNameW(coinNames[BURST]);
+	std::wstring bhdNameW(coinNames[BHD]);
 
 	std::string burstName(burstNameW.begin(), burstNameW.end());
 	std::string bhdName(bhdNameW.begin(), bhdNameW.end());
