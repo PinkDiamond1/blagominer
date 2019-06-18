@@ -1,14 +1,16 @@
 #include "loggerCsv.h"
 
-std::string csvFailBurst;
-std::string csvFailBhd;
-std::string csvSubmittedBurst;
-std::string csvSubmittedBhd;
+struct LogFileInfo {
+	std::string filename;
+	std::mutex mutex;
+};
 
-std::mutex mCsvFailBurst;
-std::mutex mCsvFailBhd;
-std::mutex mCsvSubmittedBurst;
-std::mutex mCsvSubmittedBhd;
+struct CoinLogFiles {
+	LogFileInfo failed;
+	LogFileInfo submitted;
+};
+
+CoinLogFiles coinlogs[2];
 
 bool existsFile(const std::string& name) {
 	struct stat buffer;
@@ -27,20 +29,20 @@ void Csv_Init()
 	std::string burstName(burstNameW.begin(), burstNameW.end());
 	std::string bhdName(bhdNameW.begin(), bhdNameW.end());
 
-	csvFailBurst = "fail-" + burstName + ".csv";
-	csvFailBhd = "fail-" + bhdName + ".csv";
-	csvSubmittedBurst = "stat-" + burstName + ".csv";
-	csvSubmittedBhd = "stat-" + bhdName + ".csv";
+	coinlogs[BURST].failed.filename = "fail-" + burstName + ".csv";
+	coinlogs[BHD].failed.filename = "fail-" + bhdName + ".csv";
+	coinlogs[BURST].submitted.filename = "stat-" + burstName + ".csv";
+	coinlogs[BHD].submitted.filename = "stat-" + bhdName + ".csv";
 
 	Log(L"Initializing csv logging.");
 	const char* headersFail = "Timestamp epoch;Timestamp local;Height;File;baseTarget;Network difficulty;Nonce;Deadline sent;Deadline confirmed;Response\n";
 	const char* headersSubmitted = "Timestamp epoch;Timestamp local;Height;baseTarget;Network difficulty;Round time;Completed round; Deadline\n";
-	if ((burst->mining->enable || burst->network->enable_proxy) && !existsFile(csvFailBurst))
+	if ((burst->mining->enable || burst->network->enable_proxy) && !existsFile(coinlogs[BURST].failed.filename))
 	{
-		std::lock_guard<std::mutex> lockGuard(mCsvFailBurst);
-		Log(L"Writing headers to %S", csvFailBurst.c_str());
+		std::lock_guard<std::mutex> lockGuard(coinlogs[BURST].failed.mutex);
+		Log(L"Writing headers to %S", coinlogs[BURST].failed.filename.c_str());
 		FILE * pFile;
-		fopen_s(&pFile, csvFailBurst.c_str(), "a+t");
+		fopen_s(&pFile, coinlogs[BURST].failed.filename.c_str(), "a+t");
 		if (pFile != nullptr)
 		{
 			fprintf(pFile, headersFail);
@@ -48,15 +50,15 @@ void Csv_Init()
 		}
 		else
 		{
-			Log(L"Failed to open %S", csvFailBurst.c_str());
+			Log(L"Failed to open %S", coinlogs[BURST].failed.filename.c_str());
 		}
 	}
-	if ((burst->mining->enable || burst->network->enable_proxy) && !existsFile(csvSubmittedBurst))
+	if ((burst->mining->enable || burst->network->enable_proxy) && !existsFile(coinlogs[BURST].submitted.filename))
 	{
-		std::lock_guard<std::mutex> lockGuard(mCsvSubmittedBurst);
-		Log(L"Writing headers to %S", csvSubmittedBurst.c_str());
+		std::lock_guard<std::mutex> lockGuard(coinlogs[BURST].submitted.mutex);
+		Log(L"Writing headers to %S", coinlogs[BURST].submitted.filename.c_str());
 		FILE * pFile;
-		fopen_s(&pFile, csvSubmittedBurst.c_str(), "a+t");
+		fopen_s(&pFile, coinlogs[BURST].submitted.filename.c_str(), "a+t");
 		if (pFile != nullptr)
 		{
 			fprintf(pFile, headersSubmitted);
@@ -64,16 +66,16 @@ void Csv_Init()
 		}
 		else
 		{
-			Log(L"Failed to open %S", csvSubmittedBurst.c_str());
+			Log(L"Failed to open %S", coinlogs[BURST].submitted.filename.c_str());
 		}
 	}
 
-	if ((bhd->mining->enable || burst->network->enable_proxy) && !existsFile(csvFailBhd))
+	if ((bhd->mining->enable || burst->network->enable_proxy) && !existsFile(coinlogs[BHD].failed.filename))
 	{
-		std::lock_guard<std::mutex> lockGuard(mCsvFailBhd);
-		Log(L"Writing headers to %S", csvFailBhd.c_str());
+		std::lock_guard<std::mutex> lockGuard(coinlogs[BHD].failed.mutex);
+		Log(L"Writing headers to %S", coinlogs[BHD].failed.filename.c_str());
 		FILE * pFile;
-		fopen_s(&pFile, csvFailBhd.c_str(), "a+t");
+		fopen_s(&pFile, coinlogs[BHD].failed.filename.c_str(), "a+t");
 		if (pFile != nullptr)
 		{
 			fprintf(pFile, headersFail);
@@ -81,15 +83,15 @@ void Csv_Init()
 		}
 		else
 		{
-			Log(L"Failed to open %S", csvFailBhd.c_str());
+			Log(L"Failed to open %S", coinlogs[BHD].failed.filename.c_str());
 		}
 	}
-	if ((bhd->mining->enable || bhd->network->enable_proxy) && !existsFile(csvSubmittedBhd))
+	if ((bhd->mining->enable || bhd->network->enable_proxy) && !existsFile(coinlogs[BHD].submitted.filename))
 	{
-		std::lock_guard<std::mutex> lockGuard(mCsvSubmittedBhd);
-		Log(L"Writing headers to %S", csvSubmittedBhd.c_str());
+		std::lock_guard<std::mutex> lockGuard(coinlogs[BHD].submitted.mutex);
+		Log(L"Writing headers to %S", coinlogs[BHD].submitted.filename.c_str());
 		FILE * pFile;
-		fopen_s(&pFile, csvSubmittedBhd.c_str(), "a+t");
+		fopen_s(&pFile, coinlogs[BHD].submitted.filename.c_str(), "a+t");
 		if (pFile != nullptr)
 		{
 			fprintf(pFile, headersSubmitted);
@@ -97,7 +99,7 @@ void Csv_Init()
 		}
 		else
 		{
-			Log(L"Failed to open %S", csvSubmittedBhd.c_str());
+			Log(L"Failed to open %S", coinlogs[BHD].submitted.filename.c_str());
 		}
 	}
 }
@@ -116,8 +118,8 @@ void Csv_Fail(Coins coin, const unsigned long long height, const std::string& fi
 	FILE * pFile;
 	if (coin == BURST && (burst->mining->enable || burst->network->enable_proxy))
 	{
-		std::lock_guard<std::mutex> lockGuard(mCsvFailBurst);
-		fopen_s(&pFile, csvFailBurst.c_str(), "a+t");
+		std::lock_guard<std::mutex> lockGuard(coinlogs[BURST].failed.mutex);
+		fopen_s(&pFile, coinlogs[BURST].failed.filename.c_str(), "a+t");
 		if (pFile != nullptr)
 		{
 			fprintf(pFile, "%llu;%s;%llu;%s;%llu;%llu;%llu;%llu;%llu;%s\n", (unsigned long long)rawtime, timeDate, height, file.c_str(), baseTarget, netDiff,
@@ -127,14 +129,14 @@ void Csv_Fail(Coins coin, const unsigned long long height, const std::string& fi
 		}
 		else
 		{
-			Log(L"Failed to open %S", csvFailBurst.c_str());
+			Log(L"Failed to open %S", coinlogs[BURST].failed.filename.c_str());
 			return;
 		}
 	}
 	else if (coin == BHD && (bhd->mining->enable || bhd->network->enable_proxy))
 	{
-		std::lock_guard<std::mutex> lockGuard(mCsvFailBhd);
-		fopen_s(&pFile, csvFailBhd.c_str(), "a+t");
+		std::lock_guard<std::mutex> lockGuard(coinlogs[BHD].failed.mutex);
+		fopen_s(&pFile, coinlogs[BHD].failed.filename.c_str(), "a+t");
 		if (pFile != nullptr)
 		{
 			fprintf(pFile, "%llu;%s;%llu;%s;%llu;%llu;%llu;%llu;%llu;%s\n", (unsigned long long)rawtime, timeDate, height, file.c_str(), baseTarget, netDiff,
@@ -144,7 +146,7 @@ void Csv_Fail(Coins coin, const unsigned long long height, const std::string& fi
 		}
 		else
 		{
-			Log(L"Failed to open %S", csvFailBhd.c_str());
+			Log(L"Failed to open %S", coinlogs[BHD].failed.filename.c_str());
 			return;
 		}
 	}
@@ -164,8 +166,8 @@ void Csv_Submitted(Coins coin, const unsigned long long height, const unsigned l
 	FILE * pFile;
 	if (coin == BURST && (burst->mining->enable || burst->network->enable_proxy))
 	{
-		std::lock_guard<std::mutex> lockGuard(mCsvSubmittedBurst);
-		fopen_s(&pFile, csvSubmittedBurst.c_str(), "a+t");
+		std::lock_guard<std::mutex> lockGuard(coinlogs[BURST].submitted.mutex);
+		fopen_s(&pFile, coinlogs[BURST].submitted.filename.c_str(), "a+t");
 		if (pFile != nullptr)
 		{
 			fprintf(pFile, "%llu;%s;%llu;%llu;%llu;%.1f;%s;%llu\n", (unsigned long long)rawtime, timeDate, height, baseTarget,
@@ -175,14 +177,14 @@ void Csv_Submitted(Coins coin, const unsigned long long height, const unsigned l
 		}
 		else
 		{
-			Log(L"Failed to open %S", csvSubmittedBurst.c_str());
+			Log(L"Failed to open %S", coinlogs[BURST].submitted.filename.c_str());
 			return;
 		}
 	}
 	else if (coin == BHD && (bhd->mining->enable || bhd->network->enable_proxy))
 	{
-		std::lock_guard<std::mutex> lockGuard(mCsvSubmittedBhd);
-		fopen_s(&pFile, csvSubmittedBhd.c_str(), "a+t");
+		std::lock_guard<std::mutex> lockGuard(coinlogs[BHD].submitted.mutex);
+		fopen_s(&pFile, coinlogs[BHD].submitted.filename.c_str(), "a+t");
 		if (pFile != nullptr)
 		{
 			fprintf(pFile, "%llu;%s;%llu;%llu;%llu;%.1f;%s;%llu\n", (unsigned long long)rawtime, timeDate, height, baseTarget,
@@ -192,7 +194,7 @@ void Csv_Submitted(Coins coin, const unsigned long long height, const unsigned l
 		}
 		else
 		{
-			Log(L"Failed to open %S", csvSubmittedBhd.c_str());
+			Log(L"Failed to open %S", coinlogs[BHD].submitted.filename.c_str());
 			return;
 		}
 	}
