@@ -3,7 +3,7 @@
 
 #include <curl/curl.h>
 
-std::map <u_long, unsigned long long> satellite_size; // Ñòðóêòóðà ñ îáúåìàìè ïëîòîâ ñàòåëëèòîâ // GoogleTranslate:Russian: "Models for the use of computers on the partitions"
+static std::map <u_long, unsigned long long> satellite_size; // Ñòðóêòóðà ñ îáúåìàìè ïëîòîâ ñàòåëëèòîâ // GoogleTranslate:Russian: "Models for the use of computers on the partitions"
 
 void init_coinNetwork(std::shared_ptr<t_coin_info> coin)
 {
