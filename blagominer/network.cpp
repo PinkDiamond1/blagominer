@@ -3,39 +3,30 @@
 
 #include <curl/curl.h>
 
-void init_network_info() {
-
-	burst->network = std::make_shared<t_network_info>();
-	burst->network->nodeaddr = "localhost";
-	burst->network->nodeport = "8125";
-	burst->network->noderoot = "burst";
-	burst->network->submitTimeout = 1000;
-	burst->network->updateraddr = "localhost";
-	burst->network->updaterport = "8125";
-	burst->network->updaterroot = "burst";
-	burst->network->enable_proxy = false;
-	burst->network->proxyport = "8125";
-	burst->network->send_interval = 100;
-	burst->network->update_interval = 1000;
-	burst->network->proxy_update_interval = 500;
-	burst->network->network_quality = -1;
-	
-	bhd->network = std::make_shared<t_network_info>();
-	bhd->network->nodeaddr = "localhost";
-	bhd->network->nodeport = "8732";
-	bhd->network->noderoot = "burst";
-	bhd->network->submitTimeout = 1000;
-	bhd->network->updateraddr = "localhost";
-	bhd->network->updaterport = "8732";
-	bhd->network->updaterroot = "burst";
-	bhd->network->enable_proxy = false;
-	bhd->network->proxyport = "8732";
-	bhd->network->send_interval = 100;
-	bhd->network->update_interval = 1000;
-	bhd->network->proxy_update_interval = 500;
-	bhd->network->network_quality = -1;
 std::map <u_long, unsigned long long> satellite_size; // Ñòðóêòóðà ñ îáúåìàìè ïëîòîâ ñàòåëëèòîâ // GoogleTranslate:Russian: "Models for the use of computers on the partitions"
 
+void init_coinNetwork(std::shared_ptr<t_coin_info> coin)
+{
+	coin->network = std::make_shared<t_network_info>();
+	coin->network->nodeaddr = "localhost";
+	coin->network->nodeport = "8125"; // bhd: 8732
+	coin->network->noderoot = "burst";
+	coin->network->submitTimeout = 1000;
+	coin->network->updateraddr = "localhost";
+	coin->network->updaterport = "8125"; // bhd: 8732
+	coin->network->updaterroot = "burst";
+	coin->network->enable_proxy = false;
+	coin->network->proxyport = "8125"; // bhd: 8732
+	coin->network->send_interval = 100;
+	coin->network->update_interval = 1000;
+	coin->network->proxy_update_interval = 500;
+	coin->network->network_quality = -1;
+}
+
+void init_network_info()
+{
+	init_coinNetwork(burst);
+	init_coinNetwork(bhd);
 }
 
 void hostname_to_ip(char const *const  in_addr, char* out_addr)
