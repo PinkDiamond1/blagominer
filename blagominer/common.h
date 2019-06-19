@@ -25,8 +25,8 @@ extern volatile bool exit_flag;							// true if miner is to be exited
 extern HANDLE hHeap;							//heap
 
 enum Coins {
-	BURST,
-	BHD
+	BURST = 0,
+	BHD = 1,
 };
 
 enum MiningState {
