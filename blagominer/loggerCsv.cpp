@@ -104,22 +104,18 @@ void Csv_Init()
 	}
 }
 
-void Csv_Fail(Coins coin, const unsigned long long height, const std::string& file, const unsigned long long baseTarget,
+void Csv_logFailed(
+	std::shared_ptr<t_coin_info> coin, CoinLogFiles& coinlog,
+	std::time_t rawtime, char* timeDate,
+	const unsigned long long height, const std::string& file, const unsigned long long baseTarget,
 	const unsigned long long netDiff, const unsigned long long nonce, const unsigned long long deadlineSent,
 	const unsigned long long deadlineConfirmed, const std::string& response)
 {
-	if (!loggingConfig.enableCsv) {
-		return;
-	}
-	std::time_t rawtime = std::time(nullptr);
-	char timeDate[20];
-	getLocalDateTime(rawtime, timeDate);
-
-	FILE * pFile;
-	if (coin == BURST && (burst->mining->enable || burst->network->enable_proxy))
+	if (coin->mining->enable || coin->network->enable_proxy)
 	{
-		std::lock_guard<std::mutex> lockGuard(coinlogs[BURST].failed.mutex);
-		fopen_s(&pFile, coinlogs[BURST].failed.filename.c_str(), "a+t");
+		std::lock_guard<std::mutex> lockGuard(coinlog.failed.mutex);
+		FILE* pFile;
+		fopen_s(&pFile, coinlog.failed.filename.c_str(), "a+t");
 		if (pFile != nullptr)
 		{
 			fprintf(pFile, "%llu;%s;%llu;%s;%llu;%llu;%llu;%llu;%llu;%s\n", (unsigned long long)rawtime, timeDate, height, file.c_str(), baseTarget, netDiff,
@@ -129,74 +125,89 @@ void Csv_Fail(Coins coin, const unsigned long long height, const std::string& fi
 		}
 		else
 		{
-			Log(L"Failed to open %S", coinlogs[BURST].failed.filename.c_str());
+			Log(L"Failed to open %S", coinlog.failed.filename.c_str());
 			return;
 		}
 	}
-	else if (coin == BHD && (bhd->mining->enable || bhd->network->enable_proxy))
-	{
-		std::lock_guard<std::mutex> lockGuard(coinlogs[BHD].failed.mutex);
-		fopen_s(&pFile, coinlogs[BHD].failed.filename.c_str(), "a+t");
-		if (pFile != nullptr)
-		{
-			fprintf(pFile, "%llu;%s;%llu;%s;%llu;%llu;%llu;%llu;%llu;%s\n", (unsigned long long)rawtime, timeDate, height, file.c_str(), baseTarget, netDiff,
-				nonce, deadlineSent, deadlineConfirmed, response.c_str());
-			fclose(pFile);
-			return;
-		}
-		else
-		{
-			Log(L"Failed to open %S", coinlogs[BHD].failed.filename.c_str());
-			return;
-		}
-	}
-
 }
 
-void Csv_Submitted(Coins coin, const unsigned long long height, const unsigned long long baseTarget, const unsigned long long netDiff,
-	const double roundTime, const bool completedRound, const unsigned long long deadline)
+void Csv_Fail(
+	Coins coin,
+	const unsigned long long height, const std::string& file, const unsigned long long baseTarget,
+	const unsigned long long netDiff, const unsigned long long nonce, const unsigned long long deadlineSent,
+	const unsigned long long deadlineConfirmed, const std::string& response)
 {
-	if (!loggingConfig.enableCsv) {
+	if (!loggingConfig.enableCsv)
 		return;
-	}
+
 	std::time_t rawtime = std::time(nullptr);
 	char timeDate[20];
 	getLocalDateTime(rawtime, timeDate);
 
-	FILE * pFile;
-	if (coin == BURST && (burst->mining->enable || burst->network->enable_proxy))
-	{
-		std::lock_guard<std::mutex> lockGuard(coinlogs[BURST].submitted.mutex);
-		fopen_s(&pFile, coinlogs[BURST].submitted.filename.c_str(), "a+t");
-		if (pFile != nullptr)
-		{
-			fprintf(pFile, "%llu;%s;%llu;%llu;%llu;%.1f;%s;%llu\n", (unsigned long long)rawtime, timeDate, height, baseTarget,
-				netDiff, roundTime, completedRound ? "true" : "false", deadline);
-			fclose(pFile);
-			return;
-		}
-		else
-		{
-			Log(L"Failed to open %S", coinlogs[BURST].submitted.filename.c_str());
-			return;
-		}
-	}
-	else if (coin == BHD && (bhd->mining->enable || bhd->network->enable_proxy))
-	{
-		std::lock_guard<std::mutex> lockGuard(coinlogs[BHD].submitted.mutex);
-		fopen_s(&pFile, coinlogs[BHD].submitted.filename.c_str(), "a+t");
-		if (pFile != nullptr)
-		{
-			fprintf(pFile, "%llu;%s;%llu;%llu;%llu;%.1f;%s;%llu\n", (unsigned long long)rawtime, timeDate, height, baseTarget,
-				netDiff, roundTime, completedRound ? "true" : "false", deadline);
-			fclose(pFile);
-			return;
-		}
-		else
-		{
-			Log(L"Failed to open %S", coinlogs[BHD].submitted.filename.c_str());
-			return;
-		}
-	}
+	if (coin == BURST)
+		Csv_logFailed(
+			burst, coinlogs[BURST],
+			rawtime, timeDate,
+			height, file.c_str(), baseTarget, netDiff,
+			nonce, deadlineSent, deadlineConfirmed, response.c_str());
 
+	if (coin == BHD)
+		Csv_logFailed(
+			bhd, coinlogs[BHD],
+			rawtime, timeDate,
+			height, file.c_str(), baseTarget, netDiff,
+			nonce, deadlineSent, deadlineConfirmed, response.c_str());
+}
+
+void Csv_logSubmitted(
+	std::shared_ptr<t_coin_info> coin, CoinLogFiles& coinlog,
+	std::time_t rawtime, char* timeDate,
+	const unsigned long long height, const unsigned long long baseTarget, const unsigned long long netDiff,
+	const double roundTime, const bool completedRound, const unsigned long long deadline)
+{
+	if (coin->mining->enable || coin->network->enable_proxy)
+	{
+		std::lock_guard<std::mutex> lockGuard(coinlog.submitted.mutex);
+		FILE* pFile;
+		fopen_s(&pFile, coinlog.submitted.filename.c_str(), "a+t");
+		if (pFile != nullptr)
+		{
+			fprintf(pFile, "%llu;%s;%llu;%llu;%llu;%.1f;%s;%llu\n", (unsigned long long)rawtime, timeDate, height, baseTarget,
+				netDiff, roundTime, completedRound ? "true" : "false", deadline);
+			fclose(pFile);
+			return;
+		}
+		else
+		{
+			Log(L"Failed to open %S", coinlog.submitted.filename.c_str());
+			return;
+		}
+	}
+}
+
+void Csv_Submitted(
+	Coins coin,
+	const unsigned long long height, const unsigned long long baseTarget, const unsigned long long netDiff,
+	const double roundTime, const bool completedRound, const unsigned long long deadline)
+{
+	if (!loggingConfig.enableCsv)
+		return;
+
+	std::time_t rawtime = std::time(nullptr);
+	char timeDate[20];
+	getLocalDateTime(rawtime, timeDate);
+
+	if (coin == BURST)
+		Csv_logSubmitted(
+			burst, coinlogs[BURST],
+			rawtime, timeDate,
+			height, baseTarget,
+			netDiff, roundTime, completedRound ? "true" : "false", deadline);
+
+	if (coin == BHD)
+		Csv_logSubmitted(
+			bhd, coinlogs[BHD],
+			rawtime, timeDate,
+			height, baseTarget,
+			netDiff, roundTime, completedRound ? "true" : "false", deadline);
 }
