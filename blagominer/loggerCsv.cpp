@@ -17,91 +17,58 @@ bool existsFile(const std::string& name) {
 	return (stat(name.c_str(), &buffer) == 0);
 }
 
+const char* headersFail = "Timestamp epoch;Timestamp local;Height;File;baseTarget;Network difficulty;Nonce;Deadline sent;Deadline confirmed;Response\n";
+const char* headersSubmitted = "Timestamp epoch;Timestamp local;Height;baseTarget;Network difficulty;Round time;Completed round; Deadline\n";
+
+void Csv_initFilenames(
+	LogFileInfo& coinlogfileinfo,
+	const char* prefix, const wchar_t* coinName)
+{
+	std::wstring nameW(coinName);
+	std::string name(nameW.begin(), nameW.end());
+	coinlogfileinfo.filename = prefix + ("-" + name) + ".csv";
+}
+
+void Csv_logFileInit(
+	std::shared_ptr<t_coin_info> coin, LogFileInfo& coinlogfileinfo,
+	const char* headers)
+{
+	if ((coin->mining->enable || coin->network->enable_proxy) && !existsFile(coinlogfileinfo.filename))
+	{
+		std::lock_guard<std::mutex> lockGuard(coinlogfileinfo.mutex);
+		Log(L"Writing headers to %S", coinlogfileinfo.filename.c_str());
+		FILE * pFile;
+		fopen_s(&pFile, coinlogfileinfo.filename.c_str(), "a+t");
+		if (pFile != nullptr)
+		{
+			fprintf(pFile, headers);
+			fclose(pFile);
+		}
+		else
+		{
+			Log(L"Failed to open %S", coinlogfileinfo.filename.c_str());
+		}
+	}
+}
+
 void Csv_Init()
 {
-	if (!loggingConfig.enableCsv) {
+	if (!loggingConfig.enableCsv)
 		return;
-	}
 
-	std::wstring burstNameW(coinNames[BURST]);
-	std::wstring bhdNameW(coinNames[BHD]);
+	Csv_initFilenames(coinlogs[BURST].failed, "fail", coinNames[BURST]);
+	Csv_initFilenames(coinlogs[BURST].submitted, "stat", coinNames[BURST]);
 
-	std::string burstName(burstNameW.begin(), burstNameW.end());
-	std::string bhdName(bhdNameW.begin(), bhdNameW.end());
-
-	coinlogs[BURST].failed.filename = "fail-" + burstName + ".csv";
-	coinlogs[BHD].failed.filename = "fail-" + bhdName + ".csv";
-	coinlogs[BURST].submitted.filename = "stat-" + burstName + ".csv";
-	coinlogs[BHD].submitted.filename = "stat-" + bhdName + ".csv";
+	Csv_initFilenames(coinlogs[BHD].failed, "fail", coinNames[BHD]);
+	Csv_initFilenames(coinlogs[BHD].submitted, "stat", coinNames[BHD]);
 
 	Log(L"Initializing csv logging.");
-	const char* headersFail = "Timestamp epoch;Timestamp local;Height;File;baseTarget;Network difficulty;Nonce;Deadline sent;Deadline confirmed;Response\n";
-	const char* headersSubmitted = "Timestamp epoch;Timestamp local;Height;baseTarget;Network difficulty;Round time;Completed round; Deadline\n";
-	if ((burst->mining->enable || burst->network->enable_proxy) && !existsFile(coinlogs[BURST].failed.filename))
-	{
-		std::lock_guard<std::mutex> lockGuard(coinlogs[BURST].failed.mutex);
-		Log(L"Writing headers to %S", coinlogs[BURST].failed.filename.c_str());
-		FILE * pFile;
-		fopen_s(&pFile, coinlogs[BURST].failed.filename.c_str(), "a+t");
-		if (pFile != nullptr)
-		{
-			fprintf(pFile, headersFail);
-			fclose(pFile);
-		}
-		else
-		{
-			Log(L"Failed to open %S", coinlogs[BURST].failed.filename.c_str());
-		}
-	}
-	if ((burst->mining->enable || burst->network->enable_proxy) && !existsFile(coinlogs[BURST].submitted.filename))
-	{
-		std::lock_guard<std::mutex> lockGuard(coinlogs[BURST].submitted.mutex);
-		Log(L"Writing headers to %S", coinlogs[BURST].submitted.filename.c_str());
-		FILE * pFile;
-		fopen_s(&pFile, coinlogs[BURST].submitted.filename.c_str(), "a+t");
-		if (pFile != nullptr)
-		{
-			fprintf(pFile, headersSubmitted);
-			fclose(pFile);
-		}
-		else
-		{
-			Log(L"Failed to open %S", coinlogs[BURST].submitted.filename.c_str());
-		}
-	}
 
-	if ((bhd->mining->enable || burst->network->enable_proxy) && !existsFile(coinlogs[BHD].failed.filename))
-	{
-		std::lock_guard<std::mutex> lockGuard(coinlogs[BHD].failed.mutex);
-		Log(L"Writing headers to %S", coinlogs[BHD].failed.filename.c_str());
-		FILE * pFile;
-		fopen_s(&pFile, coinlogs[BHD].failed.filename.c_str(), "a+t");
-		if (pFile != nullptr)
-		{
-			fprintf(pFile, headersFail);
-			fclose(pFile);
-		}
-		else
-		{
-			Log(L"Failed to open %S", coinlogs[BHD].failed.filename.c_str());
-		}
-	}
-	if ((bhd->mining->enable || bhd->network->enable_proxy) && !existsFile(coinlogs[BHD].submitted.filename))
-	{
-		std::lock_guard<std::mutex> lockGuard(coinlogs[BHD].submitted.mutex);
-		Log(L"Writing headers to %S", coinlogs[BHD].submitted.filename.c_str());
-		FILE * pFile;
-		fopen_s(&pFile, coinlogs[BHD].submitted.filename.c_str(), "a+t");
-		if (pFile != nullptr)
-		{
-			fprintf(pFile, headersSubmitted);
-			fclose(pFile);
-		}
-		else
-		{
-			Log(L"Failed to open %S", coinlogs[BHD].submitted.filename.c_str());
-		}
-	}
+	Csv_logFileInit(burst, coinlogs[BURST].failed, headersFail);
+	Csv_logFileInit(burst, coinlogs[BURST].submitted, headersSubmitted);
+
+	Csv_logFileInit(bhd, coinlogs[BHD].failed, headersFail);
+	Csv_logFileInit(bhd, coinlogs[BHD].submitted, headersSubmitted);
 }
 
 void Csv_logFailed(
