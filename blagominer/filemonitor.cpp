@@ -23,7 +23,7 @@ void increaseConflictingDeadline(std::shared_ptr<t_coin_info> coin, unsigned lon
 		return;
 	}
 
-	Log(L"increaseConflictingDeadline %s", coinNames[coin->coin]);
+	Log(L"increaseConflictingDeadline %s", coin->coinname.c_str());
 	bool log = true;
 	if (ignoreSuspectedFastBlocks) {
 		// Wait to see if there is a new block incoming.
@@ -32,7 +32,7 @@ void increaseConflictingDeadline(std::shared_ptr<t_coin_info> coin, unsigned lon
 
 		if (height != coin->mining->currentHeight) {
 			Log(L"increaseConflictingDeadline %s: Not counting this conflicting deadline, as the cause is most probably a fast block. ",
-				coinNames[coin->coin]);
+				coin->coinname.c_str());
 			log = false;
 		}
 

@@ -66,7 +66,7 @@ void hostname_to_ip(char const *const  in_addr, char* out_addr)
 
 void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 {
-	const wchar_t* proxyName = coinNames[coinInfo->coin];
+	const wchar_t* proxyName = coinInfo->coinname.c_str();
 	int iResult;
 	size_t const buffer_size = 1000;
 	char* buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
@@ -286,7 +286,7 @@ void increaseNetworkQuality(std::shared_ptr<t_coin_info> coin) {
 
 void __impl__send_i__sockets(char* buffer, size_t buffer_size, std::shared_ptr<t_coin_info> coinInfo, std::vector<std::shared_ptr<t_session>>& tmpSessions, unsigned long long targetDeadlineInfo, std::shared_ptr<t_shares> share)
 {
-	const wchar_t* senderName = coinNames[coinInfo->coin];
+	const wchar_t* senderName = coinInfo->coinname.c_str();
 
 	SOCKET ConnectSocket = INVALID_SOCKET;
 	std::unique_ptr<SOCKET, void(*)(SOCKET*)> guardConnectSocket(&ConnectSocket, [](SOCKET* s) {closesocket(*s); });
@@ -385,7 +385,7 @@ void __impl__send_i__curl(std::shared_ptr<t_coin_info> coinInfo, std::vector<std
 {
 	bool failed = false;
 
-	const wchar_t* senderName = coinNames[coinInfo->coin];
+	const wchar_t* senderName = coinInfo->coinname.c_str();
 	bool newBlock = false;
 
 	size_t const buffer_size = 1000;
@@ -519,7 +519,7 @@ void __impl__send_i__curl(std::shared_ptr<t_coin_info> coinInfo, std::vector<std
 
 void send_i(std::shared_ptr<t_coin_info> coinInfo)
 {
-	const wchar_t* senderName = coinNames[coinInfo->coin];
+	const wchar_t* senderName = coinInfo->coinname.c_str();
 	Log(L"Sender %s: started thread", senderName);
 
 	size_t const buffer_size = 1000;
@@ -610,7 +610,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 bool __impl__confirm_i__sockets(char* buffer, size_t buffer_size, std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, char*& find, bool& nonJsonSuccessDetected, std::shared_ptr<t_session>& session) {
 	bool failed = false;
 
-	const wchar_t* confirmerName = coinNames[coinInfo->coin];
+	const wchar_t* confirmerName = coinInfo->coinname.c_str();
 
 	SOCKET ConnectSocket;
 	int iResult = 0;
@@ -779,7 +779,7 @@ bool __impl__confirm_i__sockets(char* buffer, size_t buffer_size, std::shared_pt
 bool __impl__confirm_i__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, char*& find, bool& nonJsonSuccessDetected, std::shared_ptr<t_session2>& session) {
 	bool failed = false;
 
-	const wchar_t* confirmerName = coinNames[coinInfo->coin];
+	const wchar_t* confirmerName = coinInfo->coinname.c_str();
 
 	size_t const buffer_size = 1000;
 	char *buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
@@ -968,7 +968,7 @@ bool __impl__confirm_i__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 }
 
 void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
-	const wchar_t* confirmerName = coinNames[coinInfo->coin];
+	const wchar_t* confirmerName = coinInfo->coinname.c_str();
 	Log(L"Confirmer %s: started thread", confirmerName);
 
 	SOCKET ConnectSocket;
@@ -1125,7 +1125,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 
 void updater_i(std::shared_ptr<t_coin_info> coinInfo)
 {
-	const wchar_t* updaterName = coinNames[coinInfo->coin];
+	const wchar_t* updaterName = coinInfo->coinname.c_str();
 	if (coinInfo->network->updateraddr.length() <= 3) {
 		Log(L"Updater %s: GMI: ERROR in UpdaterAddr", updaterName);
 		exit(2);
@@ -1144,7 +1144,7 @@ void updater_i(std::shared_ptr<t_coin_info> coinInfo)
 bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, std::string& rawResponse) {
 	bool failed = false;
 
-	const wchar_t* updaterName = coinNames[coinInfo->coin];
+	const wchar_t* updaterName = coinInfo->coinname.c_str();
 	bool newBlock = false;
 	size_t const buffer_size = 1000;
 	char *buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
@@ -1265,7 +1265,7 @@ static size_t __impl__pollLocal__curl__readcallback(void *contents, size_t size,
 bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, std::string& rawResponse) {
 	bool failed = false;
 
-	const wchar_t* updaterName = coinNames[coinInfo->coin];
+	const wchar_t* updaterName = coinInfo->coinname.c_str();
 	bool newBlock = false;
 	
 	// TODO: fixup: extract outside like it was before
@@ -1368,7 +1368,7 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 	if (failed) return false;
 	if (!gmi.IsObject()) return false;
 
-	const wchar_t* updaterName = coinNames[coinInfo->coin];
+	const wchar_t* updaterName = coinInfo->coinname.c_str();
 	bool newBlock = false;
 
 	if (gmi.HasMember("baseTarget")) {

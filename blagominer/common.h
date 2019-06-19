@@ -36,8 +36,6 @@ enum MiningState {
 	INTERRUPTED
 };
 
-extern wchar_t *coinNames[];
-
 struct t_shares {
 	t_shares(std::string file_name, unsigned long long account_id, unsigned long long best,
 		unsigned long long nonce, unsigned long long deadline, unsigned long long height,
@@ -172,12 +170,14 @@ struct t_network_info {
 
 struct t_coin_info {
 	Coins coin;
+	std::wstring coinname;
 	std::shared_ptr<t_mining_info> mining;
 	std::shared_ptr<t_network_info> network;
 	std::shared_ptr<t_locks> locks;
 };
 
 
+extern std::vector<std::shared_ptr<t_coin_info>> coins;
 extern std::shared_ptr<t_coin_info> burst;
 extern std::shared_ptr<t_coin_info> bhd;
 extern t_logging loggingConfig;
