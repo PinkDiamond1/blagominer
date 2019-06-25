@@ -681,6 +681,7 @@ size_t GetFiles(const std::string &str, std::vector <t_files> *p_files, bool* bf
 						false,
 						*path.begin(),
 						"FILE_"+std::to_string(i),
+						0, // TODO?
 						(unsigned long long)bfsTOC.plotFiles[i].nonces * 4096 *64,
 						bfsTOC.id, bfsTOC.plotFiles[i].startNonce, bfsTOC.plotFiles[i].nonces, bfsTOC.diskspace/64, bfsTOC.plotFiles[i].startPos, true, true
 						});
@@ -715,11 +716,18 @@ size_t GetFiles(const std::string &str, std::vector <t_files> *p_files, bool* bf
 								unsigned long long key, nonce, nonces, stagger;
 								if (sscanf_s(FindFileData.cFileName, "%llu_%llu_%llu_%llu", &key, &nonce, &nonces, &stagger) == 4)
 								{
+									std::string tmp = *iter + FindFileData.cFileName;
+									std::wstring wide = std::wstring(tmp.begin(), tmp.end());
+									std::wstring drive = wide.size() > 2 && wide[1] == L':' ? wide.substr(0, 2) : L"";
+									long long volpos;
+									if (drive.empty() || 0 != determineNtfsFilePosition(volpos, drive, wide)) volpos = 0;
+
 									bool p2 = false;
 									p_files->push_back({
 										false,
 										*iter,
 										FindFileData.cFileName,
+										volpos,
 										(((static_cast<ULONGLONG>(FindFileData.nFileSizeHigh) << (sizeof(FindFileData.nFileSizeLow) * 8)) | FindFileData.nFileSizeLow)),
 										key, nonce, nonces, stagger, 0, p2, false
 										});
@@ -732,11 +740,18 @@ size_t GetFiles(const std::string &str, std::vector <t_files> *p_files, bool* bf
 							unsigned long long key, nonce, nonces;
 							if (sscanf_s(FindFileData.cFileName, "%llu_%llu_%llu", &key, &nonce, &nonces) == 3)
 							{
+								std::string tmp = *iter + FindFileData.cFileName;
+								std::wstring wide = std::wstring(tmp.begin(), tmp.end());
+								std::wstring drive = wide.size() > 2 && wide[1] == L':' ? wide.substr(0, 2) : L"";
+								long long volpos;
+								if (drive.empty() || 0 != determineNtfsFilePosition(volpos, drive, wide)) volpos = 0;
+
 								bool p2 = true;
 								p_files->push_back({
 									false,
 									*iter,
 									FindFileData.cFileName,
+									volpos,
 									(((static_cast<ULONGLONG>(FindFileData.nFileSizeHigh) << (sizeof(FindFileData.nFileSizeLow) * 8)) | FindFileData.nFileSizeLow)),
 									key, nonce, nonces, nonces, 0, p2, false
 									});
@@ -750,6 +765,7 @@ size_t GetFiles(const std::string &str, std::vector <t_files> *p_files, bool* bf
 			}
 		}
 	}
+	std::sort(p_files->begin(), p_files->end(), OrderingByPositionOnSequentialMedia());
 	return count;
 }
 

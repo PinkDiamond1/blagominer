@@ -7,6 +7,7 @@
 #include "filemonitor.h"
 #include "updateChecker.h"
 #include "elevate.h"
+#include "volume_ntfs.h"
 
 // miner
 extern volatile bool stopThreads;

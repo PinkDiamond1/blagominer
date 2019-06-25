@@ -79,6 +79,7 @@ struct t_files {
 	bool done;
 	std::string Path;
 	std::string Name;
+	long long positionOnNtfsVolume;
 	unsigned long long Size;
 	unsigned long long Key;
 	unsigned long long StartNonce;
