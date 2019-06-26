@@ -1123,8 +1123,16 @@ int wmain(int argc, wchar_t **argv) {
 		HeapFree(hHeap, 0, conf_filename);
 	}
 
-	if (burst->network->enable_proxy && bhd->network->enable_proxy &&
-		burst->network->proxyport == bhd->network->proxyport) {
+	std::vector<std::shared_ptr<t_coin_info>> proxycoins;
+	std::copy_if(allcoins.begin(), allcoins.end(), std::back_inserter(proxycoins), [](auto&& it) { return it->network->enable_proxy; });
+	std::vector<std::string> proxyports;
+	std::transform(proxycoins.begin(), proxycoins.end(), std::back_inserter(proxyports), [](auto&& it) { return it->network->proxyport; });
+	size_t beforeUniq = proxyports.size();
+	std::sort(proxyports.begin(), proxyports.end());
+	std::unique(proxycoins.begin(), proxycoins.end());
+	size_t afterUniq = proxyports.size();
+
+	if (afterUniq != beforeUniq) {
 		fprintf(stderr, "\nError. Ports for multiple proxies should not be the same. Please check your configuration.\n");
 		system("pause > nul");
 		exit(-1);
@@ -1146,7 +1154,8 @@ int wmain(int argc, wchar_t **argv) {
 
 	GetCPUInfo();
 
-	if (!burst->mining->enable && !burst->network->enable_proxy && !bhd->mining->enable && !bhd->network->enable_proxy) {
+	size_t activecoins = std::count_if(allcoins.begin(), allcoins.end(), [](auto&& it) { return it->network->enable_proxy || it->mining->enable; });
+	if (activecoins == 0) {
 		printToConsole(12, false, false, true, false, L"Mining and proxies are disabled for all coins. Please check your configuration.");
 		system("pause > nul");
 		exit(-1);
@@ -1262,7 +1271,8 @@ int wmain(int argc, wchar_t **argv) {
 	printToConsole(15, false, false, true, false, L"TOTAL: %llu GiB (%llu TiB)",
 		total_size / 1024 / 1024 / 1024, total_size / 1024 / 1024 / 1024 / 1024);
 	
-	if (total_size == 0 && (burst->mining->enable || bhd->mining->enable)) {
+	size_t nminingcoins = std::count_if(allcoins.begin(), allcoins.end(), [](auto&& it) {return it->mining->enable; });
+	if (total_size == 0 && nminingcoins > 0) {
 		printToConsole(12, false, true, true, false,
 			L"Plot files not found...please check the \"PATHS\" parameter in your config file.");
 		system("pause > nul");
@@ -1291,15 +1301,12 @@ int wmain(int argc, wchar_t **argv) {
 	}
 	//all_files.~vector();   // ???
 
-	if (burst->network->submitTimeout < 1000) {
-		printToConsole(8, false, true, false, true, L"Timeout for Burstcoin deadline submissions is set to %u ms, which is a low value.", burst->network->submitTimeout);
-	}
-	if (bhd->network->submitTimeout < 1000) {
-		printToConsole(8, false, true, false, true, L"Timeout for Bitcoin HD deadline submissions is set to %u ms, which is a low value.", bhd->network->submitTimeout);
-	}
+	for(auto& coin : allcoins)
+		if (coin->network->submitTimeout < 1000) {
+			printToConsole(8, false, true, false, true, L"Timeout for %s deadline submissions is set to %u ms, which is a low value.", coin->coinname.c_str(), coin->network->submitTimeout);
+		}
 
-	proxyOnly = !burst->mining->enable && !bhd->mining->enable &&
-		(burst->network->enable_proxy || bhd->network->enable_proxy);
+	proxyOnly = nminingcoins == 0 && proxycoins.size() > 0;
 	if (proxyOnly) {
 		Log(L"Running as proxy only.");
 		printToConsole(8, false, true, false, true, L"Running as proxy only.");
