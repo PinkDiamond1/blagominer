@@ -56,19 +56,16 @@ void Csv_Init()
 	if (!loggingConfig.enableCsv)
 		return;
 
-	Csv_initFilenames(coinlogs[BURST].failed, "fail", coins[BURST]->coinname.c_str());
-	Csv_initFilenames(coinlogs[BURST].submitted, "stat", coins[BURST]->coinname.c_str());
-
-	Csv_initFilenames(coinlogs[BHD].failed, "fail", coins[BHD]->coinname.c_str());
-	Csv_initFilenames(coinlogs[BHD].submitted, "stat", coins[BHD]->coinname.c_str());
-
 	Log(L"Initializing csv logging.");
 
-	Csv_logFileInit(burst, coinlogs[BURST].failed, headersFail);
-	Csv_logFileInit(burst, coinlogs[BURST].submitted, headersSubmitted);
+	for (auto& coin : allcoins)
+	{
+		Csv_initFilenames(coinlogs[coin->coin].failed, "fail", coin->coinname.c_str());
+		Csv_initFilenames(coinlogs[coin->coin].submitted, "stat", coin->coinname.c_str());
 
-	Csv_logFileInit(bhd, coinlogs[BHD].failed, headersFail);
-	Csv_logFileInit(bhd, coinlogs[BHD].submitted, headersSubmitted);
+		Csv_logFileInit(coin, coinlogs[coin->coin].failed, headersFail);
+		Csv_logFileInit(coin, coinlogs[coin->coin].submitted, headersSubmitted);
+	}
 }
 
 void Csv_logFailed(
