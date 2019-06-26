@@ -23,6 +23,7 @@ std::shared_ptr<t_coin_info> burst = std::make_shared<t_coin_info>();
 std::shared_ptr<t_coin_info> bhd = std::make_shared<t_coin_info>();
 t_logging loggingConfig = {};
 
+std::vector<std::shared_ptr<t_coin_info>> allcoins;
 std::vector<std::shared_ptr<t_coin_info>> coins;
 
 char *p_minerPath = nullptr;
@@ -525,6 +526,9 @@ int load_config(wchar_t const *const filename)
 	if (json_ != nullptr) {
 		HeapFree(hHeap, 0, json_);
 	}
+
+	allcoins = { burst, bhd };
+
 	return 1;
 }
 
