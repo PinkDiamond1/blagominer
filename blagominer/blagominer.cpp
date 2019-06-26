@@ -997,36 +997,30 @@ void closeMiner() {
 	if (proxyOnlyBurst.joinable()) proxyOnlyBurst.join();
 	if (proxyOnlyBhd.joinable()) proxyOnlyBhd.join();
 	if (updateChecker.joinable()) updateChecker.join();
-	if (burst->network->sender.joinable()) burst->network->sender.join();
-	if (bhd->network->sender.joinable()) bhd->network->sender.join();
-	
-	EnterCriticalSection(&burst->locks->sessionsLock);
-	for (auto it = burst->network->sessions.begin(); it != burst->network->sessions.end(); ++it) {
-		closesocket((*it)->Socket);
-	}
-	burst->network->sessions.clear();
-	LeaveCriticalSection(&burst->locks->sessionsLock);
 
-	EnterCriticalSection(&bhd->locks->sessionsLock);
-	for (auto it = bhd->network->sessions.begin(); it != bhd->network->sessions.end(); ++it) {
-		closesocket((*it)->Socket);
+	for (auto& coin : allcoins)
+		if (coin->network->sender.joinable()) coin->network->sender.join();
+
+	for (auto& coin : allcoins)
+	{
+		EnterCriticalSection(&coin->locks->sessionsLock);
+		for (auto it = coin->network->sessions.begin(); it != coin->network->sessions.end(); ++it) {
+			closesocket((*it)->Socket);
+		}
+		coin->network->sessions.clear();
+		LeaveCriticalSection(&coin->locks->sessionsLock);
 	}
-	bhd->network->sessions.clear();
-	LeaveCriticalSection(&bhd->locks->sessionsLock);
+
 	if (pass != nullptr) HeapFree(hHeap, 0, pass);
 		
-	if (burst->mining->enable || burst->network->enable_proxy) {
-		DeleteCriticalSection(&burst->locks->sessionsLock);
-		DeleteCriticalSection(&burst->locks->sessions2Lock);
-		DeleteCriticalSection(&burst->locks->sharesLock);
-		DeleteCriticalSection(&burst->locks->bestsLock);
-	}
-	if (bhd->mining->enable || bhd->network->enable_proxy) {
-		DeleteCriticalSection(&bhd->locks->sessionsLock);
-		DeleteCriticalSection(&bhd->locks->sessions2Lock);
-		DeleteCriticalSection(&bhd->locks->sharesLock);
-		DeleteCriticalSection(&bhd->locks->bestsLock);
-	}
+	for (auto& coin : allcoins)
+		if (coin->mining->enable || coin->network->enable_proxy) {
+			DeleteCriticalSection(&coin->locks->sessionsLock);
+			DeleteCriticalSection(&coin->locks->sessions2Lock);
+			DeleteCriticalSection(&coin->locks->sharesLock);
+			DeleteCriticalSection(&coin->locks->bestsLock);
+		}
+
 	if (p_minerPath != nullptr) {
 		HeapFree(hHeap, 0, p_minerPath);
 	}
@@ -1040,12 +1034,13 @@ void closeMiner() {
 	worker.~map();
 	worker_progress.~map();
 	paths_dir.~vector();
-	burst->mining->bests.~vector();
-	burst->mining->shares.~vector();
-	burst->network->sessions.~vector();
-	bhd->mining->bests.~vector();
-	bhd->mining->shares.~vector();
-	bhd->network->sessions.~vector();
+
+	for (auto& coin : allcoins)
+	{
+		coin->mining->bests.~vector();
+		coin->mining->shares.~vector();
+		coin->network->sessions.~vector();
+	}
 }
 
 BOOL WINAPI OnConsoleClose(DWORD dwCtrlType)
