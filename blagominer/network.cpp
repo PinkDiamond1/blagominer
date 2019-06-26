@@ -1063,7 +1063,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 					if (ndeadline != sessionX->deadline)
 					{
 						Log(L"Confirmer %s: Calculated and confirmed deadlines don't match. Fast block or corrupted file? Response: %S", confirmerName, find);
-						std::thread{ Csv_Fail, coinInfo->coin, sessionX->body.height, sessionX->body.file_name, sessionX->body.baseTarget,
+						std::thread{ Csv_Fail, coinInfo, sessionX->body.height, sessionX->body.file_name, sessionX->body.baseTarget,
 							4398046511104 / 240 / sessionX->body.baseTarget, sessionX->body.nonce, sessionX->deadline, ndeadline, find }.detach();
 						std::thread{ increaseConflictingDeadline, coinInfo, sessionX->body.height, sessionX->body.file_name }.detach();
 						printToConsole(6, false, false, true, false,
@@ -1074,7 +1074,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 				else {
 					if (answ.HasMember("errorDescription")) {
 						Log(L"Confirmer %s: Deadline %llu sent with error: %S", confirmerName, sessionX->deadline, find);
-						std::thread{ Csv_Fail, coinInfo->coin, sessionX->body.height, sessionX->body.file_name, sessionX->body.baseTarget,
+						std::thread{ Csv_Fail, coinInfo, sessionX->body.height, sessionX->body.file_name, sessionX->body.baseTarget,
 								4398046511104 / 240 / sessionX->body.baseTarget, sessionX->body.nonce, sessionX->deadline, 0, find }.detach();
 						std::thread{ increaseConflictingDeadline, coinInfo, sessionX->body.height, sessionX->body.file_name }.detach();
 						if (sessionX->deadline <= targetDeadlineInfo) {

@@ -878,7 +878,7 @@ void handleProxyOnly(std::shared_ptr<t_coin_info> coin) {
 				toWStr(coin->mining->height, 7).c_str(), toWStr(coin->coinname, 10).c_str(), 0);
 			
 			if (coin->mining->currentBaseTarget != 0) {
-				std::thread{ Csv_Submitted,  coin->coin, coin->mining->currentHeight,
+				std::thread{ Csv_Submitted,  coin, coin->mining->currentHeight,
 					coin->mining->currentBaseTarget, 4398046511104 / 240 / coin->mining->currentBaseTarget,
 					0, true, coin->mining->deadline }.detach();
 			}
@@ -1804,7 +1804,7 @@ int wmain(int argc, wchar_t **argv) {
 				Log(L"New block, no mining has been interrupted.");
 			}
 
-			std::thread{ Csv_Submitted,  miningCoin->coin, miningCoin->mining->currentHeight, miningCoin->mining->currentBaseTarget, 4398046511104 / 240 / miningCoin->mining->currentBaseTarget, thread_time, miningCoin->mining->state == DONE, miningCoin->mining->deadline }.detach();
+			std::thread{ Csv_Submitted,  miningCoin, miningCoin->mining->currentHeight, miningCoin->mining->currentBaseTarget, 4398046511104 / 240 / miningCoin->mining->currentBaseTarget, thread_time, miningCoin->mining->state == DONE, miningCoin->mining->deadline }.detach();
 
 			//prepare for next round if not yet done
 			if (!exit_flag && miningCoin->mining->state != DONE) memcpy(&local_32, &global_32, sizeof(global_32));

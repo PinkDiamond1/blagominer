@@ -96,7 +96,7 @@ void Csv_logFailed(
 }
 
 void Csv_Fail(
-	Coins coin,
+	std::shared_ptr<t_coin_info> coin,
 	const unsigned long long height, const std::string& file, const unsigned long long baseTarget,
 	const unsigned long long netDiff, const unsigned long long nonce, const unsigned long long deadlineSent,
 	const unsigned long long deadlineConfirmed, const std::string& response)
@@ -108,19 +108,11 @@ void Csv_Fail(
 	char timeDate[20];
 	getLocalDateTime(rawtime, timeDate);
 
-	if (coin == BURST)
-		Csv_logFailed(
-			burst, coinlogs[BURST],
-			rawtime, timeDate,
-			height, file.c_str(), baseTarget, netDiff,
-			nonce, deadlineSent, deadlineConfirmed, response.c_str());
-
-	if (coin == BHD)
-		Csv_logFailed(
-			bhd, coinlogs[BHD],
-			rawtime, timeDate,
-			height, file.c_str(), baseTarget, netDiff,
-			nonce, deadlineSent, deadlineConfirmed, response.c_str());
+	Csv_logFailed(
+		coin, coinlogs[coin->coin],
+		rawtime, timeDate,
+		height, file.c_str(), baseTarget, netDiff,
+		nonce, deadlineSent, deadlineConfirmed, response.c_str());
 }
 
 void Csv_logSubmitted(
@@ -150,7 +142,7 @@ void Csv_logSubmitted(
 }
 
 void Csv_Submitted(
-	Coins coin,
+	std::shared_ptr<t_coin_info> coin,
 	const unsigned long long height, const unsigned long long baseTarget, const unsigned long long netDiff,
 	const double roundTime, const bool completedRound, const unsigned long long deadline)
 {
@@ -161,17 +153,9 @@ void Csv_Submitted(
 	char timeDate[20];
 	getLocalDateTime(rawtime, timeDate);
 
-	if (coin == BURST)
-		Csv_logSubmitted(
-			burst, coinlogs[BURST],
-			rawtime, timeDate,
-			height, baseTarget,
-			netDiff, roundTime, completedRound ? "true" : "false", deadline);
-
-	if (coin == BHD)
-		Csv_logSubmitted(
-			bhd, coinlogs[BHD],
-			rawtime, timeDate,
-			height, baseTarget,
-			netDiff, roundTime, completedRound ? "true" : "false", deadline);
+	Csv_logSubmitted(
+		coin, coinlogs[coin->coin],
+		rawtime, timeDate,
+		height, baseTarget,
+		netDiff, roundTime, completedRound ? "true" : "false", deadline);
 }
