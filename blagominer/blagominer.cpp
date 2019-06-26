@@ -1063,6 +1063,47 @@ BOOL WINAPI OnConsoleClose(DWORD dwCtrlType)
 }
 
 
+void initMiningOrProxy(std::shared_ptr<t_coin_info> coin)
+{
+	if (coin->mining->enable || coin->network->enable_proxy) {
+
+		InitializeCriticalSection(&coin->locks->sessionsLock);
+		InitializeCriticalSection(&coin->locks->sessions2Lock);
+		InitializeCriticalSection(&coin->locks->bestsLock);
+		InitializeCriticalSection(&coin->locks->sharesLock);
+		coin->mining->shares.reserve(20);
+		coin->mining->bests.reserve(4);
+		coin->network->sessions.reserve(20);
+		coin->network->sessions2.reserve(20);
+
+		char* updaterip = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50);
+		if (updaterip == nullptr) ShowMemErrorExit();
+		char* nodeip = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50);
+		if (nodeip == nullptr) ShowMemErrorExit();
+		
+		hostname_to_ip(coin->network->nodeaddr.c_str(), nodeip);
+		printToConsole(-1, false, false, true, false, L"%s pool address    %S (ip %S:%S) %S", coin->coinname.c_str(),
+			coin->network->nodeaddr.c_str(), nodeip, coin->network->nodeport.c_str(), ((coin->network->noderoot.length() ? "on /" : "") + coin->network->noderoot).c_str());
+
+		if (coin->network->updateraddr.length() > 3) hostname_to_ip(coin->network->updateraddr.c_str(), updaterip);
+		printToConsole(-1, false, false, true, false, L"%s updater address %S (ip %S:%S) %S", coin->coinname.c_str(),
+			coin->network->updateraddr.c_str(), updaterip, coin->network->updaterport.c_str(), ((coin->network->updaterroot.length() ? "on /" : "") + coin->network->updaterroot).c_str());
+
+		if (updaterip != nullptr) {
+			HeapFree(hHeap, 0, updaterip);
+		}
+		if (nodeip != nullptr) {
+			HeapFree(hHeap, 0, nodeip);
+		}
+
+		RtlSecureZeroMemory(coin->mining->oldSignature, 33);
+		RtlSecureZeroMemory(coin->mining->signature, 33);
+		RtlSecureZeroMemory(coin->mining->currentSignature, 33);
+		RtlSecureZeroMemory(coin->mining->str_signature, 65);
+		RtlSecureZeroMemory(coin->mining->current_str_signature, 65);
+	}
+}
+
 int wmain(int argc, wchar_t **argv) {
 	//init
 	SetConsoleCtrlHandler(OnConsoleClose, TRUE);
@@ -1161,6 +1202,7 @@ int wmain(int argc, wchar_t **argv) {
 		exit(-1);
 	}
 
+	// TODO: add support for similar solo mode to anycoin
 	if ((burst->mining->enable && burst->mining->miner_mode == 0)) GetPass(p_minerPath);
 
 	// адрес и порт сервера
@@ -1173,80 +1215,8 @@ int wmain(int argc, wchar_t **argv) {
 		exit(-1);
 	}
 
-	if (burst->mining->enable || burst->network->enable_proxy) {
-
-		InitializeCriticalSection(&burst->locks->sessionsLock);
-		InitializeCriticalSection(&burst->locks->sessions2Lock);
-		InitializeCriticalSection(&burst->locks->bestsLock);
-		InitializeCriticalSection(&burst->locks->sharesLock);
-		burst->mining->shares.reserve(20);
-		burst->mining->bests.reserve(4);
-		burst->network->sessions.reserve(20);
-		burst->network->sessions2.reserve(20);
-
-		char* updateripBurst = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50);
-		if (updateripBurst == nullptr) ShowMemErrorExit();
-		char* nodeipBurst = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50);
-		if (nodeipBurst == nullptr) ShowMemErrorExit();
-		
-		hostname_to_ip(burst->network->nodeaddr.c_str(), nodeipBurst);
-		printToConsole(-1, false, false, true, false, L"BURST pool address    %S (ip %S:%S) %S",
-			burst->network->nodeaddr.c_str(), nodeipBurst, burst->network->nodeport.c_str(), ((burst->network->noderoot.length() ? "on /" : "") + burst->network->noderoot).c_str());
-
-		if (burst->network->updateraddr.length() > 3) hostname_to_ip(burst->network->updateraddr.c_str(), updateripBurst);
-		printToConsole(-1, false, false, true, false, L"BURST updater address %S (ip %S:%S) %S",
-			burst->network->updateraddr.c_str(), updateripBurst, burst->network->updaterport.c_str(), ((burst->network->updaterroot.length() ? "on /" : "") + burst->network->updaterroot).c_str());
-
-		if (updateripBurst != nullptr) {
-			HeapFree(hHeap, 0, updateripBurst);
-		}
-		if (nodeipBurst != nullptr) {
-			HeapFree(hHeap, 0, nodeipBurst);
-		}
-
-		RtlSecureZeroMemory(burst->mining->oldSignature, 33);
-		RtlSecureZeroMemory(burst->mining->signature, 33);
-		RtlSecureZeroMemory(burst->mining->currentSignature, 33);
-		RtlSecureZeroMemory(burst->mining->str_signature, 65);
-		RtlSecureZeroMemory(burst->mining->current_str_signature, 65);
-	}
-
-	if (bhd->mining->enable || bhd->network->enable_proxy) {
-		InitializeCriticalSection(&bhd->locks->sessionsLock);
-		InitializeCriticalSection(&bhd->locks->sessions2Lock);
-		InitializeCriticalSection(&bhd->locks->bestsLock);
-		InitializeCriticalSection(&bhd->locks->sharesLock);
-		bhd->mining->shares.reserve(20);
-		bhd->mining->bests.reserve(4);
-		bhd->network->sessions.reserve(20);
-		bhd->network->sessions2.reserve(20);
-
-		char* updateripBhd = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50);
-		if (updateripBhd == nullptr) ShowMemErrorExit();
-		char* nodeipBhd = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50);
-		if (nodeipBhd == nullptr) ShowMemErrorExit();
-		
-		hostname_to_ip(bhd->network->nodeaddr.c_str(), nodeipBhd);
-		printToConsole(-1, false, false, true, false, L"BHD pool address    %S (ip %S:%S) %S",
-			bhd->network->nodeaddr.c_str(), nodeipBhd, bhd->network->nodeport.c_str(), ((bhd->network->noderoot.length() ? "on /" : "") + bhd->network->noderoot).c_str());
-
-		if (bhd->network->updateraddr.length() > 3) hostname_to_ip(bhd->network->updateraddr.c_str(), updateripBhd);
-		printToConsole(-1, false, false, true, false, L"BHD updater address %S (ip %S:%S) %S",
-			bhd->network->updateraddr.c_str(), updateripBhd, bhd->network->updaterport.c_str(), ((bhd->network->updaterroot.length() ? "on /" : "") + bhd->network->updaterroot).c_str());
-		
-		if (updateripBhd != nullptr) {
-			HeapFree(hHeap, 0, updateripBhd);
-		}
-		if (nodeipBhd != nullptr) {
-			HeapFree(hHeap, 0, nodeipBhd);
-		}
-
-		RtlSecureZeroMemory(bhd->mining->oldSignature, 33);
-		RtlSecureZeroMemory(bhd->mining->signature, 33);
-		RtlSecureZeroMemory(bhd->mining->currentSignature, 33);
-		RtlSecureZeroMemory(bhd->mining->str_signature, 65);
-		RtlSecureZeroMemory(bhd->mining->current_str_signature, 65);
-	}
+	for (auto& coin : allcoins)
+		initMiningOrProxy(coin);
 	
 	// Инфа по файлам
 	printToConsole(15, false, false, true, false, L"Using plots:");
