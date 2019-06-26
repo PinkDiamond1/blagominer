@@ -95,6 +95,166 @@ bool allDirsDone(std::shared_ptr<t_coin_info> coinInfo) {
 	return true;
 }
 
+struct OrderingByMiningPriority
+{
+	inline bool operator() (const t_coin_info& struct1, const t_coin_info& struct2)
+	{
+		return (struct1.mining->priority < struct2.mining->priority);
+	}
+	inline bool operator() (const std::shared_ptr<t_coin_info>& struct1, const std::shared_ptr<t_coin_info>& struct2)
+	{
+		return (struct1->mining->priority < struct2->mining->priority);
+	}
+};
+
+void loadCoinConfig(Document const & document, std::string section, std::shared_ptr<t_coin_info> coin)
+{
+	if (document.HasMember(section.c_str()) && document[section.c_str()].IsObject())
+	{
+		Log(L"### Loading configuration for %S ###", section.c_str());
+
+		const Value& settings = document[section.c_str()];
+
+		if (settings.HasMember("EnableMining") && (settings["EnableMining"].IsBool()))	coin->mining->enable = settings["EnableMining"].GetBool();
+		Log(L"EnableMining: %d", coin->mining->enable);
+
+		if (settings.HasMember("EnableProxy") && (settings["EnableProxy"].IsBool())) coin->network->enable_proxy = settings["EnableProxy"].GetBool();
+		Log(L"EnableProxy: %d", coin->network->enable_proxy);
+
+		if (coin->mining->enable) {
+			coins.push_back(coin);
+			coin->mining->dirs = {};
+			for (auto &directory : paths_dir) {
+				coin->mining->dirs.push_back(std::make_shared<t_directory_info>(directory, false, std::vector<t_files>()));
+			}
+
+			if (settings.HasMember("Priority") && (settings["Priority"].IsUint())) {
+				coin->mining->priority = settings["Priority"].GetUint();
+			}
+			Log(L"Priority %zu", coin->mining->priority);
+		}
+
+		if (coin->network->enable_proxy) {
+			if (settings.HasMember("ProxyPort"))
+			{
+				if (settings["ProxyPort"].IsString())	coin->network->proxyport = settings["ProxyPort"].GetString();
+				else if (settings["ProxyPort"].IsUint())	coin->network->proxyport = std::to_string(settings["ProxyPort"].GetUint());
+			}
+			Log(L"ProxyPort: %S", coin->network->proxyport.c_str());
+
+			if (settings.HasMember("ProxyUpdateInterval") && (settings["ProxyUpdateInterval"].IsUint())) {
+				coin->network->proxy_update_interval = (size_t)settings["ProxyUpdateInterval"].GetUint();
+			}
+			Log(L"ProxyUpdateInterval: %zu", coin->network->proxy_update_interval);
+
+		}
+
+		if (coin->mining->enable || coin->network->enable_proxy) {
+
+			if (settings.HasMember("Mode") && settings["Mode"].IsString())
+			{
+				if (strcmp(settings["Mode"].GetString(), "solo") == 0) coin->mining->miner_mode = 0;
+				else coin->mining->miner_mode = 1;
+				Log(L"Mode: %zu", coin->mining->miner_mode);
+			}
+
+			if (settings.HasMember("Server") && settings["Server"].IsString())	coin->network->nodeaddr = settings["Server"].GetString();//strcpy_s(nodeaddr, document["Server"].GetString());
+			Log(L"Server: %S", coin->network->nodeaddr.c_str());
+
+			if (settings.HasMember("Port"))
+			{
+				if (settings["Port"].IsString())	coin->network->nodeport = settings["Port"].GetString();
+				else if (settings["Port"].IsUint())	coin->network->nodeport = std::to_string(settings["Port"].GetUint()); //_itoa_s(document["Port"].GetUint(), nodeport, INET_ADDRSTRLEN-1, 10);
+				Log(L"Port %S", coin->network->nodeport.c_str());
+			}
+
+			if (settings.HasMember("RootUrl") && settings["RootUrl"].IsString())	coin->network->noderoot = settings["RootUrl"].GetString();
+			Log(L"RootUrl: %S", coin->network->noderoot.c_str());
+
+			if (settings.HasMember("SubmitTimeout") && (settings["SubmitTimeout"].IsUint())) {
+				coin->network->submitTimeout = (size_t)settings["SubmitTimeout"].GetUint();
+			}
+			Log(L"SubmitTimeout: %zu", coin->network->submitTimeout);
+
+			if (settings.HasMember("UpdaterAddr") && settings["UpdaterAddr"].IsString()) coin->network->updateraddr = settings["UpdaterAddr"].GetString(); //strcpy_s(updateraddr, document["UpdaterAddr"].GetString());
+			Log(L"Updater address: %S", coin->network->updateraddr.c_str());
+
+			if (settings.HasMember("UpdaterPort"))
+			{
+				if (settings["UpdaterPort"].IsString())	coin->network->updaterport = settings["UpdaterPort"].GetString();
+				else if (settings["UpdaterPort"].IsUint())	 coin->network->updaterport = std::to_string(settings["UpdaterPort"].GetUint());
+			}
+			Log(L"Updater port: %S", coin->network->updaterport.c_str());
+
+			if (settings.HasMember("UpdaterRootUrl") && settings["UpdaterRootUrl"].IsString())	coin->network->updaterroot = settings["UpdaterRootUrl"].GetString();
+			Log(L"UpdaterRootUrl: %S", coin->network->updaterroot.c_str());
+
+			if (settings.HasMember("SendInterval") && (settings["SendInterval"].IsUint())) coin->network->send_interval = (size_t)settings["SendInterval"].GetUint();
+			Log(L"SendInterval: %zu", coin->network->send_interval);
+
+			if (settings.HasMember("UpdateInterval") && (settings["UpdateInterval"].IsUint())) coin->network->update_interval = (size_t)settings["UpdateInterval"].GetUint();
+			Log(L"UpdateInterval: %zu", coin->network->update_interval);
+
+			if (settings.HasMember("TargetDeadline") && (settings["TargetDeadline"].IsInt64()))	coin->mining->my_target_deadline = settings["TargetDeadline"].GetUint64();
+			Log(L"TargetDeadline: %llu", coin->mining->my_target_deadline);
+			if (coin->mining->my_target_deadline == 0) {
+				Log(L"TargetDeadline has to be >0.");
+				fprintf(stderr, "TargetDeadline should be greater than 0. Please check your configuration file.");
+				system("pause > nul");
+				exit(-1);
+			}
+
+			if (settings.HasMember("POC2StartBlock") && (settings["POC2StartBlock"].IsUint64())) coin->mining->POC2StartBlock = settings["POC2StartBlock"].GetUint64();
+			Log(L"POC2StartBlock: %llu", coin->mining->POC2StartBlock);
+
+			if (settings.HasMember("UseHTTPS"))
+				if (!settings["UseHTTPS"].IsBool())
+					Log(L"Ignoring 'UseHTTPS': not a boolean");
+				else
+					coin->network->usehttps = settings["UseHTTPS"].GetBool();
+
+			// TODO: refactor as 's = read-extras(s nodename)'
+			coin->network->sendextraquery = "";
+			if (settings.HasMember("ExtraQuery"))
+				if (!settings["ExtraQuery"].IsObject())
+					Log(L"Ignoring 'ExtraQuery': not a json-object");
+				else {
+					auto const& tmp = settings["ExtraQuery"].GetObjectW();
+					for (auto item = tmp.MemberBegin(); item != tmp.MemberEnd(); ++item) {
+						if (!item->value.IsString()) {
+							Log(L"Ignoring 'ExtraQuery/%S': not a string value", item->name.GetString());
+							continue;
+						}
+						coin->network->sendextraquery += "&";
+						coin->network->sendextraquery += item->name.GetString();
+						coin->network->sendextraquery += "=";
+						coin->network->sendextraquery += item->value.GetString();
+						Log(L"ExtraQuery/%S = %S", item->name.GetString(), item->value.GetString());
+					}
+				}
+
+			coin->network->sendextraheader = "";
+			if (settings.HasMember("ExtraHeader"))
+				if (!settings["ExtraHeader"].IsObject())
+					Log(L"Ignoring 'ExtraHeader': not a json-object");
+				else {
+					auto const& tmp = settings["ExtraHeader"].GetObjectW();
+					for (auto item = tmp.MemberBegin(); item != tmp.MemberEnd(); ++item) {
+						if (!item->value.IsString()) {
+							Log(L"Ignoring 'ExtraHeader/%S': not a string value", item->name.GetString());
+							continue;
+						}
+						coin->network->sendextraheader += item->name.GetString();
+						coin->network->sendextraheader += ": ";
+						coin->network->sendextraheader += item->value.GetString();
+						coin->network->sendextraheader += "\r\n";
+						Log(L"ExtraHeader/%S = %S", item->name.GetString(), item->value.GetString());
+					}
+				}
+		}
+	}
+}
+
 int load_config(wchar_t const *const filename)
 {
 	FILE * pFile;
@@ -158,292 +318,11 @@ int load_config(wchar_t const *const filename)
 			}
 		}
 
-		if (document.HasMember("Burst") && document["Burst"].IsObject())
-		{
-			
-			Log(L"### Loading configuration for Burstcoin ###");
-			
-			const Value& settingsBurst = document["Burst"];
-
-			if (settingsBurst.HasMember("EnableMining") && (settingsBurst["EnableMining"].IsBool()))	burst->mining->enable = settingsBurst["EnableMining"].GetBool();
-			Log(L"EnableMining: %d", burst->mining->enable);
-
-			if (settingsBurst.HasMember("EnableProxy") && (settingsBurst["EnableProxy"].IsBool())) burst->network->enable_proxy = settingsBurst["EnableProxy"].GetBool();
-			Log(L"EnableProxy: %d", burst->network->enable_proxy);
-
-			if (burst->mining->enable) {
-				coins.push_back(burst);
-				burst->mining->dirs = {};
-				for (auto &directory : paths_dir) {
-					burst->mining->dirs.push_back(std::make_shared<t_directory_info>(directory, false, std::vector<t_files>()));
-				}
-
-				if (settingsBurst.HasMember("Priority") && (settingsBurst["Priority"].IsUint())) {
-					burst->mining->priority = settingsBurst["Priority"].GetUint();
-				}
-				Log(L"Priority %zu", burst->mining->priority);
-			}
-
-			if (burst->network->enable_proxy) {
-				if (settingsBurst.HasMember("ProxyPort"))
-				{
-					if (settingsBurst["ProxyPort"].IsString())	burst->network->proxyport = settingsBurst["ProxyPort"].GetString();
-					else if (settingsBurst["ProxyPort"].IsUint())	burst->network->proxyport = std::to_string(settingsBurst["ProxyPort"].GetUint());
-				}
-				Log(L"ProxyPort: %S", burst->network->proxyport.c_str());
-
-				if (settingsBurst.HasMember("ProxyUpdateInterval") && (settingsBurst["ProxyUpdateInterval"].IsUint())) {
-					burst->network->proxy_update_interval = (size_t)settingsBurst["ProxyUpdateInterval"].GetUint();
-				}
-				Log(L"ProxyUpdateInterval: %zu", burst->network->proxy_update_interval);
-
-			}
-
-			if (burst->mining->enable || burst->network->enable_proxy) {
-
-				if (settingsBurst.HasMember("Mode") && settingsBurst["Mode"].IsString())
-				{
-					if (strcmp(settingsBurst["Mode"].GetString(), "solo") == 0) burst->mining->miner_mode = 0;
-					else burst->mining->miner_mode = 1;
-					Log(L"Mode: %zu", burst->mining->miner_mode);
-				}
-
-				if (settingsBurst.HasMember("Server") && settingsBurst["Server"].IsString())	burst->network->nodeaddr = settingsBurst["Server"].GetString();//strcpy_s(nodeaddr, document["Server"].GetString());
-				Log(L"Server: %S", burst->network->nodeaddr.c_str());
-
-				if (settingsBurst.HasMember("Port"))
-				{
-					if (settingsBurst["Port"].IsString())	burst->network->nodeport = settingsBurst["Port"].GetString();
-					else if (settingsBurst["Port"].IsUint())	burst->network->nodeport = std::to_string(settingsBurst["Port"].GetUint()); //_itoa_s(document["Port"].GetUint(), nodeport, INET_ADDRSTRLEN-1, 10);
-					Log(L"Port %S", burst->network->nodeport.c_str());
-				}
-
-				if (settingsBurst.HasMember("RootUrl") && settingsBurst["RootUrl"].IsString())	burst->network->noderoot = settingsBurst["RootUrl"].GetString();
-				Log(L"RootUrl: %S", burst->network->noderoot.c_str());
-
-				if (settingsBurst.HasMember("SubmitTimeout") && (settingsBurst["SubmitTimeout"].IsUint())) {
-					burst->network->submitTimeout = (size_t)settingsBurst["SubmitTimeout"].GetUint();
-				}
-				Log(L"SubmitTimeout: %zu", burst->network->submitTimeout);
-
-				if (settingsBurst.HasMember("UpdaterAddr") && settingsBurst["UpdaterAddr"].IsString()) burst->network->updateraddr = settingsBurst["UpdaterAddr"].GetString(); //strcpy_s(updateraddr, document["UpdaterAddr"].GetString());
-				Log(L"Updater address: %S", burst->network->updateraddr.c_str());
-
-				if (settingsBurst.HasMember("UpdaterPort"))
-				{
-					if (settingsBurst["UpdaterPort"].IsString())	burst->network->updaterport = settingsBurst["UpdaterPort"].GetString();
-					else if (settingsBurst["UpdaterPort"].IsUint())	 burst->network->updaterport = std::to_string(settingsBurst["UpdaterPort"].GetUint());
-				}
-				Log(L"Updater port: %S", burst->network->updaterport.c_str());
-
-				if (settingsBurst.HasMember("UpdaterRootUrl") && settingsBurst["UpdaterRootUrl"].IsString())	burst->network->updaterroot = settingsBurst["UpdaterRootUrl"].GetString();
-				Log(L"UpdaterRootUrl: %S", burst->network->updaterroot.c_str());
-
-				if (settingsBurst.HasMember("SendInterval") && (settingsBurst["SendInterval"].IsUint())) burst->network->send_interval = (size_t)settingsBurst["SendInterval"].GetUint();
-				Log(L"SendInterval: %zu", burst->network->send_interval);
-
-				if (settingsBurst.HasMember("UpdateInterval") && (settingsBurst["UpdateInterval"].IsUint())) burst->network->update_interval = (size_t)settingsBurst["UpdateInterval"].GetUint();
-				Log(L"UpdateInterval: %zu", burst->network->update_interval);
-
-				if (settingsBurst.HasMember("TargetDeadline") && (settingsBurst["TargetDeadline"].IsInt64()))	burst->mining->my_target_deadline = settingsBurst["TargetDeadline"].GetUint64();
-				Log(L"TargetDeadline: %llu", burst->mining->my_target_deadline);
-				if (burst->mining->my_target_deadline == 0) {
-					Log(L"TargetDeadline has to be >0.");
-					fprintf(stderr, "TargetDeadline should be greater than 0. Please check your configuration file.");
-					system("pause > nul");
-					exit(-1);
-				}
-
-				if (settingsBurst.HasMember("POC2StartBlock") && (settingsBurst["POC2StartBlock"].IsUint64())) burst->mining->POC2StartBlock = settingsBurst["POC2StartBlock"].GetUint64();
-				Log(L"POC2StartBlock: %llu", burst->mining->POC2StartBlock);
-
-				if (settingsBurst.HasMember("UseHTTPS"))
-					if (!settingsBurst["UseHTTPS"].IsBool())
-						Log(L"Ignoring 'UseHTTPS': not a boolean");
-					else
-						burst->network->usehttps = settingsBurst["UseHTTPS"].GetBool();
-
-				// TODO: refactor as 's = read-extras(s nodename)'
-				burst->network->sendextraquery = "";
-				if (settingsBurst.HasMember("ExtraQuery"))
-					if (!settingsBurst["ExtraQuery"].IsObject())
-						Log(L"Ignoring 'ExtraQuery': not a json-object");
-					else {
-						auto const& tmp = settingsBurst["ExtraQuery"].GetObjectW();
-						for (auto item = tmp.MemberBegin(); item != tmp.MemberEnd(); ++item) {
-							if (!item->value.IsString()) {
-								Log(L"Ignoring 'ExtraQuery/%S': not a string value", item->name.GetString());
-								continue;
-							}
-							burst->network->sendextraquery += "&";
-							burst->network->sendextraquery += item->name.GetString();
-							burst->network->sendextraquery += "=";
-							burst->network->sendextraquery += item->value.GetString();
-							Log(L"ExtraQuery/%S = %S", item->name.GetString(), item->value.GetString());
-						}
-					}
-
-				burst->network->sendextraheader = "";
-				if (settingsBurst.HasMember("ExtraHeader"))
-					if (!settingsBurst["ExtraHeader"].IsObject())
-						Log(L"Ignoring 'ExtraHeader': not a json-object");
-					else {
-						auto const& tmp = settingsBurst["ExtraHeader"].GetObjectW();
-						for (auto item = tmp.MemberBegin(); item != tmp.MemberEnd(); ++item) {
-							if (!item->value.IsString()) {
-								Log(L"Ignoring 'ExtraHeader/%S': not a string value", item->name.GetString());
-								continue;
-							}
-							burst->network->sendextraheader += item->name.GetString();
-							burst->network->sendextraheader += ": ";
-							burst->network->sendextraheader += item->value.GetString();
-							burst->network->sendextraheader += "\r\n";
-							Log(L"ExtraHeader/%S = %S", item->name.GetString(), item->value.GetString());
-						}
-					}
-			}
-		}
+		loadCoinConfig(document, "Burst", burst);
+		loadCoinConfig(document, "BHD", bhd);
+		std::sort(coins.begin(), coins.end(), OrderingByMiningPriority());
 
 
-		if (document.HasMember("BHD") && document["BHD"].IsObject())
-		{
-			Log(L"### Loading configuration for Bitcoin HD ###");
-			
-			const Value& settingsBhd = document["BHD"];
-
-			if (settingsBhd.HasMember("EnableMining") && (settingsBhd["EnableMining"].IsBool()))	bhd->mining->enable = settingsBhd["EnableMining"].GetBool();
-			Log(L"EnableMining: %d", bhd->mining->enable);
-
-			if (settingsBhd.HasMember("EnableProxy") && (settingsBhd["EnableProxy"].IsBool())) bhd->network->enable_proxy = settingsBhd["EnableProxy"].GetBool();
-			Log(L"EnableProxy: %d", bhd->network->enable_proxy);
-
-			if (bhd->mining->enable) {
-				bhd->mining->dirs = {};
-				for (auto directory : paths_dir) {
-					bhd->mining->dirs.push_back(std::make_shared<t_directory_info>(directory, false, std::vector<t_files>()));
-				}
-
-				if (settingsBhd.HasMember("Priority") && (settingsBhd["Priority"].IsUint())) {
-					bhd->mining->priority = settingsBhd["Priority"].GetUint();
-				}
-				Log(L"Priority: %zu", bhd->mining->priority);
-
-				if ((burst->mining->enable) && bhd->mining->priority >= burst->mining->priority) {
-					coins.push_back(bhd);
-				}
-				else {
-					coins.insert(coins.begin(), bhd);
-				}
-			}
-
-			if (bhd->network->enable_proxy) {
-				if (settingsBhd.HasMember("ProxyPort"))
-				{
-					if (settingsBhd["ProxyPort"].IsString())	bhd->network->proxyport = settingsBhd["ProxyPort"].GetString();
-					else if (settingsBhd["ProxyPort"].IsUint())	bhd->network->proxyport = std::to_string(settingsBhd["ProxyPort"].GetUint());
-				}
-				Log(L"ProxyPort: %S", bhd->network->proxyport.c_str());
-
-				if (settingsBhd.HasMember("ProxyUpdateInterval") && (settingsBhd["ProxyUpdateInterval"].IsUint())) {
-					bhd->network->proxy_update_interval = (size_t)settingsBhd["ProxyUpdateInterval"].GetUint();
-				}
-				Log(L"ProxyUpdateInterval: %zu", bhd->network->proxy_update_interval);
-			}
-
-			if (bhd->mining->enable || bhd->network->enable_proxy) {
-				if (settingsBhd.HasMember("Server") && settingsBhd["Server"].IsString())	bhd->network->nodeaddr = settingsBhd["Server"].GetString();//strcpy_s(nodeaddr, document["Server"].GetString());
-				Log(L"Server: %S", bhd->network->nodeaddr.c_str());
-
-				if (settingsBhd.HasMember("Port"))
-				{
-					if (settingsBhd["Port"].IsString())	bhd->network->nodeport = settingsBhd["Port"].GetString();
-					else if (settingsBhd["Port"].IsUint())	bhd->network->nodeport = std::to_string(settingsBhd["Port"].GetUint()); //_itoa_s(document["Port"].GetUint(), nodeport, INET_ADDRSTRLEN-1, 10);
-					Log(L"Port: %S", bhd->network->nodeport.c_str());
-				}
-
-				if (settingsBhd.HasMember("RootUrl") && settingsBhd["RootUrl"].IsString())	bhd->network->noderoot = settingsBhd["RootUrl"].GetString();
-				Log(L"RootUrl: %S", bhd->network->noderoot.c_str());
-
-				if (settingsBhd.HasMember("SubmitTimeout") && (settingsBhd["SubmitTimeout"].IsUint())) {
-					bhd->network->submitTimeout = (size_t)settingsBhd["SubmitTimeout"].GetUint();
-				}
-				Log(L"SubmitTimeout: %zu", bhd->network->submitTimeout);
-
-				if (settingsBhd.HasMember("UpdaterAddr") && settingsBhd["UpdaterAddr"].IsString()) bhd->network->updateraddr = settingsBhd["UpdaterAddr"].GetString(); //strcpy_s(updateraddr, document["UpdaterAddr"].GetString());
-				Log(L"Updater address: %S", bhd->network->updateraddr.c_str());
-
-				if (settingsBhd.HasMember("UpdaterPort"))
-				{
-					if (settingsBhd["UpdaterPort"].IsString())	bhd->network->updaterport = settingsBhd["UpdaterPort"].GetString();
-					else if (settingsBhd["UpdaterPort"].IsUint())	 bhd->network->updaterport = std::to_string(settingsBhd["UpdaterPort"].GetUint());
-				}
-				Log(L"Updater port: %S", bhd->network->updaterport.c_str());
-
-				if (settingsBhd.HasMember("UpdaterRootUrl") && settingsBhd["UpdaterRootUrl"].IsString())	bhd->network->updaterroot = settingsBhd["UpdaterRootUrl"].GetString();
-				Log(L"UpdaterRootUrl: %S", bhd->network->updaterroot.c_str());
-
-				if (settingsBhd.HasMember("SendInterval") && (settingsBhd["SendInterval"].IsUint())) bhd->network->send_interval = (size_t)settingsBhd["SendInterval"].GetUint();
-				Log(L"SendInterval: %zu", bhd->network->send_interval);
-
-				if (settingsBhd.HasMember("UpdateInterval") && (settingsBhd["UpdateInterval"].IsUint())) bhd->network->update_interval = (size_t)settingsBhd["UpdateInterval"].GetUint();
-				Log(L"UpdateInterval: %zu", bhd->network->update_interval);
-
-				if (settingsBhd.HasMember("TargetDeadline") && (settingsBhd["TargetDeadline"].IsInt64()))	bhd->mining->my_target_deadline = settingsBhd["TargetDeadline"].GetUint64();
-				Log(L"TargetDeadline: %llu", bhd->mining->my_target_deadline);
-				if (bhd->mining->my_target_deadline == 0) {
-					Log(L"TargetDeadline has to be >0.");
-					fprintf(stderr, "TargetDeadline should be greater than 0. Please check your configuration file.");
-					system("pause > nul");
-					exit(-1);
-				}
-
-				if (settingsBhd.HasMember("UseHTTPS"))
-					if (!settingsBhd["UseHTTPS"].IsBool())
-						Log(L"Ignoring 'UseHTTPS': not a boolean");
-					else
-						bhd->network->usehttps = settingsBhd["UseHTTPS"].GetBool();
-
-				// TODO: refactor as 's = read-extras(s nodename)'
-				bhd->network->sendextraquery = "";
-				if (settingsBhd.HasMember("ExtraQuery"))
-					if (!settingsBhd["ExtraQuery"].IsObject())
-						Log(L"Ignoring 'ExtraQuery': not a json-object");
-					else {
-						auto const& tmp = settingsBhd["ExtraQuery"].GetObjectW();
-						for (auto item = tmp.MemberBegin(); item != tmp.MemberEnd(); ++item) {
-							if (!item->value.IsString()) {
-								Log(L"Ignoring 'ExtraQuery/%S': not a string value", item->name.GetString());
-								continue;
-							}
-							bhd->network->sendextraquery += "&";
-							bhd->network->sendextraquery += item->name.GetString();
-							bhd->network->sendextraquery += "=";
-							bhd->network->sendextraquery += item->value.GetString();
-							Log(L"ExtraQuery/%S = %S", item->name.GetString(), item->value.GetString());
-						}
-					}
-
-				bhd->network->sendextraheader = "";
-				if (settingsBhd.HasMember("ExtraHeader"))
-					if (!settingsBhd["ExtraHeader"].IsObject())
-						Log(L"Ignoring 'ExtraHeader': not a json-object");
-					else {
-						auto const& tmp = settingsBhd["ExtraHeader"].GetObjectW();
-						for (auto item = tmp.MemberBegin(); item != tmp.MemberEnd(); ++item) {
-							if (!item->value.IsString()) {
-								Log(L"Ignoring 'ExtraHeader/%S': not a string value", item->name.GetString());
-								continue;
-							}
-							bhd->network->sendextraheader += item->name.GetString();
-							bhd->network->sendextraheader += ": ";
-							bhd->network->sendextraheader += item->value.GetString();
-							bhd->network->sendextraheader += "\r\n";
-							Log(L"ExtraHeader/%S = %S", item->name.GetString(), item->value.GetString());
-						}
-					}
-			}
-		}
-				
 		Log(L"### Loading general configuration ###");
 
 		if (document.HasMember("CacheSize") && (document["CacheSize"].IsUint64())) {
