@@ -630,7 +630,7 @@ void GetPass(char const *const p_strFolderPath)
 
 
 
-size_t GetFiles(const std::string &str, std::vector <t_files> *p_files, bool* bfsDetected)
+size_t GetFiles(std::string str, std::vector <t_files> *p_files, bool* bfsDetected, bool forActualFileReading)
 {
 	HANDLE hFile = INVALID_HANDLE_VALUE;
 	WIN32_FIND_DATAA   FindFileData;
@@ -638,6 +638,9 @@ size_t GetFiles(const std::string &str, std::vector <t_files> *p_files, bool* bf
 	std::vector<std::string> path;
 	size_t first = 0;
 	size_t last = 0;
+
+	bool useSmartFileOrdering = str.size() > 0 && str[0] == '@';
+	if (useSmartFileOrdering) str = str.substr(1);
 
 	//parse path info
 	do {
@@ -716,11 +719,15 @@ size_t GetFiles(const std::string &str, std::vector <t_files> *p_files, bool* bf
 								unsigned long long key, nonce, nonces, stagger;
 								if (sscanf_s(FindFileData.cFileName, "%llu_%llu_%llu_%llu", &key, &nonce, &nonces, &stagger) == 4)
 								{
-									std::string tmp = *iter + FindFileData.cFileName;
-									std::wstring wide = std::wstring(tmp.begin(), tmp.end());
-									std::wstring drive = wide.size() > 2 && wide[1] == L':' ? wide.substr(0, 2) : L"";
 									long long volpos;
-									if (drive.empty() || 0 != determineNtfsFilePosition(volpos, drive, wide)) volpos = 0;
+									if (forActualFileReading && useSmartFileOrdering)
+									{
+										std::string tmp = *iter + FindFileData.cFileName;
+										std::wstring wide = std::wstring(tmp.begin(), tmp.end());
+										std::wstring drive = wide.size() > 2 && wide[1] == L':' ? wide.substr(0, 2) : L"";
+										if (drive.empty() || 0 != determineNtfsFilePosition(volpos, drive, wide))
+											volpos = 0;
+									}
 
 									bool p2 = false;
 									p_files->push_back({
@@ -740,11 +747,15 @@ size_t GetFiles(const std::string &str, std::vector <t_files> *p_files, bool* bf
 							unsigned long long key, nonce, nonces;
 							if (sscanf_s(FindFileData.cFileName, "%llu_%llu_%llu", &key, &nonce, &nonces) == 3)
 							{
-								std::string tmp = *iter + FindFileData.cFileName;
-								std::wstring wide = std::wstring(tmp.begin(), tmp.end());
-								std::wstring drive = wide.size() > 2 && wide[1] == L':' ? wide.substr(0, 2) : L"";
-								long long volpos;
-								if (drive.empty() || 0 != determineNtfsFilePosition(volpos, drive, wide)) volpos = 0;
+								long long volpos = 0;
+								if (forActualFileReading && useSmartFileOrdering)
+								{
+									std::string tmp = *iter + FindFileData.cFileName;
+									std::wstring wide = std::wstring(tmp.begin(), tmp.end());
+									std::wstring drive = wide.size() > 2 && wide[1] == L':' ? wide.substr(0, 2) : L"";
+									if (drive.empty() || 0 != determineNtfsFilePosition(volpos, drive, wide))
+										volpos = 0;
+								}
 
 								bool p2 = true;
 								p_files->push_back({
@@ -765,7 +776,10 @@ size_t GetFiles(const std::string &str, std::vector <t_files> *p_files, bool* bf
 			}
 		}
 	}
-	std::sort(p_files->begin(), p_files->end(), OrderingByPositionOnSequentialMedia());
+
+	if(forActualFileReading && useSmartFileOrdering)
+		std::sort(p_files->begin(), p_files->end(), OrderingByPositionOnSequentialMedia());
+
 	return count;
 }
 
@@ -960,7 +974,7 @@ unsigned long long getPlotFilesSize(std::vector<std::string>& directories, bool 
 	unsigned long long size = 0;
 	for (auto iter = directories.begin(); iter != directories.end(); ++iter) {
 		std::vector<t_files> files;
-		GetFiles(*iter, &files, &bfsDetected);
+		GetFiles(*iter, &files, &bfsDetected, false);
 
 		unsigned long long tot_size = 0;
 		for (auto it = files.begin(); it != files.end(); ++it) {
@@ -1735,7 +1749,7 @@ int wmain(int argc, wchar_t **argv) {
 						{
 							bool dummyvar;
 							std::vector<t_files> tmp_files;
-							for (size_t i = 0; i < paths_dir.size(); i++)		GetFiles(paths_dir[i], &tmp_files, &dummyvar);
+							for (size_t i = 0; i < paths_dir.size(); i++)		GetFiles(paths_dir[i], &tmp_files, &dummyvar, false);
 							if (use_debug)
 							{
 								printToConsole(7, true, false, true, false, L"HDD, WAKE UP !");
