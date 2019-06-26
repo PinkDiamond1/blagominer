@@ -44,39 +44,30 @@ std::vector<std::string> paths_dir; // ïóòè
 
 sph_shabal_context  local_32;
 
-void init_mining_info() {
+void init_mining_info(std::shared_ptr<t_coin_info> coin, Coins code, std::wstring name, size_t priority, unsigned long long poc2start)
+{
+	coin->coin = code;
+	coin->coinname = name;
+	coin->locks = std::make_shared<t_locks>();
+	coin->mining = std::make_shared<t_mining_info>();
 
-	burst->mining = std::make_shared<t_mining_info>();
-	burst->coin = BURST;
-	burst->coinname = L"Burstcoin";
-	burst->locks = std::make_shared<t_locks>();
-	burst->mining->miner_mode = 0;
-	burst->mining->priority = 0;
-	burst->mining->state = DONE;
-	burst->mining->baseTarget = 0;
-	burst->mining->height = 0;
-	burst->mining->deadline = 0;
-	burst->mining->scoop = 0;
-	burst->mining->enable = true;
-	burst->mining->my_target_deadline = MAXDWORD; // 4294967295;
-	burst->mining->POC2StartBlock = 502000;
-	burst->mining->dirs = std::vector<std::shared_ptr<t_directory_info>>();
+	coin->mining->miner_mode = 1;
+	coin->mining->priority = priority;
+	coin->mining->state = DONE;
+	coin->mining->baseTarget = 0;
+	coin->mining->height = 0;
+	coin->mining->deadline = 0;
+	coin->mining->scoop = 0;
+	coin->mining->enable = true;
+	coin->mining->my_target_deadline = MAXDWORD; // 4294967295;
+	coin->mining->POC2StartBlock = poc2start;
+	coin->mining->dirs = std::vector<std::shared_ptr<t_directory_info>>();
+}
 
-	bhd->mining = std::make_shared<t_mining_info>();
-	bhd->coin = BHD;
-	bhd->coinname = L"Bitcoin HD";
-	bhd->locks = std::make_shared<t_locks>();
-	bhd->mining->miner_mode = 1;
-	bhd->mining->priority = 1;
-	bhd->mining->state = DONE;
-	bhd->mining->baseTarget = 0;
-	bhd->mining->height = 0;
-	bhd->mining->deadline = 0;
-	bhd->mining->scoop = 0;
-	bhd->mining->enable = false;
-	bhd->mining->my_target_deadline = MAXDWORD; // 4294967295;
-	bhd->mining->POC2StartBlock = 0;
-	bhd->mining->dirs = std::vector<std::shared_ptr<t_directory_info>>();
+void init_mining_info()
+{
+	init_mining_info(burst, BURST, L"Burstcoin", 0, 502000);
+	init_mining_info(bhd, BHD, L"Bitcoin HD", 1, 0);
 }
 
 void init_logging_config() {
