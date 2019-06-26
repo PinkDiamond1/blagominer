@@ -125,8 +125,8 @@ int determineNtfsFilePosition(LONGLONG& result, std::wstring drive, std::wstring
 
 	HANDLE volumeHandle = CreateFile(
 		szVolumeHandleName.c_str(),
-		GENERIC_READ | GENERIC_WRITE,
-		FILE_SHARE_READ | FILE_SHARE_WRITE,
+		GENERIC_EXECUTE,
+		FILE_SHARE_READ,
 		NULL,
 		OPEN_EXISTING,
 		FILE_ATTRIBUTE_NORMAL,
