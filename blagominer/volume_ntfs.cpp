@@ -60,7 +60,10 @@ int determineNtfsFilePosition(LONGLONG& result, std::wstring drive, std::wstring
 		FILE_ATTRIBUTE_NORMAL,
 		NULL);
 	if (INVALID_HANDLE_VALUE == hFile)
+	{
+		Log(L"error: Cannot open file: %s, for %s", ShowError(GetLastError()), szFileName.c_str());
 		return -1;
+	}
 
 	// Buffer to hold the extents info
 	PRETRIEVAL_POINTERS_BUFFER lpRetrievalPointersBuffer =
@@ -89,7 +92,7 @@ int determineNtfsFilePosition(LONGLONG& result, std::wstring drive, std::wstring
 		&dwBytesReturned,
 		NULL))
 	{
-		wprintf(L"%s\n", ShowError(GetLastError()));
+		Log(L"error: Cannot check file pointers: %s, for %s", ShowError(GetLastError()), szFileName.c_str());
 		return -1;
 	}
 	CloseHandle(hFile);
@@ -101,6 +104,7 @@ int determineNtfsFilePosition(LONGLONG& result, std::wstring drive, std::wstring
 		&dwNumberFreeClusters,
 		&dwTotalNumberClusters))
 	{
+		Log(L"error: Cannot check drive geometry: %s, for %s", ShowError(GetLastError()), szDrive.c_str());
 		return -1;
 	}
 	dwClusterSizeInBytes = dwSectorsPerCluster * dwBytesPerSector;
@@ -114,7 +118,10 @@ int determineNtfsFilePosition(LONGLONG& result, std::wstring drive, std::wstring
 		&dwFileSystemFlags,
 		szFileSystemName,
 		32))
+	{
+		Log(L"error: Cannot check volume information: %s, for %s on %s", ShowError(GetLastError()), szVolumeName, szDrive.c_str());
 		return -1;
+	}
 
 	HANDLE volumeHandle = CreateFile(
 		szVolumeHandleName.c_str(),
@@ -126,7 +133,10 @@ int determineNtfsFilePosition(LONGLONG& result, std::wstring drive, std::wstring
 		NULL);
 
 	if (volumeHandle == INVALID_HANDLE_VALUE)
+	{
+		Log(L"error: Cannot open volume: %s, for %s", ShowError(GetLastError()), szVolumeHandleName.c_str());
 		return -1;
+	}
 
 	else if (wcscmp(szFileSystemName, L"NTFS") == 0)
 	{
@@ -141,6 +151,7 @@ int determineNtfsFilePosition(LONGLONG& result, std::wstring drive, std::wstring
 			&dwBytesReturned,
 			NULL))
 		{
+			Log(L"error: Logical position analysis failed: %s, for: %s", ShowError(GetLastError()), szFileName.c_str());
 			CloseHandle(volumeHandle);
 			return -1;
 		}
@@ -149,13 +160,13 @@ int determineNtfsFilePosition(LONGLONG& result, std::wstring drive, std::wstring
 		PhysicalOffsetReturnValue.QuadPart += VolumePhysicalOffsets.PhysicalOffset[0].Offset;
 		if (PhysicalOffsetReturnValue.QuadPart == -1)
 		{
-			wprintf(L"%s analysis filed, offset == -1\n", szFileSystemName);
+			Log(L"error: Physical file position analysis failed: %s, for: %s", ShowError(GetLastError()), szFileName.c_str());
 			return  -1;
 		}
 		else
 		{
-			//wprintf(L"%s starts at 0x%x%x from beginning of the disk\n\n",
-			//	szFileName,
+			//Log(L"%s starts at 0x%08x%08x from beginning of the disk",
+			//	szFileName.c_str(),
 			//	PhysicalOffsetReturnValue.HighPart,
 			//	PhysicalOffsetReturnValue.LowPart);
 			result = PhysicalOffsetReturnValue.QuadPart;
@@ -164,7 +175,7 @@ int determineNtfsFilePosition(LONGLONG& result, std::wstring drive, std::wstring
 	}
 	else
 	{
-		wprintf(L"%s File system NOT supported\n", szFileSystemName);
+		Log(L"error: File system NOT supported: %s", szFileSystemName);
 		return  -1;
 	}
 }
