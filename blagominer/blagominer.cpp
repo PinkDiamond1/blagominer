@@ -710,6 +710,10 @@ void newRound(std::shared_ptr<t_coin_info > coinCurrentlyMining) {
 		closesocket((*it)->Socket);
 	}
 	coinCurrentlyMining->network->sessions.clear();
+	for (auto it = coinCurrentlyMining->network->sessions2.begin(); it != coinCurrentlyMining->network->sessions2.end(); ++it) {
+		curl_easy_cleanup((*it)->curl);
+	}
+	coinCurrentlyMining->network->sessions2.clear();
 	LeaveCriticalSection(&coinCurrentlyMining->locks->sessionsLock);
 
 	EnterCriticalSection(&coinCurrentlyMining->locks->sharesLock);
@@ -1008,6 +1012,10 @@ void closeMiner() {
 			closesocket((*it)->Socket);
 		}
 		coin->network->sessions.clear();
+		for (auto it = coin->network->sessions2.begin(); it != coin->network->sessions2.end(); ++it) {
+			curl_easy_cleanup((*it)->curl);
+		}
+		coin->network->sessions2.clear();
 		LeaveCriticalSection(&coin->locks->sessionsLock);
 	}
 
@@ -1040,6 +1048,7 @@ void closeMiner() {
 		coin->mining->bests.~vector();
 		coin->mining->shares.~vector();
 		coin->network->sessions.~vector();
+		coin->network->sessions2.~vector();
 	}
 }
 
@@ -1164,6 +1173,7 @@ int wmain(int argc, wchar_t **argv) {
 		burst->mining->shares.reserve(20);
 		burst->mining->bests.reserve(4);
 		burst->network->sessions.reserve(20);
+		burst->network->sessions2.reserve(20);
 
 		char* updateripBurst = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50);
 		if (updateripBurst == nullptr) ShowMemErrorExit();
@@ -1200,6 +1210,7 @@ int wmain(int argc, wchar_t **argv) {
 		bhd->mining->shares.reserve(20);
 		bhd->mining->bests.reserve(4);
 		bhd->network->sessions.reserve(20);
+		bhd->network->sessions2.reserve(20);
 
 		char* updateripBhd = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50);
 		if (updateripBhd == nullptr) ShowMemErrorExit();
