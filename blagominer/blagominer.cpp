@@ -303,13 +303,30 @@ int load_config(wchar_t const *const filename)
 			}
 		}
 
-		allcoins = { std::make_shared<t_coin_info>(), std::make_shared<t_coin_info>() };
-		init_mining_info(allcoins[0], BURST, L"Burstcoin", 0, 502000);
-		init_mining_info(allcoins[1], BHD, L"Bitcoin HD", 1, 0);
-		init_coinNetwork(allcoins[0]);
-		init_coinNetwork(allcoins[1]);
-		loadCoinConfig(document, "Burst", allcoins[0]);
-		loadCoinConfig(document, "BHD", allcoins[1]);
+
+		Log(L"### Loading coins configuration ###");
+
+		allcoins = { };
+		std::vector<std::string> coinConfigNodes;
+		for (auto item = document.MemberBegin(); item != document.MemberEnd(); ++item)
+		{
+			auto cstrName = item->name.GetString();
+			if (strstr(cstrName, "coin:") == cstrName)
+				coinConfigNodes.push_back(item->name.GetString());
+		}
+
+		std::transform(coinConfigNodes.begin(), coinConfigNodes.end(), std::back_inserter(allcoins), [&](auto&& coinNodeName) {
+			std::wstring coinWideName(coinNodeName.begin() + 5, coinNodeName.end()); // +5 to skip "coin:" prefix
+			bool isBurst = coinNodeName.find("burst") || coinNodeName.find("Burst") || coinNodeName.find("BURST");
+
+			auto coin = std::make_shared<t_coin_info>();
+			init_mining_info(coin, isBurst ? BURST : BHD, coinWideName.c_str(), isBurst ? 0 : 1, isBurst ? 502000 : 0);
+			init_coinNetwork(coin);
+			loadCoinConfig(document, coinNodeName, coin);
+
+			return coin;
+		});
+
 		std::sort(coins.begin(), coins.end(), OrderingByMiningPriority());
 
 
