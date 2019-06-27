@@ -176,6 +176,9 @@ struct t_coin_info {
 	std::shared_ptr<t_mining_info> mining;
 	std::shared_ptr<t_network_info> network;
 	std::shared_ptr<t_locks> locks;
+	std::thread proxyThread;
+	std::thread updaterThread;
+	std::thread proxyOnlyThread;
 };
 
 
