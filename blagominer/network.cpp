@@ -23,12 +23,6 @@ void init_coinNetwork(std::shared_ptr<t_coin_info> coin)
 	coin->network->network_quality = -1;
 }
 
-void init_network_info()
-{
-	for (auto& coin : allcoins)
-		init_coinNetwork(coin);
-}
-
 void hostname_to_ip(char const *const  in_addr, char* out_addr)
 {
 	struct addrinfo *result = nullptr;

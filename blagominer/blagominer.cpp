@@ -13,8 +13,6 @@ std::thread updateChecker;
 
 const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
 
-std::shared_ptr<t_coin_info> burst = std::make_shared<t_coin_info>();
-std::shared_ptr<t_coin_info> bhd = std::make_shared<t_coin_info>();
 t_logging loggingConfig = {};
 
 std::vector<std::shared_ptr<t_coin_info>> allcoins;
@@ -55,12 +53,6 @@ void init_mining_info(std::shared_ptr<t_coin_info> coin, Coins code, std::wstrin
 	coin->mining->my_target_deadline = MAXDWORD; // 4294967295;
 	coin->mining->POC2StartBlock = poc2start;
 	coin->mining->dirs = std::vector<std::shared_ptr<t_directory_info>>();
-}
-
-void init_mining_info()
-{
-	init_mining_info(burst, BURST, L"Burstcoin", 0, 502000);
-	init_mining_info(bhd, BHD, L"Bitcoin HD", 1, 0);
 }
 
 void init_logging_config() {
@@ -311,8 +303,13 @@ int load_config(wchar_t const *const filename)
 			}
 		}
 
-		loadCoinConfig(document, "Burst", burst);
-		loadCoinConfig(document, "BHD", bhd);
+		allcoins = { std::make_shared<t_coin_info>(), std::make_shared<t_coin_info>() };
+		init_mining_info(allcoins[0], BURST, L"Burstcoin", 0, 502000);
+		init_mining_info(allcoins[1], BHD, L"Bitcoin HD", 1, 0);
+		init_coinNetwork(allcoins[0]);
+		init_coinNetwork(allcoins[1]);
+		loadCoinConfig(document, "Burst", allcoins[0]);
+		loadCoinConfig(document, "BHD", allcoins[1]);
 		std::sort(coins.begin(), coins.end(), OrderingByMiningPriority());
 
 
@@ -1178,10 +1175,6 @@ int wmain(int argc, wchar_t **argv) {
 	curl_global_init(CURL_GLOBAL_DEFAULT);
 
 	// Initialize configuration.
-	allcoins = { burst, bhd };
-	init_mining_info();
-	init_network_info();
-
 	init_logging_config();
 
 	//load config

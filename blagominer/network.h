@@ -12,7 +12,7 @@
 
 #include "picohttpparser.h"
 
-void init_network_info();
+void init_coinNetwork(std::shared_ptr<t_coin_info> coin);
 
 bool pollLocal(std::shared_ptr<t_coin_info> coinInfo);
 
