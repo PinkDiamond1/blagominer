@@ -1283,42 +1283,50 @@ int wmain(int argc, wchar_t **argv) {
 	}
 
 	// Run Proxy
-	if (burst->network->enable_proxy)
-	{
-		proxyBurst = std::thread(proxy_i, burst);
-		printToConsole(25, false, false, false, true, L"Burstcoin proxy thread started");
-	}
+	for (auto& coin : allcoins)
+		if (coin->network->enable_proxy)
+		{
+			switch (coin->coin)
+			{
+				case BURST: proxyBurst = std::thread(proxy_i, burst); break;
+				case BHD: proxyBhd = std::thread(proxy_i, bhd); break;
+			}
+			if (coin->coin <= BHD)
+				printToConsole(25, false, false, false, true, L"%s proxy thread started", coin->coinname.c_str());
+		}
 
-	if (bhd->network->enable_proxy)
-	{
-		proxyBhd = std::thread(proxy_i, bhd);
-		printToConsole(25, false, false, false, true, L"Bitcoin HD proxy thread started");
-	}
-
+	// Run version checker
 	if (checkForUpdateInterval > 0) {
 		updateChecker = std::thread(checkForUpdate);
 	}
 
-	// Run updater;
-	if (burst->mining->enable || burst->network->enable_proxy)
-	{
-		updaterBurst = std::thread(updater_i, burst);
-		Log(L"BURST updater thread started");
-	}
-	if (bhd->mining->enable || bhd->network->enable_proxy)
-	{
-		updaterBhd = std::thread(updater_i, bhd);
-		Log(L"BHD updater thread started");
-	}	
+	// Run updater
+	for (auto& coin : allcoins)
+		if (coin->mining->enable || coin->network->enable_proxy)
+		{
+			switch (coin->coin)
+			{
+				case BURST: updaterBurst = std::thread(updater_i, burst); break;
+				case BHD: updaterBhd = std::thread(updater_i, bhd); break;
+			}
+			if (coin->coin <= BHD)
+				printToConsole(25, false, false, false, true, L"%s updater thread started", coin->coinname.c_str());
+		}
 
 	std::vector<std::shared_ptr<t_coin_info>> queue;
 
-	if (!burst->mining->enable && burst->network->enable_proxy) {
-		proxyOnlyBurst = std::thread(handleProxyOnly, burst);
-	}
-	if (!bhd->mining->enable && bhd->network->enable_proxy) {
-		proxyOnlyBhd = std::thread(handleProxyOnly, bhd);
-	}
+	// Run proxy-only
+	for (auto& coin : allcoins)
+		if (!coin->mining->enable && coin->network->enable_proxy)
+		{
+			switch (coin->coin)
+			{
+				case BURST: proxyOnlyBurst = std::thread(handleProxyOnly, burst); break;
+				case BHD: proxyOnlyBhd = std::thread(handleProxyOnly, bhd); break;
+			}
+			if (coin->coin <= BHD)
+				printToConsole(25, false, false, false, true, L"%s proxy-only thread started", coin->coinname.c_str());
+		}
 
 	if (proxyOnly) {
 		const std::wstring trailingSpace = L"                                                                         ";
