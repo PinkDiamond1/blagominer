@@ -31,7 +31,7 @@ bool proxyOnly = false;
 
  std::map<size_t, t_worker_progress> worker_progress;
 
-std::vector<std::string> paths_dir; // ïóòè
+std::vector<std::string> paths_dir; // paths
 
 sph_shabal_context  local_32;
 
@@ -492,7 +492,7 @@ void GetPass(std::shared_ptr<t_coin_info> coin, char const *const p_strFolderPat
 
 	for (size_t i = 0, j = 0; i<len_pass; i++, j++)
 	{
-		if ((buffer[i] == '\n') || (buffer[i] == '\r') || (buffer[i] == '\t')) j--; // Пропускаем символы, переделать buffer[i] < 20
+		if ((buffer[i] == '\n') || (buffer[i] == '\r') || (buffer[i] == '\t')) j--; // Skipping characters, redoing buffer[i] < 20
 		else
 			if (buffer[i] == ' ') pass[j] = '+';
 			else
@@ -1246,7 +1246,7 @@ int wmain(int argc, wchar_t **argv) {
 		if ((coin->mining->miner_mode == 0))
 			GetPass(coin, p_minerPath);
 
-	// адрес и порт сервера
+	// server address and port
 	Log(L"Searching servers...");
 	WSADATA wsaData;
 
@@ -1259,7 +1259,7 @@ int wmain(int argc, wchar_t **argv) {
 	for (auto& coin : allcoins)
 		initMiningOrProxy(coin);
 	
-	// Инфа по файлам
+	// File info
 	printToConsole(15, false, false, true, false, L"Using plots:");
 	
 	bool bfsDetected = false;
