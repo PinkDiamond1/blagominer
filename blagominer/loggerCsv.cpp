@@ -1,17 +1,5 @@
 #include "loggerCsv.h"
 
-struct LogFileInfo {
-	std::string filename;
-	std::mutex mutex;
-};
-
-struct CoinLogFiles {
-	LogFileInfo failed;
-	LogFileInfo submitted;
-};
-
-static CoinLogFiles coinlogs[2];
-
 bool existsFile(const std::string& name) {
 	struct stat buffer;
 	return (stat(name.c_str(), &buffer) == 0);
@@ -60,11 +48,11 @@ void Csv_Init()
 
 	for (auto& coin : allcoins)
 	{
-		Csv_initFilenames(coinlogs[coin->coin].failed, "fail", coin->coinname.c_str());
-		Csv_initFilenames(coinlogs[coin->coin].submitted, "stat", coin->coinname.c_str());
+		Csv_initFilenames(coin->logging.failed, "fail", coin->coinname.c_str());
+		Csv_initFilenames(coin->logging.submitted, "stat", coin->coinname.c_str());
 
-		Csv_logFileInit(coin, coinlogs[coin->coin].failed, headersFail);
-		Csv_logFileInit(coin, coinlogs[coin->coin].submitted, headersSubmitted);
+		Csv_logFileInit(coin, coin->logging.failed, headersFail);
+		Csv_logFileInit(coin, coin->logging.submitted, headersSubmitted);
 	}
 }
 
@@ -109,7 +97,7 @@ void Csv_Fail(
 	getLocalDateTime(rawtime, timeDate);
 
 	Csv_logFailed(
-		coin, coinlogs[coin->coin],
+		coin, coin->logging,
 		rawtime, timeDate,
 		height, file.c_str(), baseTarget, netDiff,
 		nonce, deadlineSent, deadlineConfirmed, response.c_str());
@@ -154,7 +142,7 @@ void Csv_Submitted(
 	getLocalDateTime(rawtime, timeDate);
 
 	Csv_logSubmitted(
-		coin, coinlogs[coin->coin],
+		coin, coin->logging,
 		rawtime, timeDate,
 		height, baseTarget,
 		netDiff, roundTime, completedRound ? "true" : "false", deadline);

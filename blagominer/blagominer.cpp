@@ -9,18 +9,10 @@ bool exitHandled = false;
 // Initialize static member data
 std::map<size_t, std::thread> worker;	        // worker threads
 
-std::thread proxyBurst;
-std::thread proxyBhd;
 std::thread updateChecker;
-std::thread proxyOnlyBurst;
-std::thread proxyOnlyBhd;
-std::thread updaterBurst;
-std::thread updaterBhd;
 
 const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
 
-std::shared_ptr<t_coin_info> burst = std::make_shared<t_coin_info>();
-std::shared_ptr<t_coin_info> bhd = std::make_shared<t_coin_info>();
 t_logging loggingConfig = {};
 
 std::vector<std::shared_ptr<t_coin_info>> allcoins;
@@ -43,9 +35,8 @@ std::vector<std::string> paths_dir; // ïóòè
 
 sph_shabal_context  local_32;
 
-void init_mining_info(std::shared_ptr<t_coin_info> coin, Coins code, std::wstring name, size_t priority, unsigned long long poc2start)
+void init_mining_info(std::shared_ptr<t_coin_info> coin, std::wstring name, size_t priority, unsigned long long poc2start)
 {
-	coin->coin = code;
 	coin->coinname = name;
 	coin->locks = std::make_shared<t_locks>();
 	coin->mining = std::make_shared<t_mining_info>();
@@ -61,12 +52,6 @@ void init_mining_info(std::shared_ptr<t_coin_info> coin, Coins code, std::wstrin
 	coin->mining->my_target_deadline = MAXDWORD; // 4294967295;
 	coin->mining->POC2StartBlock = poc2start;
 	coin->mining->dirs = std::vector<std::shared_ptr<t_directory_info>>();
-}
-
-void init_mining_info()
-{
-	init_mining_info(burst, BURST, L"Burstcoin", 0, 502000);
-	init_mining_info(bhd, BHD, L"Bitcoin HD", 1, 0);
 }
 
 void init_logging_config() {
@@ -317,8 +302,30 @@ int load_config(wchar_t const *const filename)
 			}
 		}
 
-		loadCoinConfig(document, "Burst", burst);
-		loadCoinConfig(document, "BHD", bhd);
+
+		Log(L"### Loading coins configuration ###");
+
+		allcoins = { };
+		std::vector<std::string> coinConfigNodes;
+		for (auto item = document.MemberBegin(); item != document.MemberEnd(); ++item)
+		{
+			auto cstrName = item->name.GetString();
+			if (strstr(cstrName, "coin:") == cstrName)
+				coinConfigNodes.push_back(item->name.GetString());
+		}
+
+		std::transform(coinConfigNodes.begin(), coinConfigNodes.end(), std::back_inserter(allcoins), [&](auto&& coinNodeName) {
+			std::wstring coinWideName(coinNodeName.begin() + 5, coinNodeName.end()); // +5 to skip "coin:" prefix
+			bool isBurst = coinNodeName.find("burst") || coinNodeName.find("Burst") || coinNodeName.find("BURST");
+
+			auto coin = std::make_shared<t_coin_info>();
+			init_mining_info(coin, coinWideName.c_str(), isBurst ? 0 : 1, isBurst ? 502000 : 0);
+			init_coinNetwork(coin);
+			loadCoinConfig(document, coinNodeName, coin);
+
+			return coin;
+		});
+
 		std::sort(coins.begin(), coins.end(), OrderingByMiningPriority());
 
 
@@ -721,7 +728,7 @@ void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& currentQueue, st
 	if (!inserted) {
 		Log(L"Adding %s to the end of the queue.", newCoin->coinname.c_str());
 		if (coinCurrentlyMining && coinCurrentlyMining->mining->state == MINING &&
-			newCoin->coin != coinCurrentlyMining->coin &&
+			newCoin != coinCurrentlyMining &&
 			newCoin->mining->priority >= coinCurrentlyMining->mining->priority) {
 			printToConsole(5, true, false, false, true, L"[#%s|%s|Info    ] New block has been added to the end of the queue.",
 				toWStr(newCoin->mining->height, 7).c_str(), toWStr(newCoin->coinname, 10).c_str(), 0);
@@ -837,7 +844,7 @@ bool needToInterruptMining(const std::vector<std::shared_ptr<t_coin_info>>& allC
 			}
 			else {
 				for (auto& pt : currentQueue) {
-					if (pt->coin == coinCurrentlyMining->coin) {
+					if (pt == coinCurrentlyMining) {
 						Log(L"Interrupting current mining progress. New %s block.", coinCurrentlyMining->coinname.c_str());
 						return true;
 					}
@@ -1026,12 +1033,13 @@ void closeMiner() {
 	}
 	Log(L"All worker threads shut down.");
 	
-	if (updaterBurst.joinable()) updaterBurst.join();
-	if (updaterBhd.joinable()) updaterBhd.join();
-	if (proxyBurst.joinable()) proxyBurst.join();
-	if (proxyBhd.joinable()) proxyBhd.join();
-	if (proxyOnlyBurst.joinable()) proxyOnlyBurst.join();
-	if (proxyOnlyBhd.joinable()) proxyOnlyBhd.join();
+	for (auto& coin : allcoins)
+		if (coin->updaterThread.joinable()) coin->updaterThread.join();
+	for (auto& coin : allcoins)
+		if (coin->proxyThread.joinable()) coin->proxyThread.join();
+	for (auto& coin : allcoins)
+		if (coin->proxyOnlyThread.joinable()) coin->proxyOnlyThread.join();
+
 	if (updateChecker.joinable()) updateChecker.join();
 
 	for (auto& coin : allcoins)
@@ -1183,10 +1191,6 @@ int wmain(int argc, wchar_t **argv) {
 	curl_global_init(CURL_GLOBAL_DEFAULT);
 
 	// Initialize configuration.
-	allcoins = { burst, bhd };
-	init_mining_info();
-	init_network_info();
-
 	init_logging_config();
 
 	//load config
@@ -1320,13 +1324,8 @@ int wmain(int argc, wchar_t **argv) {
 	for (auto& coin : allcoins)
 		if (coin->network->enable_proxy)
 		{
-			switch (coin->coin)
-			{
-				case BURST: proxyBurst = std::thread(proxy_i, burst); break;
-				case BHD: proxyBhd = std::thread(proxy_i, bhd); break;
-			}
-			if (coin->coin <= BHD)
-				printToConsole(25, false, false, false, true, L"%s proxy thread started", coin->coinname.c_str());
+			coin->proxyThread = std::thread(proxy_i, coin);
+			printToConsole(25, false, false, false, true, L"%s proxy thread started", coin->coinname.c_str());
 		}
 
 	// Run version checker
@@ -1338,13 +1337,8 @@ int wmain(int argc, wchar_t **argv) {
 	for (auto& coin : allcoins)
 		if (coin->mining->enable || coin->network->enable_proxy)
 		{
-			switch (coin->coin)
-			{
-				case BURST: updaterBurst = std::thread(updater_i, burst); break;
-				case BHD: updaterBhd = std::thread(updater_i, bhd); break;
-			}
-			if (coin->coin <= BHD)
-				printToConsole(25, false, false, false, true, L"%s updater thread started", coin->coinname.c_str());
+			coin->proxyThread = std::thread(updater_i, coin);
+			printToConsole(25, false, false, false, true, L"%s updater thread started", coin->coinname.c_str());
 		}
 
 	std::vector<std::shared_ptr<t_coin_info>> queue;
@@ -1353,13 +1347,8 @@ int wmain(int argc, wchar_t **argv) {
 	for (auto& coin : allcoins)
 		if (!coin->mining->enable && coin->network->enable_proxy)
 		{
-			switch (coin->coin)
-			{
-				case BURST: proxyOnlyBurst = std::thread(handleProxyOnly, burst); break;
-				case BHD: proxyOnlyBhd = std::thread(handleProxyOnly, bhd); break;
-			}
-			if (coin->coin <= BHD)
-				printToConsole(25, false, false, false, true, L"%s proxy-only thread started", coin->coinname.c_str());
+			coin->proxyThread = std::thread(handleProxyOnly, coin);
+			printToConsole(25, false, false, false, true, L"%s proxy-only thread started", coin->coinname.c_str());
 		}
 
 	if (proxyOnly) {
