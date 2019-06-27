@@ -1339,7 +1339,7 @@ int wmain(int argc, wchar_t **argv) {
 	for (auto& coin : allcoins)
 		if (coin->mining->enable || coin->network->enable_proxy)
 		{
-			coin->proxyThread = std::thread(updater_i, coin);
+			coin->updaterThread = std::thread(updater_i, coin);
 			printToConsole(25, false, false, false, true, L"%s updater thread started", coin->coinname.c_str());
 		}
 
@@ -1349,7 +1349,7 @@ int wmain(int argc, wchar_t **argv) {
 	for (auto& coin : allcoins)
 		if (!coin->mining->enable && coin->network->enable_proxy)
 		{
-			coin->proxyThread = std::thread(handleProxyOnly, coin);
+			coin->proxyOnlyThread = std::thread(handleProxyOnly, coin);
 			printToConsole(25, false, false, false, true, L"%s proxy-only thread started", coin->coinname.c_str());
 		}
 
