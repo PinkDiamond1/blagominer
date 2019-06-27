@@ -31,7 +31,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 
 	if (directory->files.empty()) {
 		bool dummyvar;
-		GetFiles(path_loc_str, &directory->files, &dummyvar);
+		GetFiles(path_loc_str, &directory->files, &dummyvar, true);
 	}
 
 	size_t cache_size_local;

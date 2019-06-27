@@ -645,6 +645,7 @@
     <ClInclude Include="loggerCsv.h" />
     <ClInclude Include="mshabal.h" />
     <ClInclude Include="picohttpparser.h" />
+    <ClInclude Include="volume_ntfs.h" />
     <ClInclude Include="shabal.h" />
     <ClInclude Include="inout.h" />
     <ClInclude Include="network.h" />
@@ -672,6 +673,7 @@
     <ClCompile Include="bfs.cpp" />
     <ClCompile Include="network.cpp" />
     <ClCompile Include="error.cpp" />
+    <ClCompile Include="volume_ntfs.cpp" />
     <ClCompile Include="updateChecker.cpp" />
     <ClCompile Include="worker.cpp" />
     <ClCompile Include="shabal.cpp" />

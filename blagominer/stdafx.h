@@ -8,6 +8,7 @@
 #include "targetver.h"
 #include <string>
 #include <sstream>
+#include <iomanip>
 #include <vector>
 #include <map>
 #include <thread> 

@@ -12,8 +12,6 @@
 
 #include "picohttpparser.h"
 
-extern std::map <u_long, unsigned long long> satellite_size; // Структура с объемами плотов сателлитов
-
 void init_network_info();
 
 bool pollLocal(std::shared_ptr<t_coin_info> coinInfo);

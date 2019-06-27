@@ -1,123 +1,85 @@
 #include "loggerCsv.h"
 
-std::string csvFailBurst;
-std::string csvFailBhd;
-std::string csvSubmittedBurst;
-std::string csvSubmittedBhd;
+struct LogFileInfo {
+	std::string filename;
+	std::mutex mutex;
+};
 
-std::mutex mCsvFailBurst;
-std::mutex mCsvFailBhd;
-std::mutex mCsvSubmittedBurst;
-std::mutex mCsvSubmittedBhd;
+struct CoinLogFiles {
+	LogFileInfo failed;
+	LogFileInfo submitted;
+};
+
+static CoinLogFiles coinlogs[2];
 
 bool existsFile(const std::string& name) {
 	struct stat buffer;
 	return (stat(name.c_str(), &buffer) == 0);
 }
 
-void Csv_Init()
+static const char* headersFail = "Timestamp epoch;Timestamp local;Height;File;baseTarget;Network difficulty;Nonce;Deadline sent;Deadline confirmed;Response\n";
+static const char* headersSubmitted = "Timestamp epoch;Timestamp local;Height;baseTarget;Network difficulty;Round time;Completed round; Deadline\n";
+
+void Csv_initFilenames(
+	LogFileInfo& coinlogfileinfo,
+	const char* prefix, const wchar_t* coinName)
 {
-	if (!loggingConfig.enableCsv) {
-		return;
-	}
+	std::wstring nameW(coinName);
+	std::string name(nameW.begin(), nameW.end());
+	coinlogfileinfo.filename = prefix + ("-" + name) + ".csv";
+}
 
-	std::wstring burstNameW(coinNames[BURST]);
-	std::wstring bhdNameW(coinNames[BHD]);
-
-	std::string burstName(burstNameW.begin(), burstNameW.end());
-	std::string bhdName(bhdNameW.begin(), bhdNameW.end());
-
-	csvFailBurst = "fail-" + burstName + ".csv";
-	csvFailBhd = "fail-" + bhdName + ".csv";
-	csvSubmittedBurst = "stat-" + burstName + ".csv";
-	csvSubmittedBhd = "stat-" + bhdName + ".csv";
-
-	Log(L"Initializing csv logging.");
-	const char* headersFail = "Timestamp epoch;Timestamp local;Height;File;baseTarget;Network difficulty;Nonce;Deadline sent;Deadline confirmed;Response\n";
-	const char* headersSubmitted = "Timestamp epoch;Timestamp local;Height;baseTarget;Network difficulty;Round time;Completed round; Deadline\n";
-	if ((burst->mining->enable || burst->network->enable_proxy) && !existsFile(csvFailBurst))
+void Csv_logFileInit(
+	std::shared_ptr<t_coin_info> coin, LogFileInfo& coinlogfileinfo,
+	const char* headers)
+{
+	if ((coin->mining->enable || coin->network->enable_proxy) && !existsFile(coinlogfileinfo.filename))
 	{
-		std::lock_guard<std::mutex> lockGuard(mCsvFailBurst);
-		Log(L"Writing headers to %S", csvFailBurst.c_str());
+		std::lock_guard<std::mutex> lockGuard(coinlogfileinfo.mutex);
+		Log(L"Writing headers to %S", coinlogfileinfo.filename.c_str());
 		FILE * pFile;
-		fopen_s(&pFile, csvFailBurst.c_str(), "a+t");
+		fopen_s(&pFile, coinlogfileinfo.filename.c_str(), "a+t");
 		if (pFile != nullptr)
 		{
-			fprintf(pFile, headersFail);
+			fprintf(pFile, headers);
 			fclose(pFile);
 		}
 		else
 		{
-			Log(L"Failed to open %S", csvFailBurst.c_str());
-		}
-	}
-	if ((burst->mining->enable || burst->network->enable_proxy) && !existsFile(csvSubmittedBurst))
-	{
-		std::lock_guard<std::mutex> lockGuard(mCsvSubmittedBurst);
-		Log(L"Writing headers to %S", csvSubmittedBurst.c_str());
-		FILE * pFile;
-		fopen_s(&pFile, csvSubmittedBurst.c_str(), "a+t");
-		if (pFile != nullptr)
-		{
-			fprintf(pFile, headersSubmitted);
-			fclose(pFile);
-		}
-		else
-		{
-			Log(L"Failed to open %S", csvSubmittedBurst.c_str());
-		}
-	}
-
-	if ((bhd->mining->enable || burst->network->enable_proxy) && !existsFile(csvFailBhd))
-	{
-		std::lock_guard<std::mutex> lockGuard(mCsvFailBhd);
-		Log(L"Writing headers to %S", csvFailBhd.c_str());
-		FILE * pFile;
-		fopen_s(&pFile, csvFailBhd.c_str(), "a+t");
-		if (pFile != nullptr)
-		{
-			fprintf(pFile, headersFail);
-			fclose(pFile);
-		}
-		else
-		{
-			Log(L"Failed to open %S", csvFailBhd.c_str());
-		}
-	}
-	if ((bhd->mining->enable || bhd->network->enable_proxy) && !existsFile(csvSubmittedBhd))
-	{
-		std::lock_guard<std::mutex> lockGuard(mCsvSubmittedBhd);
-		Log(L"Writing headers to %S", csvSubmittedBhd.c_str());
-		FILE * pFile;
-		fopen_s(&pFile, csvSubmittedBhd.c_str(), "a+t");
-		if (pFile != nullptr)
-		{
-			fprintf(pFile, headersSubmitted);
-			fclose(pFile);
-		}
-		else
-		{
-			Log(L"Failed to open %S", csvSubmittedBhd.c_str());
+			Log(L"Failed to open %S", coinlogfileinfo.filename.c_str());
 		}
 	}
 }
 
-void Csv_Fail(Coins coin, const unsigned long long height, const std::string& file, const unsigned long long baseTarget,
+void Csv_Init()
+{
+	if (!loggingConfig.enableCsv)
+		return;
+
+	Log(L"Initializing csv logging.");
+
+	for (auto& coin : allcoins)
+	{
+		Csv_initFilenames(coinlogs[coin->coin].failed, "fail", coin->coinname.c_str());
+		Csv_initFilenames(coinlogs[coin->coin].submitted, "stat", coin->coinname.c_str());
+
+		Csv_logFileInit(coin, coinlogs[coin->coin].failed, headersFail);
+		Csv_logFileInit(coin, coinlogs[coin->coin].submitted, headersSubmitted);
+	}
+}
+
+void Csv_logFailed(
+	std::shared_ptr<t_coin_info> coin, CoinLogFiles& coinlog,
+	std::time_t rawtime, char* timeDate,
+	const unsigned long long height, const std::string& file, const unsigned long long baseTarget,
 	const unsigned long long netDiff, const unsigned long long nonce, const unsigned long long deadlineSent,
 	const unsigned long long deadlineConfirmed, const std::string& response)
 {
-	if (!loggingConfig.enableCsv) {
-		return;
-	}
-	std::time_t rawtime = std::time(nullptr);
-	char timeDate[20];
-	getLocalDateTime(rawtime, timeDate);
-
-	FILE * pFile;
-	if (coin == BURST && (burst->mining->enable || burst->network->enable_proxy))
+	if (coin->mining->enable || coin->network->enable_proxy)
 	{
-		std::lock_guard<std::mutex> lockGuard(mCsvFailBurst);
-		fopen_s(&pFile, csvFailBurst.c_str(), "a+t");
+		std::lock_guard<std::mutex> lockGuard(coinlog.failed.mutex);
+		FILE* pFile;
+		fopen_s(&pFile, coinlog.failed.filename.c_str(), "a+t");
 		if (pFile != nullptr)
 		{
 			fprintf(pFile, "%llu;%s;%llu;%s;%llu;%llu;%llu;%llu;%llu;%s\n", (unsigned long long)rawtime, timeDate, height, file.c_str(), baseTarget, netDiff,
@@ -127,74 +89,73 @@ void Csv_Fail(Coins coin, const unsigned long long height, const std::string& fi
 		}
 		else
 		{
-			Log(L"Failed to open %S", csvFailBurst.c_str());
+			Log(L"Failed to open %S", coinlog.failed.filename.c_str());
 			return;
 		}
 	}
-	else if (coin == BHD && (bhd->mining->enable || bhd->network->enable_proxy))
-	{
-		std::lock_guard<std::mutex> lockGuard(mCsvFailBhd);
-		fopen_s(&pFile, csvFailBhd.c_str(), "a+t");
-		if (pFile != nullptr)
-		{
-			fprintf(pFile, "%llu;%s;%llu;%s;%llu;%llu;%llu;%llu;%llu;%s\n", (unsigned long long)rawtime, timeDate, height, file.c_str(), baseTarget, netDiff,
-				nonce, deadlineSent, deadlineConfirmed, response.c_str());
-			fclose(pFile);
-			return;
-		}
-		else
-		{
-			Log(L"Failed to open %S", csvFailBhd.c_str());
-			return;
-		}
-	}
-
 }
 
-void Csv_Submitted(Coins coin, const unsigned long long height, const unsigned long long baseTarget, const unsigned long long netDiff,
-	const double roundTime, const bool completedRound, const unsigned long long deadline)
+void Csv_Fail(
+	std::shared_ptr<t_coin_info> coin,
+	const unsigned long long height, const std::string& file, const unsigned long long baseTarget,
+	const unsigned long long netDiff, const unsigned long long nonce, const unsigned long long deadlineSent,
+	const unsigned long long deadlineConfirmed, const std::string& response)
 {
-	if (!loggingConfig.enableCsv) {
+	if (!loggingConfig.enableCsv)
 		return;
-	}
+
 	std::time_t rawtime = std::time(nullptr);
 	char timeDate[20];
 	getLocalDateTime(rawtime, timeDate);
 
-	FILE * pFile;
-	if (coin == BURST && (burst->mining->enable || burst->network->enable_proxy))
-	{
-		std::lock_guard<std::mutex> lockGuard(mCsvSubmittedBurst);
-		fopen_s(&pFile, csvSubmittedBurst.c_str(), "a+t");
-		if (pFile != nullptr)
-		{
-			fprintf(pFile, "%llu;%s;%llu;%llu;%llu;%.1f;%s;%llu\n", (unsigned long long)rawtime, timeDate, height, baseTarget,
-				netDiff, roundTime, completedRound ? "true" : "false", deadline);
-			fclose(pFile);
-			return;
-		}
-		else
-		{
-			Log(L"Failed to open %S", csvSubmittedBurst.c_str());
-			return;
-		}
-	}
-	else if (coin == BHD && (bhd->mining->enable || bhd->network->enable_proxy))
-	{
-		std::lock_guard<std::mutex> lockGuard(mCsvSubmittedBhd);
-		fopen_s(&pFile, csvSubmittedBhd.c_str(), "a+t");
-		if (pFile != nullptr)
-		{
-			fprintf(pFile, "%llu;%s;%llu;%llu;%llu;%.1f;%s;%llu\n", (unsigned long long)rawtime, timeDate, height, baseTarget,
-				netDiff, roundTime, completedRound ? "true" : "false", deadline);
-			fclose(pFile);
-			return;
-		}
-		else
-		{
-			Log(L"Failed to open %S", csvSubmittedBhd.c_str());
-			return;
-		}
-	}
+	Csv_logFailed(
+		coin, coinlogs[coin->coin],
+		rawtime, timeDate,
+		height, file.c_str(), baseTarget, netDiff,
+		nonce, deadlineSent, deadlineConfirmed, response.c_str());
+}
 
+void Csv_logSubmitted(
+	std::shared_ptr<t_coin_info> coin, CoinLogFiles& coinlog,
+	std::time_t rawtime, char* timeDate,
+	const unsigned long long height, const unsigned long long baseTarget, const unsigned long long netDiff,
+	const double roundTime, const bool completedRound, const unsigned long long deadline)
+{
+	if (coin->mining->enable || coin->network->enable_proxy)
+	{
+		std::lock_guard<std::mutex> lockGuard(coinlog.submitted.mutex);
+		FILE* pFile;
+		fopen_s(&pFile, coinlog.submitted.filename.c_str(), "a+t");
+		if (pFile != nullptr)
+		{
+			fprintf(pFile, "%llu;%s;%llu;%llu;%llu;%.1f;%s;%llu\n", (unsigned long long)rawtime, timeDate, height, baseTarget,
+				netDiff, roundTime, completedRound ? "true" : "false", deadline);
+			fclose(pFile);
+			return;
+		}
+		else
+		{
+			Log(L"Failed to open %S", coinlog.submitted.filename.c_str());
+			return;
+		}
+	}
+}
+
+void Csv_Submitted(
+	std::shared_ptr<t_coin_info> coin,
+	const unsigned long long height, const unsigned long long baseTarget, const unsigned long long netDiff,
+	const double roundTime, const bool completedRound, const unsigned long long deadline)
+{
+	if (!loggingConfig.enableCsv)
+		return;
+
+	std::time_t rawtime = std::time(nullptr);
+	char timeDate[20];
+	getLocalDateTime(rawtime, timeDate);
+
+	Csv_logSubmitted(
+		coin, coinlogs[coin->coin],
+		rawtime, timeDate,
+		height, baseTarget,
+		netDiff, roundTime, completedRound ? "true" : "false", deadline);
 }

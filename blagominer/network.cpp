@@ -3,39 +3,30 @@
 
 #include <curl/curl.h>
 
-std::map <u_long, unsigned long long> satellite_size; // Ñòðóêòóðà ñ îáúåìàìè ïëîòîâ ñàòåëëèòîâ
+static std::map <u_long, unsigned long long> satellite_size; // Ñòðóêòóðà ñ îáúåìàìè ïëîòîâ ñàòåëëèòîâ // GoogleTranslate:Russian: "Models for the use of computers on the partitions"
 
-void init_network_info() {
+void init_coinNetwork(std::shared_ptr<t_coin_info> coin)
+{
+	coin->network = std::make_shared<t_network_info>();
+	coin->network->nodeaddr = "localhost";
+	coin->network->nodeport = "8125"; // bhd: 8732
+	coin->network->noderoot = "burst";
+	coin->network->submitTimeout = 1000;
+	coin->network->updateraddr = "localhost";
+	coin->network->updaterport = "8125"; // bhd: 8732
+	coin->network->updaterroot = "burst";
+	coin->network->enable_proxy = false;
+	coin->network->proxyport = "8125"; // bhd: 8732
+	coin->network->send_interval = 100;
+	coin->network->update_interval = 1000;
+	coin->network->proxy_update_interval = 500;
+	coin->network->network_quality = -1;
+}
 
-	burst->network = std::make_shared<t_network_info>();
-	burst->network->nodeaddr = "localhost";
-	burst->network->nodeport = "8125";
-	burst->network->noderoot = "burst";
-	burst->network->submitTimeout = 1000;
-	burst->network->updateraddr = "localhost";
-	burst->network->updaterport = "8125";
-	burst->network->updaterroot = "burst";
-	burst->network->enable_proxy = false;
-	burst->network->proxyport = "8125";
-	burst->network->send_interval = 100;
-	burst->network->update_interval = 1000;
-	burst->network->proxy_update_interval = 500;
-	burst->network->network_quality = -1;
-	
-	bhd->network = std::make_shared<t_network_info>();
-	bhd->network->nodeaddr = "localhost";
-	bhd->network->nodeport = "8732";
-	bhd->network->noderoot = "burst";
-	bhd->network->submitTimeout = 1000;
-	bhd->network->updateraddr = "localhost";
-	bhd->network->updaterport = "8732";
-	bhd->network->updaterroot = "burst";
-	bhd->network->enable_proxy = false;
-	bhd->network->proxyport = "8732";
-	bhd->network->send_interval = 100;
-	bhd->network->update_interval = 1000;
-	bhd->network->proxy_update_interval = 500;
-	bhd->network->network_quality = -1;
+void init_network_info()
+{
+	for (auto& coin : allcoins)
+		init_coinNetwork(coin);
 }
 
 void hostname_to_ip(char const *const  in_addr, char* out_addr)
@@ -75,7 +66,7 @@ void hostname_to_ip(char const *const  in_addr, char* out_addr)
 
 void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 {
-	const wchar_t* proxyName = coinNames[coinInfo->coin];
+	const wchar_t* proxyName = coinInfo->coinname.c_str();
 	int iResult;
 	size_t const buffer_size = 1000;
 	char* buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
@@ -205,7 +196,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 								toWStr(get_deadline / coinInfo->mining->currentBaseTarget, 11).c_str(), client_address_str);
 							Log(L"Proxy %s: received DL %llu from %S", proxyName, get_deadline / coinInfo->mining->currentBaseTarget, client_address_str);
 							
-							//Подтверждаем
+							//Подтверждаем // GoogleTranslate:Russian: We confirm
 							RtlSecureZeroMemory(buffer, buffer_size);
 							size_t acc = Get_index_acc(get_accountId, coinInfo, targetDeadlineInfo);
 							int bytes = sprintf_s(buffer, buffer_size, "HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n{\"result\": \"proxy\",\"accountId\": %llu,\"deadline\": %llu,\"targetDeadline\": %llu}", get_accountId, get_deadline / coinInfo->mining->currentBaseTarget, coinInfo->mining->bests[acc].targetDeadline);
@@ -251,7 +242,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 					{
 						if ((strstr(buffer, "getBlocks") != nullptr) || (strstr(buffer, "getAccount") != nullptr) || (strstr(buffer, "getRewardRecipient") != nullptr))
 						{
-							; // ничего не делаем, не ошибка, пропускаем
+							; // ничего не делаем, не ошибка, пропускаем // GoogleTranslate:Russian: do not do anything, do not mistake, skip
 						}
 						else
 						{
@@ -295,7 +286,7 @@ void increaseNetworkQuality(std::shared_ptr<t_coin_info> coin) {
 
 void __impl__send_i__sockets(char* buffer, size_t buffer_size, std::shared_ptr<t_coin_info> coinInfo, std::vector<std::shared_ptr<t_session>>& tmpSessions, unsigned long long targetDeadlineInfo, std::shared_ptr<t_shares> share)
 {
-	const wchar_t* senderName = coinNames[coinInfo->coin];
+	const wchar_t* senderName = coinInfo->coinname.c_str();
 
 	SOCKET ConnectSocket = INVALID_SOCKET;
 	std::unique_ptr<SOCKET, void(*)(SOCKET*)> guardConnectSocket(&ConnectSocket, [](SOCKET* s) {closesocket(*s); });
@@ -342,7 +333,7 @@ void __impl__send_i__sockets(char* buffer, size_t buffer_size, std::shared_ptr<t
 		if (coinInfo->mining->miner_mode == 0)
 		{
 			bytes = sprintf_s(buffer, buffer_size, "POST /%s?requestType=submitNonce&secretPhrase=%s&nonce=%llu HTTP/1.0\r\nConnection: close\r\n\r\n",
-				coinInfo->network->noderoot.c_str(), pass, share->nonce);
+				coinInfo->network->noderoot.c_str(), coinInfo->network->solopass.c_str(), share->nonce);
 		}
 		if (coinInfo->mining->miner_mode == 1)
 		{
@@ -394,7 +385,7 @@ void __impl__send_i__curl(std::shared_ptr<t_coin_info> coinInfo, std::vector<std
 {
 	bool failed = false;
 
-	const wchar_t* senderName = coinNames[coinInfo->coin];
+	const wchar_t* senderName = coinInfo->coinname.c_str();
 	bool newBlock = false;
 
 	size_t const buffer_size = 1000;
@@ -456,7 +447,7 @@ void __impl__send_i__curl(std::shared_ptr<t_coin_info> coinInfo, std::vector<std
 			if (coinInfo->mining->miner_mode == 0)
 			{
 				bytes = sprintf_s(buffer, buffer_size, "POST /%s?requestType=submitNonce&secretPhrase=%s&nonce=%llu HTTP/1.0\r\nConnection: close\r\n\r\n",
-					coinInfo->network->noderoot.c_str(), pass, share->nonce);
+					coinInfo->network->noderoot.c_str(), coinInfo->network->solopass.c_str(), share->nonce);
 			}
 			if (coinInfo->mining->miner_mode == 1)
 			{
@@ -528,7 +519,7 @@ void __impl__send_i__curl(std::shared_ptr<t_coin_info> coinInfo, std::vector<std
 
 void send_i(std::shared_ptr<t_coin_info> coinInfo)
 {
-	const wchar_t* senderName = coinNames[coinInfo->coin];
+	const wchar_t* senderName = coinInfo->coinname.c_str();
 	Log(L"Sender %s: started thread", senderName);
 
 	size_t const buffer_size = 1000;
@@ -573,7 +564,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 		}
 
 		const unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
-		//Гасим шару если она больше текущего targetDeadline, актуально для режима Proxy
+		//Гасим шару если она больше текущего targetDeadline, актуально для режима Proxy // GoogleTranslate:Russian: We extinguish the ball if it is more than the current targetDeadline, relevant for the proxy mode
 		if (share->deadline > coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline)
 		{
 			Log(L"[%20llu|%-10s|Sender] DL discarded : %llu > %llu",
@@ -619,7 +610,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 bool __impl__confirm_i__sockets(char* buffer, size_t buffer_size, std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, char*& find, bool& nonJsonSuccessDetected, std::shared_ptr<t_session>& session) {
 	bool failed = false;
 
-	const wchar_t* confirmerName = coinNames[coinInfo->coin];
+	const wchar_t* confirmerName = coinInfo->coinname.c_str();
 
 	SOCKET ConnectSocket;
 	int iResult = 0;
@@ -668,7 +659,7 @@ bool __impl__confirm_i__sockets(char* buffer, size_t buffer_size, std::shared_pt
 
 	if (iResult == SOCKET_ERROR)
 	{
-		if (WSAGetLastError() != WSAEWOULDBLOCK) //разрыв соединения, молча переотправляем дедлайн
+		if (WSAGetLastError() != WSAEWOULDBLOCK) //разрыв соединения, молча переотправляем дедлайн // GoogleTranslate:Russian: disconnect, silently re-send deadline
 		{
 			decreaseNetworkQuality(coinInfo);
 			Log(L"Confirmer %s: ! Error getting confirmation for DL: %llu  code: %i", confirmerName, session->deadline, WSAGetLastError());
@@ -692,11 +683,11 @@ bool __impl__confirm_i__sockets(char* buffer, size_t buffer_size, std::shared_pt
 		}
 		failed = true;
 	}
-	else //что-то получили от сервера
+	else //что-то получили от сервера // GoogleTranslate:Russian: got something from the server
 	{
 		increaseNetworkQuality(coinInfo);
 
-		//получили пустую строку, переотправляем дедлайн
+		//получили пустую строку, переотправляем дедлайн // GoogleTranslate:Russian: received an empty string, re-send deadline
 		if (buffer[0] == '\0')
 		{
 			Log(L"Confirmer %s: zero-length message for DL: %llu", confirmerName, session->deadline);
@@ -712,7 +703,7 @@ bool __impl__confirm_i__sockets(char* buffer, size_t buffer_size, std::shared_pt
 			LeaveCriticalSection(&coinInfo->locks->sharesLock);
 			failed = true;
 		}
-		else //получили ответ пула
+		else //получили ответ пула // GoogleTranslate:Russian: received a pool response
 		{
 			find = strstr(buffer, "{");
 			if (find == nullptr)
@@ -734,7 +725,7 @@ bool __impl__confirm_i__sockets(char* buffer, size_t buffer_size, std::shared_pt
 					failed = false;
 					nonJsonSuccessDetected = true;
 				}
-				else //получили нераспознанный ответ
+				else //получили нераспознанный ответ // GoogleTranslate:Russian: received an unrecognized answer
 				{
 					failed = true;
 
@@ -762,7 +753,7 @@ bool __impl__confirm_i__sockets(char* buffer, size_t buffer_size, std::shared_pt
 							session->body.baseTarget));
 						LeaveCriticalSection(&coinInfo->locks->sharesLock);
 					}
-					else //получили непонятно что
+					else //получили непонятно что // GoogleTranslate:Russian: got weird that
 					{
 						printToConsole(7, true, false, true, false, L"%s: %S", confirmerName, buffer);
 					}
@@ -816,7 +807,7 @@ static int wait_on_socket(curl_socket_t sockfd, int for_recv, long timeout_ms)
 bool __impl__confirm_i__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, char*& find, bool& nonJsonSuccessDetected, std::shared_ptr<t_session2>& session) {
 	bool failed = false;
 
-	const wchar_t* confirmerName = coinNames[coinInfo->coin];
+	const wchar_t* confirmerName = coinInfo->coinname.c_str();
 
 	size_t const buffer_size = 1000;
 	char *buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
@@ -908,11 +899,11 @@ bool __impl__confirm_i__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 			session->body.baseTarget));
 		LeaveCriticalSection(&coinInfo->locks->sharesLock);
 	}
-	else //что-то получили от сервера
+	else //что-то получили от сервера // GoogleTranslate:Russian: got something from the server
 	{
 		increaseNetworkQuality(coinInfo);
 
-		//получили пустую строку, переотправляем дедлайн
+		//получили пустую строку, переотправляем дедлайн // GoogleTranslate:Russian: Received an empty string, re-send deadline
 		if (buffer[0] == '\0')
 		{
 			Log(L"Confirmer %s: zero-length message for DL: %llu", confirmerName, session->deadline);
@@ -928,7 +919,7 @@ bool __impl__confirm_i__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 			LeaveCriticalSection(&coinInfo->locks->sharesLock);
 			failed = true;
 		}
-		else //получили ответ пула
+		else //получили ответ пула // GoogleTranslate:Russian: received a pool response
 		{
 			find = strstr(buffer, "{");
 			if (find == nullptr)
@@ -950,7 +941,7 @@ bool __impl__confirm_i__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 					failed = false;
 					nonJsonSuccessDetected = true;
 				}
-				else //получили нераспознанный ответ
+				else //получили нераспознанный ответ // GoogleTranslate:Russian: received an unrecognized answer
 				{
 					failed = true;
 
@@ -978,7 +969,7 @@ bool __impl__confirm_i__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 							session->body.baseTarget));
 						LeaveCriticalSection(&coinInfo->locks->sharesLock);
 					}
-					else //получили непонятно что
+					else //получили непонятно что // GoogleTranslate:Russian: got weird that
 					{
 						printToConsole(7, true, false, true, false, L"%s: %S", confirmerName, buffer);
 					}
@@ -1002,7 +993,7 @@ bool __impl__confirm_i__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 }
 
 void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
-	const wchar_t* confirmerName = coinNames[coinInfo->coin];
+	const wchar_t* confirmerName = coinInfo->coinname.c_str();
 	Log(L"Confirmer %s: started thread", confirmerName);
 
 	SOCKET ConnectSocket;
@@ -1097,7 +1088,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 					if (ndeadline != sessionX->deadline)
 					{
 						Log(L"Confirmer %s: Calculated and confirmed deadlines don't match. Fast block or corrupted file? Response: %S", confirmerName, find);
-						std::thread{ Csv_Fail, coinInfo->coin, sessionX->body.height, sessionX->body.file_name, sessionX->body.baseTarget,
+						std::thread{ Csv_Fail, coinInfo, sessionX->body.height, sessionX->body.file_name, sessionX->body.baseTarget,
 							4398046511104 / 240 / sessionX->body.baseTarget, sessionX->body.nonce, sessionX->deadline, ndeadline, find }.detach();
 						std::thread{ increaseConflictingDeadline, coinInfo, sessionX->body.height, sessionX->body.file_name }.detach();
 						printToConsole(6, false, false, true, false,
@@ -1108,7 +1099,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 				else {
 					if (answ.HasMember("errorDescription")) {
 						Log(L"Confirmer %s: Deadline %llu sent with error: %S", confirmerName, sessionX->deadline, find);
-						std::thread{ Csv_Fail, coinInfo->coin, sessionX->body.height, sessionX->body.file_name, sessionX->body.baseTarget,
+						std::thread{ Csv_Fail, coinInfo, sessionX->body.height, sessionX->body.file_name, sessionX->body.baseTarget,
 								4398046511104 / 240 / sessionX->body.baseTarget, sessionX->body.nonce, sessionX->deadline, 0, find }.detach();
 						std::thread{ increaseConflictingDeadline, coinInfo, sessionX->body.height, sessionX->body.file_name }.detach();
 						if (sessionX->deadline <= targetDeadlineInfo) {
@@ -1141,7 +1132,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 		}
 		else if (!failedOrNoData && nonJsonSuccessDetected)
 		{
-				coinInfo->mining->deadline = coinInfo->mining->bests[Get_index_acc(sessionX->body.account_id, coinInfo, targetDeadlineInfo)].DL; //может лучше iter->deadline ?
+				coinInfo->mining->deadline = coinInfo->mining->bests[Get_index_acc(sessionX->body.account_id, coinInfo, targetDeadlineInfo)].DL; //может лучше iter->deadline ? // GoogleTranslate:Russian: maybe better iter-> deadline?
 																			// if(deadline > iter->deadline) deadline = iter->deadline;
 				std::thread{ increaseMatchingDeadline, sessionX->body.file_name }.detach();
 				printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL confirmed : %s",
@@ -1159,7 +1150,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 
 void updater_i(std::shared_ptr<t_coin_info> coinInfo)
 {
-	const wchar_t* updaterName = coinNames[coinInfo->coin];
+	const wchar_t* updaterName = coinInfo->coinname.c_str();
 	if (coinInfo->network->updateraddr.length() <= 3) {
 		Log(L"Updater %s: GMI: ERROR in UpdaterAddr", updaterName);
 		exit(2);
@@ -1178,7 +1169,7 @@ void updater_i(std::shared_ptr<t_coin_info> coinInfo)
 bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, std::string& rawResponse) {
 	bool failed = false;
 
-	const wchar_t* updaterName = coinNames[coinInfo->coin];
+	const wchar_t* updaterName = coinInfo->coinname.c_str();
 	bool newBlock = false;
 	size_t const buffer_size = 1000;
 	char *buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
@@ -1299,7 +1290,7 @@ static size_t __impl__pollLocal__curl__readcallback(void *contents, size_t size,
 bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, std::string& rawResponse) {
 	bool failed = false;
 
-	const wchar_t* updaterName = coinNames[coinInfo->coin];
+	const wchar_t* updaterName = coinInfo->coinname.c_str();
 	bool newBlock = false;
 	
 	// TODO: fixup: extract outside like it was before
@@ -1402,7 +1393,7 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 	if (failed) return false;
 	if (!gmi.IsObject()) return false;
 
-	const wchar_t* updaterName = coinNames[coinInfo->coin];
+	const wchar_t* updaterName = coinInfo->coinname.c_str();
 	bool newBlock = false;
 
 	if (gmi.HasMember("baseTarget")) {

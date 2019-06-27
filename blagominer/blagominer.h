@@ -7,10 +7,10 @@
 #include "filemonitor.h"
 #include "updateChecker.h"
 #include "elevate.h"
+#include "volume_ntfs.h"
 
 // miner
 extern volatile bool stopThreads;
-extern char *pass;								// passphrase for solo mining
 extern unsigned long long total_size;			// sum of all local plot file sizes
 extern std::vector<std::string> paths_dir;      // plot paths
 
@@ -23,4 +23,4 @@ extern bool POC2;								// true if PoC2 is activated
 #include "worker.h"
 
 //headers
-size_t GetFiles(const std::string &str, std::vector <t_files> *p_files, bool* bfsDetected);
+size_t GetFiles(std::string str, std::vector <t_files> *p_files, bool* bfsDetected, bool forActualFileReading);

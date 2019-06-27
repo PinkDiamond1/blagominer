@@ -36,8 +36,6 @@ enum MiningState {
 	INTERRUPTED
 };
 
-extern wchar_t *coinNames[];
-
 struct t_shares {
 	t_shares(std::string file_name, unsigned long long account_id, unsigned long long best,
 		unsigned long long nonce, unsigned long long deadline, unsigned long long height,
@@ -79,6 +77,7 @@ struct t_files {
 	bool done;
 	std::string Path;
 	std::string Name;
+	long long positionOnNtfsVolume;
 	unsigned long long Size;
 	unsigned long long Key;
 	unsigned long long StartNonce;
@@ -151,6 +150,7 @@ struct t_network_info {
 	std::string nodeaddr;
 	std::string nodeport;
 	std::string noderoot;
+	std::string solopass;
 	unsigned submitTimeout;
 	std::string updateraddr;
 	std::string updaterport;
@@ -172,14 +172,15 @@ struct t_network_info {
 
 struct t_coin_info {
 	Coins coin;
+	std::wstring coinname;
 	std::shared_ptr<t_mining_info> mining;
 	std::shared_ptr<t_network_info> network;
 	std::shared_ptr<t_locks> locks;
 };
 
 
-extern std::shared_ptr<t_coin_info> burst;
-extern std::shared_ptr<t_coin_info> bhd;
+extern std::vector<std::shared_ptr<t_coin_info>> allcoins;
+extern std::vector<std::shared_ptr<t_coin_info>> coins;
 extern t_logging loggingConfig;
 
 unsigned long long getHeight(std::shared_ptr<t_coin_info> coin);
