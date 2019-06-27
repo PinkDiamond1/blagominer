@@ -179,8 +179,6 @@ struct t_coin_info {
 
 extern std::vector<std::shared_ptr<t_coin_info>> allcoins;
 extern std::vector<std::shared_ptr<t_coin_info>> coins;
-extern std::shared_ptr<t_coin_info> burst;
-extern std::shared_ptr<t_coin_info> bhd;
 extern t_logging loggingConfig;
 
 unsigned long long getHeight(std::shared_ptr<t_coin_info> coin);
