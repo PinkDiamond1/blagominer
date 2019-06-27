@@ -397,8 +397,6 @@ int load_config(wchar_t const *const filename)
 		HeapFree(hHeap, 0, json_);
 	}
 
-	allcoins = { burst, bhd };
-
 	return 1;
 }
 
@@ -1153,6 +1151,7 @@ int wmain(int argc, wchar_t **argv) {
 	curl_global_init(CURL_GLOBAL_DEFAULT);
 
 	// Initialize configuration.
+	allcoins = { burst, bhd };
 	init_mining_info();
 	init_network_info();
 
