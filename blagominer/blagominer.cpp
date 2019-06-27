@@ -1194,8 +1194,9 @@ int wmain(int argc, wchar_t **argv) {
 
 	GetCPUInfo();
 
-	size_t activecoins = std::count_if(allcoins.begin(), allcoins.end(), [](auto&& it) { return it->network->enable_proxy || it->mining->enable; });
-	if (activecoins == 0) {
+	std::vector<std::shared_ptr<t_coin_info>> activecoins;
+	std::copy_if(allcoins.begin(), allcoins.end(), std::back_inserter(activecoins), [](auto&& it) { return it->network->enable_proxy || it->mining->enable; });
+	if (activecoins.size() == 0) {
 		printToConsole(12, false, false, true, false, L"Mining and proxies are disabled for all coins. Please check your configuration.");
 		system("pause > nul");
 		exit(-1);
@@ -1328,7 +1329,7 @@ int wmain(int argc, wchar_t **argv) {
 		}
 
 	if (proxyOnly) {
-		const std::wstring trailingSpace = L"                                                                         ";
+		const std::wstring trailingSpace = std::wstring(94 - activecoins.size() * 4 - (activecoins.size() - 1), L' ');
 		while (!exit_flag)
 		{
 			
@@ -1339,18 +1340,16 @@ int wmain(int argc, wchar_t **argv) {
 				break;
 			}
 			
-			if (burst->network->enable_proxy && bhd->network->enable_proxy) {
-				printToProgress(L"%sConnection: %3i%%|%3i%%",
-					trailingSpace.c_str(), getNetworkQuality(burst), getNetworkQuality(bhd));
+			std::wostringstream connQual;
+			bool pastfirst = false;
+			for (auto& coin : activecoins)
+			{
+				if (pastfirst) connQual << L'|';
+				connQual << std::setw(3) << getNetworkQuality(coin) << L'%';
+				pastfirst = true;
 			}
-			else if (burst->network->enable_proxy) {
-				printToProgress(L"%sConnection:      %3i%%",
-					trailingSpace.c_str(), getNetworkQuality(burst));
-			}
-			else if (bhd->network->enable_proxy) {
-				printToProgress(L"%sConnection:      %3i%%",
-					trailingSpace.c_str(), getNetworkQuality(bhd));
-			}
+			printToProgress(L"%s%s",
+				trailingSpace.c_str(), connQual.str().c_str());
 
 			std::this_thread::yield();
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -1579,36 +1578,29 @@ int wmain(int argc, wchar_t **argv) {
 					}
 				}
 
+				std::wostringstream connQual;
+				bool pastfirst = false;
+				for (auto& coin : activecoins)
+				{
+					if (pastfirst) connQual << L'|';
+					connQual << std::setw(3) << getNetworkQuality(coin) << L'%';
+					pastfirst = true;
+				}
+
 				if (miningCoin->mining->enable && round_size > 0) {
-					if (burst->mining->enable && bhd->mining->enable) {
-						printToProgress(L"%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c Connection: %3i%%|%3i%%",
-							(bytesRead * 4096 * 100 / round_size), sepChar,
-							(((double)bytesRead) / (256 * 1024 * 1024)), sepChar,
-							thread_time, sepChar,
-							threads_speed, sepChar,
-							(miningCoin->mining->deadline == 0) ? L"          -" : toWStr(miningCoin->mining->deadline, 11).c_str(), sepChar,
-							getNetworkQuality(burst),
-							getNetworkQuality(bhd));
-					}
-					else {
-						printToProgress(L"%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c Connection:      %3i%%",
-							(bytesRead * 4096 * 100 / round_size), sepChar,
-							(((double)bytesRead) / (256 * 1024 * 1024)), sepChar,
-							thread_time, sepChar,
-							threads_speed, sepChar,
-							(miningCoin->mining->deadline == 0) ? L"          -" : toWStr(miningCoin->mining->deadline, 11).c_str(), sepChar,
-							getNetworkQuality(miningCoin));
-					}
+					const std::wstring trailingSpace = std::wstring(21 - activecoins.size() * 4 - (activecoins.size() - 1), L' ');
+					printToProgress(L"%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c %s%s",
+						(bytesRead * 4096 * 100 / round_size), sepChar,
+						(((double)bytesRead) / (256 * 1024 * 1024)), sepChar,
+						thread_time, sepChar,
+						threads_speed, sepChar,
+						(miningCoin->mining->deadline == 0) ? L"          -" : toWStr(miningCoin->mining->deadline, 11).c_str(), sepChar,
+						trailingSpace.c_str(), connQual.str().c_str());
 				}
 				else {
-					if (burst->mining->enable && bhd->mining->enable) {
-						printToProgress(L"                                                                         Connection: %3i%%|%3i%%",
-							getNetworkQuality(burst), getNetworkQuality(bhd), 0);
-					}
-					else {
-						printToProgress(L"                                                                         Connection:      %3i%%",
-							getNetworkQuality(miningCoin), 0);
-					}
+					const std::wstring trailingSpace = std::wstring(94 - activecoins.size() * 4 - (activecoins.size() - 1), L' ');
+					printToProgress(L"%s%s",
+						trailingSpace.c_str(), connQual.str().c_str());
 				}
 				
 				printFileStats();
