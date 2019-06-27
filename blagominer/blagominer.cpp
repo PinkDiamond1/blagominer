@@ -448,7 +448,7 @@ void GetCPUInfo(void)
 }
 
 
-void GetPass(char const *const p_strFolderPath)
+void GetPass(std::shared_ptr<t_coin_info> coin, char const *const p_strFolderPath)
 {
 	Log(L"Reading passphrase.");
 	FILE * pFile;
@@ -456,13 +456,13 @@ void GetPass(char const *const p_strFolderPath)
 	size_t len_pass;
 	char * filename = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, MAX_PATH);
 	if (filename == nullptr) ShowMemErrorExit();
-	sprintf_s(filename, MAX_PATH, "%s%s", p_strFolderPath, "passphrases.txt");
+	sprintf_s(filename, MAX_PATH, "%s%s%S%s", p_strFolderPath, "solosecret-", coin->coinname.c_str(), ".txt");
 
 	//  printf_s("\npass from: %s\n",filename);
 	fopen_s(&pFile, filename, "rt");
 	if (pFile == nullptr)
 	{
-		printToConsole(12, false, false, true, false, L"Error: passphrases.txt not found. File is needed for solo mining.");
+		printToConsole(12, false, false, true, false, L"Error: %s%s%s not found. File is needed for solo mining.", L"solosecret-", coin->coinname.c_str(), L".txt");
 		system("pause > nul");
 		exit(-1);
 	}
@@ -500,7 +500,7 @@ void GetPass(char const *const p_strFolderPath)
 	if (buffer != nullptr) {
 		HeapFree(hHeap, 0, buffer);
 	}
-	burst->network->solopass = pass;
+	coin->network->solopass = pass;
 	if (pass != nullptr) {
 		HeapFree(hHeap, 0, pass);
 	}
@@ -1204,8 +1204,11 @@ int wmain(int argc, wchar_t **argv) {
 		exit(-1);
 	}
 
-	// TODO: add support for similar solo mode to anycoin
-	if ((burst->mining->enable && burst->mining->miner_mode == 0)) GetPass(p_minerPath);
+	std::vector<std::shared_ptr<t_coin_info>> miningcoins;
+	std::copy_if(allcoins.begin(), allcoins.end(), std::back_inserter(miningcoins), [](auto&& it) { return it->mining->enable; });
+	for (auto& coin : miningcoins)
+		if ((coin->mining->miner_mode == 0))
+			GetPass(coin, p_minerPath);
 
 	// адрес и порт сервера
 	Log(L"Searching servers...");
@@ -1243,8 +1246,7 @@ int wmain(int argc, wchar_t **argv) {
 	printToConsole(15, false, false, true, false, L"TOTAL: %llu GiB (%llu TiB)",
 		total_size / 1024 / 1024 / 1024, total_size / 1024 / 1024 / 1024 / 1024);
 	
-	size_t nminingcoins = std::count_if(allcoins.begin(), allcoins.end(), [](auto&& it) {return it->mining->enable; });
-	if (total_size == 0 && nminingcoins > 0) {
+	if (total_size == 0 && miningcoins.size() > 0) {
 		printToConsole(12, false, true, true, false,
 			L"Plot files not found...please check the \"PATHS\" parameter in your config file.");
 		system("pause > nul");
@@ -1278,7 +1280,7 @@ int wmain(int argc, wchar_t **argv) {
 			printToConsole(8, false, true, false, true, L"Timeout for %s deadline submissions is set to %u ms, which is a low value.", coin->coinname.c_str(), coin->network->submitTimeout);
 		}
 
-	proxyOnly = nminingcoins == 0 && proxycoins.size() > 0;
+	proxyOnly = miningcoins.size() == 0 && proxycoins.size() > 0;
 	if (proxyOnly) {
 		Log(L"Running as proxy only.");
 		printToConsole(8, false, true, false, true, L"Running as proxy only.");
