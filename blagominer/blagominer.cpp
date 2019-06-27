@@ -35,9 +35,8 @@ std::vector<std::string> paths_dir; // ïóòè
 
 sph_shabal_context  local_32;
 
-void init_mining_info(std::shared_ptr<t_coin_info> coin, Coins code, std::wstring name, size_t priority, unsigned long long poc2start)
+void init_mining_info(std::shared_ptr<t_coin_info> coin, std::wstring name, size_t priority, unsigned long long poc2start)
 {
-	coin->coin = code;
 	coin->coinname = name;
 	coin->locks = std::make_shared<t_locks>();
 	coin->mining = std::make_shared<t_mining_info>();
@@ -320,7 +319,7 @@ int load_config(wchar_t const *const filename)
 			bool isBurst = coinNodeName.find("burst") || coinNodeName.find("Burst") || coinNodeName.find("BURST");
 
 			auto coin = std::make_shared<t_coin_info>();
-			init_mining_info(coin, isBurst ? BURST : BHD, coinWideName.c_str(), isBurst ? 0 : 1, isBurst ? 502000 : 0);
+			init_mining_info(coin, coinWideName.c_str(), isBurst ? 0 : 1, isBurst ? 502000 : 0);
 			init_coinNetwork(coin);
 			loadCoinConfig(document, coinNodeName, coin);
 

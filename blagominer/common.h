@@ -24,11 +24,6 @@ extern volatile bool exit_flag;							// true if miner is to be exited
 
 extern HANDLE hHeap;							//heap
 
-enum Coins {
-	BURST = 0,
-	BHD = 1,
-};
-
 enum MiningState {
 	QUEUED,
 	MINING,
@@ -182,7 +177,6 @@ struct t_network_info {
 };
 
 struct t_coin_info {
-	Coins coin;
 	std::wstring coinname;
 	CoinLogFiles logging;
 	std::shared_ptr<t_mining_info> mining;
