@@ -102,6 +102,17 @@ struct t_logging {
 											// GMI when there is a change in the GMI
 };
 
+struct LogFileInfo {
+	std::string filename;
+	std::mutex mutex;
+};
+
+struct CoinLogFiles {
+	LogFileInfo failed;
+	LogFileInfo submitted;
+};
+
+
 struct t_locks {
 	std::mutex mHeight;
 	std::mutex mTargetDeadlineInfo;
@@ -173,6 +184,7 @@ struct t_network_info {
 struct t_coin_info {
 	Coins coin;
 	std::wstring coinname;
+	CoinLogFiles logging;
 	std::shared_ptr<t_mining_info> mining;
 	std::shared_ptr<t_network_info> network;
 	std::shared_ptr<t_locks> locks;
