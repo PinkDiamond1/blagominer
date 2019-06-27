@@ -1222,11 +1222,13 @@ int wmain(int argc, wchar_t **argv) {
 	resizeConsole(win_size_x, win_size_y);
 	
 	bm_init();
-	printToConsole(12, false, false, true, false, L"BURST/BHD miner, %s %s", version.c_str(), IsElevated() ? L"(elevated)" : L"(nonelevated)");
+	printToConsole(12, false, false, true, false, L"PoC multi miner, %s %s", version.c_str(), IsElevated() ? L"(elevated)" : L"(nonelevated)");
 	printToConsole(4, false, false, true, false, L"Programming: dcct (Linux) & Blago (Windows)");
 	printToConsole(4, false, false, true, false, L"POC2 mod: Quibus & Johnny (5/2018)");
 	printToConsole(4, false, false, true, false, L"Dual mining mod: andz (2/2019)");
 	printToConsole(4, false, false, true, false, L"HTTPS and patches: quetzalcoatl (6/2019)");
+	printToConsole(4, false, false, true, false, L"NTFS optimization: quetzalcoatl (6/2019)");
+	printToConsole(4, false, false, true, false, L"Multi mining mod: quetzalcoatl (7/2019)");
 
 	GetCPUInfo();
 
