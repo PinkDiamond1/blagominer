@@ -729,7 +729,7 @@ void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& currentQueue, st
 	if (!inserted) {
 		Log(L"Adding %s to the end of the queue.", newCoin->coinname.c_str());
 		if (coinCurrentlyMining && coinCurrentlyMining->mining->state == MINING &&
-			newCoin->coin != coinCurrentlyMining->coin &&
+			newCoin != coinCurrentlyMining &&
 			newCoin->mining->priority >= coinCurrentlyMining->mining->priority) {
 			printToConsole(5, true, false, false, true, L"[#%s|%s|Info    ] New block has been added to the end of the queue.",
 				toWStr(newCoin->mining->height, 7).c_str(), toWStr(newCoin->coinname, 10).c_str(), 0);
@@ -845,7 +845,7 @@ bool needToInterruptMining(const std::vector<std::shared_ptr<t_coin_info>>& allC
 			}
 			else {
 				for (auto& pt : currentQueue) {
-					if (pt->coin == coinCurrentlyMining->coin) {
+					if (pt == coinCurrentlyMining) {
 						Log(L"Interrupting current mining progress. New %s block.", coinCurrentlyMining->coinname.c_str());
 						return true;
 					}
