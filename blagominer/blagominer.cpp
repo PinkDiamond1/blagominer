@@ -1371,8 +1371,8 @@ int wmain(int argc, wchar_t **argv) {
 		}
 
 
-		Log(L"Burst height: %llu", getHeight(burst));
-		Log(L"BHD height: %llu", getHeight(bhd));
+		for (auto& coin : allcoins)
+			Log(L"%s height: %llu", coin->coinname.c_str(), getHeight(coin));
 
 		// Main loop
 		// Create Shabal Contexts
