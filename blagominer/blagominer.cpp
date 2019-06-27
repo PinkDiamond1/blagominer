@@ -27,7 +27,6 @@ std::vector<std::shared_ptr<t_coin_info>> allcoins;
 std::vector<std::shared_ptr<t_coin_info>> coins;
 
 char *p_minerPath = nullptr;
-char *pass = nullptr;
 unsigned long long total_size = 0;
 bool POC2 = false;
 volatile bool stopThreads = false;
@@ -480,6 +479,7 @@ void GetPass(char const *const p_strFolderPath)
 	len_pass = fread(buffer, 1, lSize, pFile);
 	fclose(pFile);
 
+	char *pass = nullptr;
 	pass = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, lSize * 3);
 	if (pass == nullptr) ShowMemErrorExit();
 
@@ -499,6 +499,10 @@ void GetPass(char const *const p_strFolderPath)
 	//printf_s("\n%s\n",pass);
 	if (buffer != nullptr) {
 		HeapFree(hHeap, 0, buffer);
+	}
+	burst->network->solopass = pass;
+	if (pass != nullptr) {
+		HeapFree(hHeap, 0, pass);
 	}
 }
 
@@ -1017,8 +1021,6 @@ void closeMiner() {
 		LeaveCriticalSection(&coin->locks->sessionsLock);
 	}
 
-	if (pass != nullptr) HeapFree(hHeap, 0, pass);
-		
 	for (auto& coin : allcoins)
 		if (coin->mining->enable || coin->network->enable_proxy) {
 			DeleteCriticalSection(&coin->locks->sessionsLock);

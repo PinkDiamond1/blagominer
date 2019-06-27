@@ -149,6 +149,7 @@ struct t_network_info {
 	std::string nodeaddr;
 	std::string nodeport;
 	std::string noderoot;
+	std::string solopass;
 	unsigned submitTimeout;
 	std::string updateraddr;
 	std::string updaterport;

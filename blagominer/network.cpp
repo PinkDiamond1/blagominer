@@ -333,7 +333,7 @@ void __impl__send_i__sockets(char* buffer, size_t buffer_size, std::shared_ptr<t
 		if (coinInfo->mining->miner_mode == 0)
 		{
 			bytes = sprintf_s(buffer, buffer_size, "POST /%s?requestType=submitNonce&secretPhrase=%s&nonce=%llu HTTP/1.0\r\nConnection: close\r\n\r\n",
-				coinInfo->network->noderoot.c_str(), pass, share->nonce);
+				coinInfo->network->noderoot.c_str(), coinInfo->network->solopass.c_str(), share->nonce);
 		}
 		if (coinInfo->mining->miner_mode == 1)
 		{
@@ -447,7 +447,7 @@ void __impl__send_i__curl(std::shared_ptr<t_coin_info> coinInfo, std::vector<std
 			if (coinInfo->mining->miner_mode == 0)
 			{
 				bytes = sprintf_s(buffer, buffer_size, "POST /%s?requestType=submitNonce&secretPhrase=%s&nonce=%llu HTTP/1.0\r\nConnection: close\r\n\r\n",
-					coinInfo->network->noderoot.c_str(), pass, share->nonce);
+					coinInfo->network->noderoot.c_str(), coinInfo->network->solopass.c_str(), share->nonce);
 			}
 			if (coinInfo->mining->miner_mode == 1)
 			{
