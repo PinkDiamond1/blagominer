@@ -62,7 +62,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		bfs = iter->BFS;
 		tail = 0;
 
-		// Проверка кратности нонсов стаггеру
+		// Checking the stagger's nonce count
 		if ((double)(nonces % stagger) > DBL_EPSILON && !bfs)
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
@@ -72,16 +72,16 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 
 		const unsigned int scoop = coinInfo->mining->scoop;
 
-		// Проверка на повреждения плота
+		// Checking for plot damage
 		if (nonces != (iter->Size) / (4096 * 64))
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
 			Log(L"File %S (%S) name/size mismatch.", iter->Name.c_str(), iter->Path.c_str());
 			printToConsole(12, true, false, true, false, L"File \"%S\" name/size mismatch", iter->Name.c_str());
 			if (nonces != stagger)
-				nonces = (((iter->Size) / (4096 * 64)) / stagger) * stagger; //обрезаем плот по размеру и стаггеру
+				nonces = (((iter->Size) / (4096 * 64)) / stagger) * stagger; //we cut the plot to size and stagger
 			else {
-				if (scoop > (iter->Size) / (stagger * 64)) //если номер скупа попадает в поврежденный смерженный плот, то пропускаем
+				if (scoop > (iter->Size) / (stagger * 64)) //if the number of scoop falls into a damaged, cursed plot, then skip
 				{
 					printToConsole(12, true, false, true, false, L"Skipped");
 					continue;
@@ -102,7 +102,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			bytesPerSector = 4096;
 		}
 
-		// Если стаггер в плоте меньше чем размер сектора - пропускаем
+		// If the stagger in the plot is smaller than the size of the sector - skip
 		if ((stagger * 64) < bytesPerSector)
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
@@ -111,7 +111,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			continue;
 		}
 
-		// Если нонсов в плоте меньше чем размер сектора - пропускаем
+		// If the nonce in the plot is smaller than the size of the sector - skip
 		if ((nonces * 64) < bytesPerSector)
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
@@ -120,7 +120,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			continue;
 		}
 
-		// Если стаггер не выровнен по сектору - можем читать сдвигая последний стагер назад (доделать)
+		// If the stagger is not aligned with the sector - we can read by shifting the last stagger backwards (finish)
 		if ((stagger % (bytesPerSector / 64)) != 0)
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
@@ -132,18 +132,18 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		//PoC2 cache size added (shuffling needs more cache)
 
 		if (p2 != POC2) {
-			if ((stagger == nonces) && (cache_size2 < stagger)) cache_size_local = cache_size2;  // оптимизированный плот
-			else cache_size_local = stagger; // обычный плот
+			if ((stagger == nonces) && (cache_size2 < stagger)) cache_size_local = cache_size2;  // optimized plot
+			else cache_size_local = stagger; // regular plot
 		}
 		else {
 			if ((stagger == nonces) && (cache_size1 < stagger))
 			{
-				cache_size_local = cache_size1;  // оптимизированный плот
+				cache_size_local = cache_size1;  // optimized plot
 			}
 			else
 			{
 				if (!bfs) {
-					cache_size_local = stagger; // обычный плот 
+					cache_size_local = stagger; // regular plot 
 				}
 				else
 				{
@@ -152,7 +152,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			}
 		}
 
-		//Выравниваем cache_size_local по размеру сектора
+		//Align cache_size_local to sector size.
 		cache_size_local = (cache_size_local / (size_t)(bytesPerSector / 64)) * (size_t)(bytesPerSector / 64);
 		//wprintw(win_main, "round: %llu\n", cache_size_local);
 
@@ -359,7 +359,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 void th_read(HANDLE ifile, unsigned long long const start, unsigned long long const MirrorStart, bool * const cont, unsigned long long * const bytes, t_files const * const iter, bool * const flip, bool p2, unsigned long long const i, unsigned long long const stagger, size_t * const cache_size_local, char * const cache, char * const MirrorCache) {
 	if (i + *cache_size_local > stagger)
 	{
-		*cache_size_local = stagger - i;  // остаток
+		*cache_size_local = stagger - i;  // the remainder
 
 #ifdef __AVX512F__
 		if (*cache_size_local < 16)

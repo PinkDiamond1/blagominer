@@ -144,10 +144,10 @@ int bm_wprintwC(const char * output, ...) {
 void bm_init() {
 	initscr();
 	raw();
-	cbreak();		// не использовать буфер для getch()
-	noecho();		// не отображать нажатия клавиш
-	curs_set(0);	// убрать курсор
-	start_color();	// будет всё цветное 			
+	cbreak();		// don't use buffer for getch()
+	noecho();		// do not display keystrokes
+	curs_set(0);	// remove the cursor
+	start_color();	// it will be all colorful			
 
 	//int init_pair(short pair, short foreground, short background);
 	init_pair(2, COLOR_GREEN, COLOR_BLACK);
