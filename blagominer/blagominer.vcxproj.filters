@@ -84,6 +84,9 @@
     <ClInclude Include="volume_ntfs.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="hexstring.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
     <ClInclude Include="reference\BurstMath.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>

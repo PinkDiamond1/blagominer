@@ -697,6 +697,7 @@
     <ClInclude Include="accounts.h" />
     <ClInclude Include="common.h" />
     <ClInclude Include="filemonitor.h" />
+    <ClInclude Include="hexstring.h" />
     <ClInclude Include="InstructionSet.h" />
     <ClInclude Include="logger.h" />
     <ClInclude Include="loggerCsv.h" />
