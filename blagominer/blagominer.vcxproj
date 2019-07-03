@@ -702,6 +702,7 @@
     <ClInclude Include="loggerCsv.h" />
     <ClInclude Include="mshabal.h" />
     <ClInclude Include="picohttpparser.h" />
+    <ClInclude Include="reference\BurstMath.h" />
     <ClInclude Include="volume_ntfs.h" />
     <ClInclude Include="shabal.h" />
     <ClInclude Include="inout.h" />
@@ -718,6 +719,7 @@
     <ClCompile Include="accounts.cpp" />
     <ClCompile Include="blagominer.cpp" />
     <ClCompile Include="common.cpp" />
+    <ClCompile Include="reference\BurstMath.cpp" />
     <ClCompile Include="elevate.cpp" />
     <ClCompile Include="filemonitor.cpp" />
     <ClCompile Include="logger.cpp" />
