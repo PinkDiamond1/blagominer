@@ -14,12 +14,17 @@ private:
 		throw std::invalid_argument("Invalid input string");
 	}
 
-	static void hex2bin(const char* src, uint8_t* target)
+	static void hex2bin(std::string const& src, uint8_t* target)
 	{
-		while (src[0] && src[1])
+		char const * source = src.c_str();
+
+		if (src.length() % 2 == 1)
+			*(target++) = char2int(*(source++));
+
+		while (source[0] && source[1])
 		{
-			*(target++) = char2int(src[0]) * 16 + char2int(src[1]);
-			src += 2;
+			*(target++) = char2int(source[0]) * 16 + char2int(source[1]);
+			source += 2;
 		}
 	}
 
@@ -37,8 +42,8 @@ public:
 	static std::vector<uint8_t> from(std::string const& text)
 	{
 		std::vector<uint8_t> tmp;
-		tmp.resize(text.size() / 2);
-		hex2bin(text.c_str(), tmp.data());
+		tmp.resize((text.size() + 1) / 2);
+		hex2bin(text, tmp.data());
 		return tmp;
 	}
 };
