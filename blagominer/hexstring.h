@@ -25,6 +25,15 @@ private:
 
 public:
 
+	/**
+	 * Parses a string of hexadecimal digits into an array of bytes.
+	 * Assumes natural order of bits in byte: 0x01 is 1, 0x10 is 16.
+	 * Assumes natural order of bytes in string: AABB is [0xAA,0xBB].
+	 *
+	 * @param text the text to parse
+	 * @return vector of 8bit bytes
+	 * @throws std::invalid_argument when input contains non-hexdigit characters
+	 */
 	static std::vector<uint8_t> from(std::string const& text)
 	{
 		std::vector<uint8_t> tmp;
