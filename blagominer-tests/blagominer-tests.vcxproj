@@ -33,7 +33,8 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <ItemGroup>
-    <ClCompile Include="deadlines.cpp" />
+    <ClCompile Include="deadlines.felix.cpp" />
+    <ClCompile Include="deadlines.que.cpp" />
     <ClCompile Include="hexstring.tests.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="test.cpp" />
