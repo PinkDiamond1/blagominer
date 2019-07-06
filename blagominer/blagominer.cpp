@@ -21,7 +21,7 @@ std::vector<std::shared_ptr<t_coin_info>> coins;
 char *p_minerPath = nullptr;
 unsigned long long total_size = 0;
 bool POC2 = false;
-volatile bool stopThreads = false;
+volatile bool stopThreads = false;				// only applicable to WORKER threads
 bool use_wakeup = false;						// wakeup HDDs if true
 unsigned int hddWakeUpTimer = 180;              // HDD wakeup timer in seconds
 
@@ -744,12 +744,27 @@ void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& currentQueue, st
 void newRound(std::shared_ptr<t_coin_info > coinCurrentlyMining) {
 	const wchar_t* coinName = coinCurrentlyMining->coinname.c_str();
 	Log(L"New round for %s.", coinName);
+
+	// make sure networking threads are inactive, so it's safe to clean curl handles up
+	Log(L"Interrupting sender+confirmer threads for %s.", coinCurrentlyMining->coinname.c_str());
+	coinCurrentlyMining->locks->stopRoundSpecificNetworkingThreads = true;
+
+	Log(L"Waiting for sender+confirmer threads for %s to shut down.", coinCurrentlyMining->coinname.c_str());
+	if (coinCurrentlyMining->network->sender.joinable())
+		coinCurrentlyMining->network->sender.join();
+	if (coinCurrentlyMining->network->confirmer.joinable())
+		coinCurrentlyMining->network->confirmer.join();
+
+	Log(L"Both sender+confirmer threads for %s shut down.", coinCurrentlyMining->coinname.c_str());
+	coinCurrentlyMining->locks->stopRoundSpecificNetworkingThreads = false; // actually it's pretty important to do it HERE
+
 	EnterCriticalSection(&coinCurrentlyMining->locks->sessionsLock);
 	for (auto it = coinCurrentlyMining->network->sessions.begin(); it != coinCurrentlyMining->network->sessions.end(); ++it) {
 		closesocket((*it)->Socket);
 	}
 	coinCurrentlyMining->network->sessions.clear();
 	for (auto it = coinCurrentlyMining->network->sessions2.begin(); it != coinCurrentlyMining->network->sessions2.end(); ++it) {
+		// it's safe here as long as we ensure that not only WORKER threads are inactive, but coins' SENDER and CONFIRMER threads as well
 		curl_easy_cleanup((*it)->curl);
 	}
 	coinCurrentlyMining->network->sessions2.clear();
@@ -770,11 +785,12 @@ void newRound(std::shared_ptr<t_coin_info > coinCurrentlyMining) {
 		resetDirs(coinCurrentlyMining);
 	}
 
-	// We need only one instance of sender
+	// if it was inactive, or if we just shut it down to clean up connections - restart it for the new round
 	if (!coinCurrentlyMining->network->sender.joinable()) {
 		coinCurrentlyMining->network->sender = std::thread(send_i, coinCurrentlyMining);
 	}
-	// We need only one instance of confirmer
+
+	// if it was inactive, or if we just shut it down to clean up connections - restart it for the new round
 	if (!coinCurrentlyMining->network->confirmer.joinable()) {
 		coinCurrentlyMining->network->confirmer = std::thread(confirm_i, coinCurrentlyMining);
 	}
@@ -1023,7 +1039,10 @@ void closeMiner() {
 	}
 	Log(L"Closing miner.");
 	exitHandled = true;
-	
+
+	for (auto& coin : allcoins)
+		coin->locks->stopRoundSpecificNetworkingThreads = true;
+
 	Log(L"Waiting for worker threads to shut down.");
 	for (auto it = worker.begin(); it != worker.end(); ++it)
 	{
@@ -1109,6 +1128,9 @@ void initMiningOrProxy(std::shared_ptr<t_coin_info> coin)
 		InitializeCriticalSection(&coin->locks->sessions2Lock);
 		InitializeCriticalSection(&coin->locks->bestsLock);
 		InitializeCriticalSection(&coin->locks->sharesLock);
+
+		coin->locks->stopRoundSpecificNetworkingThreads = false;
+
 		coin->mining->shares.reserve(20);
 		coin->mining->bests.reserve(4);
 		coin->network->sessions.reserve(20);
@@ -1634,9 +1656,11 @@ int wmain(int argc, wchar_t **argv) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			}
 
+
+			// make sure worker threads are inactive, so these don't waste time mining on old height
 			Log(L"Interrupting worker threads.");
 			stopThreads = true;   // Tell all threads to stop
-			
+
 			Log(L"Waiting for worker threads to shut down.");
 			for (auto it = worker.begin(); it != worker.end(); ++it)
 			{
@@ -1645,6 +1669,7 @@ int wmain(int argc, wchar_t **argv) {
 				}
 			}
 			Log(L"All worker threads shut down.");
+
 
 			if (miningCoin->mining->state == MINING) {
 				// Checking if all directories are done for the rare case that workers finished mining

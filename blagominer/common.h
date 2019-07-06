@@ -121,6 +121,8 @@ struct t_locks {
 	CRITICAL_SECTION sessions2Lock;			// session2 lock
 	CRITICAL_SECTION bestsLock;				// best lock
 	CRITICAL_SECTION sharesLock;			// shares lock
+
+	volatile bool stopRoundSpecificNetworkingThreads;
 };
 
 struct t_mining_info {
