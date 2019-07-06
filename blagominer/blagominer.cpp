@@ -1040,6 +1040,8 @@ void closeMiner() {
 	Log(L"Closing miner.");
 	exitHandled = true;
 
+	exit_flag = true;
+	stopThreads = true;
 	for (auto& coin : allcoins)
 		coin->locks->stopRoundSpecificNetworkingThreads = true;
 
@@ -1112,7 +1114,6 @@ void closeMiner() {
 BOOL WINAPI OnConsoleClose(DWORD dwCtrlType)
 {
 	if (dwCtrlType == CTRL_CLOSE_EVENT) {
-		exit_flag = true;
 		closeMiner();
 		return TRUE;
 	}
