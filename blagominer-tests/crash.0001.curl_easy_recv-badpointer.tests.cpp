@@ -68,3 +68,41 @@ TEST(Diag_Crash_curleasyrecv_BadPointer_DeathTest, Test00001) {
 	// and leave the curl handle still initialized, it should work perfectly safe. Later, actual cleanup of sessions will ensure sender/confirmer
 	// threads are stuck on session synchronization, and problem solved, as long as curl does not crash when handle is alive but the socket is dead.
 }
+
+TEST(Diag_Crash_curleasyrecv_BadPointer_DeathTest, Test00002) {
+	// Test idea:
+	// Check what happens when curl_easy_recv uses an initialized handle which had its socket shutdown.
+
+	autocurlpointer testedHandle(curl_easy_init(), &curl_easy_cleanup);
+	ASSERT_NE(testedHandle, nullptr);
+
+	curl_easy_setopt(testedHandle.get(), CURLOPT_URL, "http://www.example.com");
+	curl_easy_setopt(testedHandle.get(), CURLOPT_CONNECT_ONLY, 1L);
+	curl_easy_setopt(testedHandle.get(), CURLOPT_TIMEOUT_MS, 1000);
+
+	CURLcode res = curl_easy_perform(testedHandle.get());
+	ASSERT_EQ(res, CURLE_OK);
+
+	curl_socket_t sockfd;
+	res = curl_easy_getinfo(testedHandle.get(), CURLINFO_ACTIVESOCKET, &sockfd);
+	ASSERT_EQ(res, CURLE_OK);
+
+	// alright, we're connected
+
+	// break the actual connection, but leave the curl handle alive
+	//shutdown(sockfd, SD_xxx);
+	closesocket(sockfd);
+
+	char buff[1];
+	size_t n = -123;
+	res = curl_easy_recv(testedHandle.get(), buff, 1, &n); // yay, no crash
+
+	EXPECT_NE(res, CURLE_OK); // got: CURLE_RECV_ERROR(56)
+	EXPECT_TRUE(n == 0 || n == -123); // got: 0
+
+	// Analysis:
+
+	// Actually, that awesome. socket was forcibly closed, but the API didn't crash,
+	// and even it zero'ed out the bytes-received output variable properly.
+	// We have a way of actually terminating that is safe for curl.
+}
