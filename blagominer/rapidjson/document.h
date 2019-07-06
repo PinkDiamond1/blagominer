@@ -115,6 +115,7 @@ class GenericMemberIterator
 
     typedef GenericMember<Encoding,Allocator> PlainType;
     typedef typename internal::MaybeAddConst<Const,PlainType>::Type ValueType;
+// TODO: get rid of _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING
     typedef std::iterator<std::random_access_iterator_tag,ValueType> BaseType;
 
 public:
