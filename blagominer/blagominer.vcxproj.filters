@@ -84,6 +84,12 @@
     <ClInclude Include="volume_ntfs.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="hexstring.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="reference\BurstMath.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -147,6 +153,9 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="volume_ntfs.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="reference\BurstMath.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

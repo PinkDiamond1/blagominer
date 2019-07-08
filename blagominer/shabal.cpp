@@ -37,7 +37,21 @@ void procscoop_sph(std::shared_ptr<t_coin_info> coin, const unsigned long long n
 		{
 			if (*wertung < coin->mining->bests[acc].best)
 			{
-				Log(L"found deadline=%llu nonce=%llu for account: %llu file: %S", deadline, nonce + v, coin->mining->bests[acc].account_id, file_name.c_str());
+				Log(L"SPH-: found deadline=%llu scoop=%lu nonce=%llu for account: %llu file: %S", deadline, coin->mining->scoop, nonce + v, coin->mining->bests[acc].account_id, file_name.c_str());
+				Log(L"SIG: %llu <= %02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx", deadline,
+					coin->mining->currentSignature[ 0], coin->mining->currentSignature[ 1], coin->mining->currentSignature[ 2], coin->mining->currentSignature[ 3], coin->mining->currentSignature[ 4], coin->mining->currentSignature[ 5], coin->mining->currentSignature[ 6], coin->mining->currentSignature[ 7], coin->mining->currentSignature[ 8], coin->mining->currentSignature[ 9],
+					coin->mining->currentSignature[10], coin->mining->currentSignature[11], coin->mining->currentSignature[12], coin->mining->currentSignature[13], coin->mining->currentSignature[14], coin->mining->currentSignature[15], coin->mining->currentSignature[16], coin->mining->currentSignature[17], coin->mining->currentSignature[18], coin->mining->currentSignature[19],
+					coin->mining->currentSignature[20], coin->mining->currentSignature[21], coin->mining->currentSignature[22], coin->mining->currentSignature[23], coin->mining->currentSignature[24], coin->mining->currentSignature[25], coin->mining->currentSignature[26], coin->mining->currentSignature[27], coin->mining->currentSignature[28], coin->mining->currentSignature[29],
+					coin->mining->currentSignature[30], coin->mining->currentSignature[31]);
+				Log(L"SCP: %llu <= %02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx %02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx", deadline,
+					cache[v * 64 +  0], cache[v * 64 +  1], cache[v * 64 +  2], cache[v * 64 +  3], cache[v * 64 +  4], cache[v * 64 +  5], cache[v * 64 +  6], cache[v * 64 +  7], cache[v * 64 +  8], cache[v * 64 +  9],
+					cache[v * 64 + 10], cache[v * 64 + 11], cache[v * 64 + 12], cache[v * 64 + 13], cache[v * 64 + 14], cache[v * 64 + 15], cache[v * 64 + 16], cache[v * 64 + 17], cache[v * 64 + 18], cache[v * 64 + 19],
+					cache[v * 64 + 20], cache[v * 64 + 21], cache[v * 64 + 22], cache[v * 64 + 23], cache[v * 64 + 24], cache[v * 64 + 25], cache[v * 64 + 26], cache[v * 64 + 27], cache[v * 64 + 28], cache[v * 64 + 29],
+					cache[v * 64 + 30], cache[v * 64 + 31], cache[v * 64 + 32], cache[v * 64 + 33], cache[v * 64 + 34], cache[v * 64 + 35], cache[v * 64 + 36], cache[v * 64 + 37], cache[v * 64 + 38], cache[v * 64 + 39],
+					cache[v * 64 + 40], cache[v * 64 + 41], cache[v * 64 + 42], cache[v * 64 + 43], cache[v * 64 + 44], cache[v * 64 + 45], cache[v * 64 + 46], cache[v * 64 + 47], cache[v * 64 + 48], cache[v * 64 + 49],
+					cache[v * 64 + 50], cache[v * 64 + 51], cache[v * 64 + 52], cache[v * 64 + 53], cache[v * 64 + 54], cache[v * 64 + 55], cache[v * 64 + 56], cache[v * 64 + 57], cache[v * 64 + 58], cache[v * 64 + 59],
+					cache[v * 64 + 60], cache[v * 64 + 61], cache[v * 64 + 62], cache[v * 64 + 63]);
+
 				EnterCriticalSection(&coin->locks->bestsLock);
 				coin->mining->bests[acc].best = *wertung;
 				coin->mining->bests[acc].nonce = nonce + v;
@@ -145,7 +159,21 @@ void procscoop_sse_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 		{
 			if (*wertung < coin->mining->bests[acc].best)
 			{
-				Log(L"found deadline=%llu nonce=%llu for account: %llu file: %S", deadline, nonce + v + posn, coin->mining->bests[acc].account_id, file_name.c_str());
+				Log(L"SSEF: found deadline=%llu scoop=%lu nonce=%llu for account: %llu file: %S", deadline, coin->mining->scoop, nonce + v + posn, coin->mining->bests[acc].account_id, file_name.c_str());
+				Log(L"SIG: %llu <= %02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx", deadline,
+					coin->mining->currentSignature[ 0], coin->mining->currentSignature[ 1], coin->mining->currentSignature[ 2], coin->mining->currentSignature[ 3], coin->mining->currentSignature[ 4], coin->mining->currentSignature[ 5], coin->mining->currentSignature[ 6], coin->mining->currentSignature[ 7], coin->mining->currentSignature[ 8], coin->mining->currentSignature[ 9],
+					coin->mining->currentSignature[10], coin->mining->currentSignature[11], coin->mining->currentSignature[12], coin->mining->currentSignature[13], coin->mining->currentSignature[14], coin->mining->currentSignature[15], coin->mining->currentSignature[16], coin->mining->currentSignature[17], coin->mining->currentSignature[18], coin->mining->currentSignature[19],
+					coin->mining->currentSignature[20], coin->mining->currentSignature[21], coin->mining->currentSignature[22], coin->mining->currentSignature[23], coin->mining->currentSignature[24], coin->mining->currentSignature[25], coin->mining->currentSignature[26], coin->mining->currentSignature[27], coin->mining->currentSignature[28], coin->mining->currentSignature[29],
+					coin->mining->currentSignature[30], coin->mining->currentSignature[31]);
+				Log(L"SCP: %llu <= %02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx %02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx", deadline,
+					cache[(v + posn) * 64 +  0], cache[(v + posn) * 64 +  1], cache[(v + posn) * 64 +  2], cache[(v + posn) * 64 +  3], cache[(v + posn) * 64 +  4], cache[(v + posn) * 64 +  5], cache[(v + posn) * 64 +  6], cache[(v + posn) * 64 +  7], cache[(v + posn) * 64 +  8], cache[(v + posn) * 64 +  9],
+					cache[(v + posn) * 64 + 10], cache[(v + posn) * 64 + 11], cache[(v + posn) * 64 + 12], cache[(v + posn) * 64 + 13], cache[(v + posn) * 64 + 14], cache[(v + posn) * 64 + 15], cache[(v + posn) * 64 + 16], cache[(v + posn) * 64 + 17], cache[(v + posn) * 64 + 18], cache[(v + posn) * 64 + 19],
+					cache[(v + posn) * 64 + 20], cache[(v + posn) * 64 + 21], cache[(v + posn) * 64 + 22], cache[(v + posn) * 64 + 23], cache[(v + posn) * 64 + 24], cache[(v + posn) * 64 + 25], cache[(v + posn) * 64 + 26], cache[(v + posn) * 64 + 27], cache[(v + posn) * 64 + 28], cache[(v + posn) * 64 + 29],
+					cache[(v + posn) * 64 + 30], cache[(v + posn) * 64 + 31], cache[(v + posn) * 64 + 32], cache[(v + posn) * 64 + 33], cache[(v + posn) * 64 + 34], cache[(v + posn) * 64 + 35], cache[(v + posn) * 64 + 36], cache[(v + posn) * 64 + 37], cache[(v + posn) * 64 + 38], cache[(v + posn) * 64 + 39],
+					cache[(v + posn) * 64 + 40], cache[(v + posn) * 64 + 41], cache[(v + posn) * 64 + 42], cache[(v + posn) * 64 + 43], cache[(v + posn) * 64 + 44], cache[(v + posn) * 64 + 45], cache[(v + posn) * 64 + 46], cache[(v + posn) * 64 + 47], cache[(v + posn) * 64 + 48], cache[(v + posn) * 64 + 49],
+					cache[(v + posn) * 64 + 50], cache[(v + posn) * 64 + 51], cache[(v + posn) * 64 + 52], cache[(v + posn) * 64 + 53], cache[(v + posn) * 64 + 54], cache[(v + posn) * 64 + 55], cache[(v + posn) * 64 + 56], cache[(v + posn) * 64 + 57], cache[(v + posn) * 64 + 58], cache[(v + posn) * 64 + 59],
+					cache[(v + posn) * 64 + 60], cache[(v + posn) * 64 + 61], cache[(v + posn) * 64 + 62], cache[(v + posn) * 64 + 63]);
+
 				EnterCriticalSection(&coin->locks->bestsLock);
 				coin->mining->bests[acc].best = *wertung;
 				coin->mining->bests[acc].nonce = nonce + v + posn;
@@ -253,7 +281,21 @@ void procscoop_avx_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 		{
 			if (*wertung < coin->mining->bests[acc].best)
 			{
-				Log(L"found deadline=%llu nonce=%llu for account: %llu file: %S", deadline, nonce + v + posn, coin->mining->bests[acc].account_id, file_name.c_str());
+				Log(L"AVX0: found deadline=%llu scoop=%lu nonce=%llu for account: %llu file: %S", deadline, coin->mining->scoop, nonce + v + posn, coin->mining->bests[acc].account_id, file_name.c_str());
+				Log(L"SIG: %llu <= %02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx", deadline,
+					coin->mining->currentSignature[ 0], coin->mining->currentSignature[ 1], coin->mining->currentSignature[ 2], coin->mining->currentSignature[ 3], coin->mining->currentSignature[ 4], coin->mining->currentSignature[ 5], coin->mining->currentSignature[ 6], coin->mining->currentSignature[ 7], coin->mining->currentSignature[ 8], coin->mining->currentSignature[ 9],
+					coin->mining->currentSignature[10], coin->mining->currentSignature[11], coin->mining->currentSignature[12], coin->mining->currentSignature[13], coin->mining->currentSignature[14], coin->mining->currentSignature[15], coin->mining->currentSignature[16], coin->mining->currentSignature[17], coin->mining->currentSignature[18], coin->mining->currentSignature[19],
+					coin->mining->currentSignature[20], coin->mining->currentSignature[21], coin->mining->currentSignature[22], coin->mining->currentSignature[23], coin->mining->currentSignature[24], coin->mining->currentSignature[25], coin->mining->currentSignature[26], coin->mining->currentSignature[27], coin->mining->currentSignature[28], coin->mining->currentSignature[29],
+					coin->mining->currentSignature[30], coin->mining->currentSignature[31]);
+				Log(L"SCP: %llu <= %02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx %02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx", deadline,
+					cache[(v + posn) * 64 +  0], cache[(v + posn) * 64 +  1], cache[(v + posn) * 64 +  2], cache[(v + posn) * 64 +  3], cache[(v + posn) * 64 +  4], cache[(v + posn) * 64 +  5], cache[(v + posn) * 64 +  6], cache[(v + posn) * 64 +  7], cache[(v + posn) * 64 +  8], cache[(v + posn) * 64 +  9],
+					cache[(v + posn) * 64 + 10], cache[(v + posn) * 64 + 11], cache[(v + posn) * 64 + 12], cache[(v + posn) * 64 + 13], cache[(v + posn) * 64 + 14], cache[(v + posn) * 64 + 15], cache[(v + posn) * 64 + 16], cache[(v + posn) * 64 + 17], cache[(v + posn) * 64 + 18], cache[(v + posn) * 64 + 19],
+					cache[(v + posn) * 64 + 20], cache[(v + posn) * 64 + 21], cache[(v + posn) * 64 + 22], cache[(v + posn) * 64 + 23], cache[(v + posn) * 64 + 24], cache[(v + posn) * 64 + 25], cache[(v + posn) * 64 + 26], cache[(v + posn) * 64 + 27], cache[(v + posn) * 64 + 28], cache[(v + posn) * 64 + 29],
+					cache[(v + posn) * 64 + 30], cache[(v + posn) * 64 + 31], cache[(v + posn) * 64 + 32], cache[(v + posn) * 64 + 33], cache[(v + posn) * 64 + 34], cache[(v + posn) * 64 + 35], cache[(v + posn) * 64 + 36], cache[(v + posn) * 64 + 37], cache[(v + posn) * 64 + 38], cache[(v + posn) * 64 + 39],
+					cache[(v + posn) * 64 + 40], cache[(v + posn) * 64 + 41], cache[(v + posn) * 64 + 42], cache[(v + posn) * 64 + 43], cache[(v + posn) * 64 + 44], cache[(v + posn) * 64 + 45], cache[(v + posn) * 64 + 46], cache[(v + posn) * 64 + 47], cache[(v + posn) * 64 + 48], cache[(v + posn) * 64 + 49],
+					cache[(v + posn) * 64 + 50], cache[(v + posn) * 64 + 51], cache[(v + posn) * 64 + 52], cache[(v + posn) * 64 + 53], cache[(v + posn) * 64 + 54], cache[(v + posn) * 64 + 55], cache[(v + posn) * 64 + 56], cache[(v + posn) * 64 + 57], cache[(v + posn) * 64 + 58], cache[(v + posn) * 64 + 59],
+					cache[(v + posn) * 64 + 60], cache[(v + posn) * 64 + 61], cache[(v + posn) * 64 + 62], cache[(v + posn) * 64 + 63]);
+
 				EnterCriticalSection(&coin->locks->bestsLock);
 				coin->mining->bests[acc].best = *wertung;
 				coin->mining->bests[acc].nonce = nonce + v + posn;
@@ -406,7 +448,21 @@ void procscoop_avx2_fast(std::shared_ptr<t_coin_info> coin, unsigned long long c
 		{
 			if (*wertung < coin->mining->bests[acc].best)
 			{
-				Log(L"found deadline=%llu nonce=%llu for account: %llu file: %S", deadline, nonce + v + posn, coin->mining->bests[acc].account_id, file_name.c_str());
+				Log(L"AVX2: found deadline=%llu scoop=%lu nonce=%llu for account: %llu file: %S", deadline, coin->mining->scoop, nonce + v + posn, coin->mining->bests[acc].account_id, file_name.c_str());
+				Log(L"SIG: %llu <= %02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x", deadline,
+					coin->mining->currentSignature[ 0], coin->mining->currentSignature[ 1], coin->mining->currentSignature[ 2], coin->mining->currentSignature[ 3], coin->mining->currentSignature[ 4], coin->mining->currentSignature[ 5], coin->mining->currentSignature[ 6], coin->mining->currentSignature[ 7], coin->mining->currentSignature[ 8], coin->mining->currentSignature[ 9],
+					coin->mining->currentSignature[10], coin->mining->currentSignature[11], coin->mining->currentSignature[12], coin->mining->currentSignature[13], coin->mining->currentSignature[14], coin->mining->currentSignature[15], coin->mining->currentSignature[16], coin->mining->currentSignature[17], coin->mining->currentSignature[18], coin->mining->currentSignature[19],
+					coin->mining->currentSignature[20], coin->mining->currentSignature[21], coin->mining->currentSignature[22], coin->mining->currentSignature[23], coin->mining->currentSignature[24], coin->mining->currentSignature[25], coin->mining->currentSignature[26], coin->mining->currentSignature[27], coin->mining->currentSignature[28], coin->mining->currentSignature[29],
+					coin->mining->currentSignature[30], coin->mining->currentSignature[31]);
+				Log(L"SCP: %llu <= %02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x %02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x", deadline,
+					cache[(v + posn) * 64 +  0], cache[(v + posn) * 64 +  1], cache[(v + posn) * 64 +  2], cache[(v + posn) * 64 +  3], cache[(v + posn) * 64 +  4], cache[(v + posn) * 64 +  5], cache[(v + posn) * 64 +  6], cache[(v + posn) * 64 +  7], cache[(v + posn) * 64 +  8], cache[(v + posn) * 64 +  9],
+					cache[(v + posn) * 64 + 10], cache[(v + posn) * 64 + 11], cache[(v + posn) * 64 + 12], cache[(v + posn) * 64 + 13], cache[(v + posn) * 64 + 14], cache[(v + posn) * 64 + 15], cache[(v + posn) * 64 + 16], cache[(v + posn) * 64 + 17], cache[(v + posn) * 64 + 18], cache[(v + posn) * 64 + 19],
+					cache[(v + posn) * 64 + 20], cache[(v + posn) * 64 + 21], cache[(v + posn) * 64 + 22], cache[(v + posn) * 64 + 23], cache[(v + posn) * 64 + 24], cache[(v + posn) * 64 + 25], cache[(v + posn) * 64 + 26], cache[(v + posn) * 64 + 27], cache[(v + posn) * 64 + 28], cache[(v + posn) * 64 + 29],
+					cache[(v + posn) * 64 + 30], cache[(v + posn) * 64 + 31], cache[(v + posn) * 64 + 32], cache[(v + posn) * 64 + 33], cache[(v + posn) * 64 + 34], cache[(v + posn) * 64 + 35], cache[(v + posn) * 64 + 36], cache[(v + posn) * 64 + 37], cache[(v + posn) * 64 + 38], cache[(v + posn) * 64 + 39],
+					cache[(v + posn) * 64 + 40], cache[(v + posn) * 64 + 41], cache[(v + posn) * 64 + 42], cache[(v + posn) * 64 + 43], cache[(v + posn) * 64 + 44], cache[(v + posn) * 64 + 45], cache[(v + posn) * 64 + 46], cache[(v + posn) * 64 + 47], cache[(v + posn) * 64 + 48], cache[(v + posn) * 64 + 49],
+					cache[(v + posn) * 64 + 50], cache[(v + posn) * 64 + 51], cache[(v + posn) * 64 + 52], cache[(v + posn) * 64 + 53], cache[(v + posn) * 64 + 54], cache[(v + posn) * 64 + 55], cache[(v + posn) * 64 + 56], cache[(v + posn) * 64 + 57], cache[(v + posn) * 64 + 58], cache[(v + posn) * 64 + 59],
+					cache[(v + posn) * 64 + 60], cache[(v + posn) * 64 + 61], cache[(v + posn) * 64 + 62], cache[(v + posn) * 64 + 63]);
+
 				EnterCriticalSection(&coin->locks->bestsLock);
 				coin->mining->bests[acc].best = *wertung;
 				coin->mining->bests[acc].nonce = nonce + v + posn;
@@ -647,7 +703,21 @@ void procscoop_avx512_fast(std::shared_ptr<t_coin_info> coin, unsigned long long
 		{
 			if (*wertung < coin->mining->bests[acc].best)
 			{
-				Log(L"found deadline=%llu nonce=%llu for account: %llu file: %S", deadline, nonce + v + posn, coin->mining->bests[acc].account_id, file_name.c_str());
+				Log(L"AVX5: found deadline=%llu scoop=%lu nonce=%llu for account: %llu file: %S", deadline, coin->mining->scoop, nonce + v + posn, coin->mining->bests[acc].account_id, file_name.c_str());
+				Log(L"SIG: %llu <= %02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x", deadline,
+					coin->mining->currentSignature[ 0], coin->mining->currentSignature[ 1], coin->mining->currentSignature[ 2], coin->mining->currentSignature[ 3], coin->mining->currentSignature[ 4], coin->mining->currentSignature[ 5], coin->mining->currentSignature[ 6], coin->mining->currentSignature[ 7], coin->mining->currentSignature[ 8], coin->mining->currentSignature[ 9],
+					coin->mining->currentSignature[10], coin->mining->currentSignature[11], coin->mining->currentSignature[12], coin->mining->currentSignature[13], coin->mining->currentSignature[14], coin->mining->currentSignature[15], coin->mining->currentSignature[16], coin->mining->currentSignature[17], coin->mining->currentSignature[18], coin->mining->currentSignature[19],
+					coin->mining->currentSignature[20], coin->mining->currentSignature[21], coin->mining->currentSignature[22], coin->mining->currentSignature[23], coin->mining->currentSignature[24], coin->mining->currentSignature[25], coin->mining->currentSignature[26], coin->mining->currentSignature[27], coin->mining->currentSignature[28], coin->mining->currentSignature[29],
+					coin->mining->currentSignature[30], coin->mining->currentSignature[31]);
+				Log(L"SCP: %llu <= %02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x %02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x", deadline,
+					cache[(v + posn) * 64 +  0], cache[(v + posn) * 64 +  1], cache[(v + posn) * 64 +  2], cache[(v + posn) * 64 +  3], cache[(v + posn) * 64 +  4], cache[(v + posn) * 64 +  5], cache[(v + posn) * 64 +  6], cache[(v + posn) * 64 +  7], cache[(v + posn) * 64 +  8], cache[(v + posn) * 64 +  9],
+					cache[(v + posn) * 64 + 10], cache[(v + posn) * 64 + 11], cache[(v + posn) * 64 + 12], cache[(v + posn) * 64 + 13], cache[(v + posn) * 64 + 14], cache[(v + posn) * 64 + 15], cache[(v + posn) * 64 + 16], cache[(v + posn) * 64 + 17], cache[(v + posn) * 64 + 18], cache[(v + posn) * 64 + 19],
+					cache[(v + posn) * 64 + 20], cache[(v + posn) * 64 + 21], cache[(v + posn) * 64 + 22], cache[(v + posn) * 64 + 23], cache[(v + posn) * 64 + 24], cache[(v + posn) * 64 + 25], cache[(v + posn) * 64 + 26], cache[(v + posn) * 64 + 27], cache[(v + posn) * 64 + 28], cache[(v + posn) * 64 + 29],
+					cache[(v + posn) * 64 + 30], cache[(v + posn) * 64 + 31], cache[(v + posn) * 64 + 32], cache[(v + posn) * 64 + 33], cache[(v + posn) * 64 + 34], cache[(v + posn) * 64 + 35], cache[(v + posn) * 64 + 36], cache[(v + posn) * 64 + 37], cache[(v + posn) * 64 + 38], cache[(v + posn) * 64 + 39],
+					cache[(v + posn) * 64 + 40], cache[(v + posn) * 64 + 41], cache[(v + posn) * 64 + 42], cache[(v + posn) * 64 + 43], cache[(v + posn) * 64 + 44], cache[(v + posn) * 64 + 45], cache[(v + posn) * 64 + 46], cache[(v + posn) * 64 + 47], cache[(v + posn) * 64 + 48], cache[(v + posn) * 64 + 49],
+					cache[(v + posn) * 64 + 50], cache[(v + posn) * 64 + 51], cache[(v + posn) * 64 + 52], cache[(v + posn) * 64 + 53], cache[(v + posn) * 64 + 54], cache[(v + posn) * 64 + 55], cache[(v + posn) * 64 + 56], cache[(v + posn) * 64 + 57], cache[(v + posn) * 64 + 58], cache[(v + posn) * 64 + 59],
+					cache[(v + posn) * 64 + 60], cache[(v + posn) * 64 + 61], cache[(v + posn) * 64 + 62], cache[(v + posn) * 64 + 63]);
+
 				EnterCriticalSection(&coin->locks->bestsLock);
 				coin->mining->bests[acc].best = *wertung;
 				coin->mining->bests[acc].nonce = nonce + v + posn;

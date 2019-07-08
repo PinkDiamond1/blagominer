@@ -278,6 +278,7 @@ void increaseNetworkQuality(std::shared_ptr<t_coin_info> coin) {
 	}
 }
 
+
 void __impl__send_i__sockets(char* buffer, size_t buffer_size, std::shared_ptr<t_coin_info> coinInfo, std::vector<std::shared_ptr<t_session>>& tmpSessions, unsigned long long targetDeadlineInfo, std::shared_ptr<t_shares> share)
 {
 	const wchar_t* senderName = coinInfo->coinname.c_str();
@@ -386,6 +387,8 @@ void __impl__send_i__curl(std::shared_ptr<t_coin_info> coinInfo, std::vector<std
 	char *buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
 	if (buffer == nullptr) ShowMemErrorExit();
 
+	// curl_easy_cleanup is safe here: we either own the handle and clean it up here,
+	// or we release it and pass to the session queue and then don't clean it up here.
 	std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), &curl_easy_cleanup);
 	if (!curl) {
 		failed = true;
@@ -523,7 +526,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 	std::vector<std::shared_ptr<t_session>> tmpSessions;
 	std::vector<std::shared_ptr<t_session2>> tmpSessions2;
 
-	while (!exit_flag) {
+	while (!exit_flag && !coinInfo->locks->stopRoundSpecificNetworkingThreads) {
 		std::shared_ptr<t_shares> share;
 
 		EnterCriticalSection(&coinInfo->locks->sharesLock);
@@ -996,7 +999,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 	char* buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
 	if (buffer == nullptr) ShowMemErrorExit();
 
-	while (!exit_flag) {
+	while (!exit_flag && !coinInfo->locks->stopRoundSpecificNetworkingThreads) {
 
 		std::shared_ptr<t_session> session;
 		std::shared_ptr<t_session2> session2;
@@ -1142,6 +1145,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 	Log(L"Confirmer %s: All work done, shutting down.", confirmerName);
 }
 
+
 void updater_i(std::shared_ptr<t_coin_info> coinInfo)
 {
 	const wchar_t* updaterName = coinInfo->coinname.c_str();
@@ -1158,7 +1162,6 @@ void updater_i(std::shared_ptr<t_coin_info> coinInfo)
 		std::this_thread::sleep_for(std::chrono::milliseconds(coinInfo->network->update_interval));
 	}
 }
-
 
 bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, std::string& rawResponse) {
 	bool failed = false;
@@ -1456,6 +1459,7 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 
 	return newBlock;
 }
+
 
 // Helper routines taken from http://stackoverflow.com/questions/1557400/hex-to-char-array-in-c
 int xdigit(char const digit) {
