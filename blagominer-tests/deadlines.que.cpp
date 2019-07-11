@@ -319,3 +319,93 @@ TEST(RnD_BurstMath_CalcDeadline_QueLap, dccONburst640790) {
 		EXPECT_EQ(deadline, 1642333); // 198609049111880
 	}
 }
+
+std::vector<uint8_t> diskcoin_generate_gensig(size_t serverHeight, std::vector<uint8_t>& serverGenSig);
+
+TEST(RnD_BurstMath_CalcDeadline_QueLap, dccONburst640788withGenSigFixup) {
+	// 640788
+	// 22:57:36 * GMI: Received: HTTP/1.0 200 OK\r\nX-Ratelimit-Limit: 3\r\nX-Ratelimit-Remaining: 2\r\nX-Ratelimit-Reset: 1\r\nDate: Tue, 09 Jul 2019 20:57:37 GMT\r\nContent-Length: 151\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n{"baseTarget":62772,"generationSignature":"26e31a80a2302e5bf8ecc132d8c6af761341e3f332afd886022cec162047b356","height":640788,"targetDeadline":31536000}
+	// 22:57:40 found deadline=5816864 nonce=13692243649592120299 for account: 7955621360090688183 file: 7955621360090688183_13692243649592081192_114440
+
+	auto const height = 640788;
+	auto serverSignature = HexString::from("26e31a80a2302e5bf8ecc132d8c6af761341e3f332afd886022cec162047b356");
+	uint64_t currentBaseTarget = 62772;
+	uint64_t account_nr = 7955621360090688183;
+
+	auto currentSignature = diskcoin_generate_gensig(height, serverSignature);
+
+	{
+		uint64_t nonce_nr = 13692243649592120299;
+		uint32_t scoop_nr = BurstMath::calculate_scoop(height, currentSignature.data()); // 24
+		unsigned long long deadline = BurstMath::calcdeadline(account_nr, nonce_nr, scoop_nr, currentBaseTarget, currentSignature.data());
+		EXPECT_EQ(deadline, 5816864); // 132860195681833
+	}
+}
+
+TEST(RnD_BurstMath_CalcDeadline_QueLap, dccONburst640789withGenSigFixup) {
+	// 640789
+	// 22:58:46 * GMI: Received: HTTP/1.0 200 OK\r\nX-Ratelimit-Limit: 3\r\nX-Ratelimit-Remaining: 2\r\nX-Ratelimit-Reset: 1\r\nDate: Tue, 09 Jul 2019 20:58:46 GMT\r\nContent-Length: 151\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n{"baseTarget":63956,"generationSignature":"cfff797ad97df0cecc939c5e76e6611fa50bf2dfc77b33dad1339d60fd564950","height":640789,"targetDeadline":31536000}
+	// 22:58:55 found deadline=14337735 nonce=16737781616095649804 for account: 7955621360090688183 file: 7955621360090688183_16737781616095649280_3808
+	// 22:59:24 found deadline=8684993 nonce=16737781616037910778 for account: 7955621360090688183 file: 7955621360090688183_16737781616037855232_114440
+	// 22:59:49 found deadline=5048801 nonce=13119679609447394366 for account: 7955621360090688183 file: 7955621360090688183_13119679609447389920_30512
+
+	auto const height = 640789;
+	auto serverSignature = HexString::from("cfff797ad97df0cecc939c5e76e6611fa50bf2dfc77b33dad1339d60fd564950");
+	uint64_t currentBaseTarget = 63956;
+	uint64_t account_nr = 7955621360090688183;
+
+	auto currentSignature = diskcoin_generate_gensig(height, serverSignature);
+
+	{
+		uint64_t nonce_nr = 16737781616095649804;
+		uint32_t scoop_nr = BurstMath::calculate_scoop(height, currentSignature.data()); // 1389
+		unsigned long long deadline = BurstMath::calcdeadline(account_nr, nonce_nr, scoop_nr, currentBaseTarget, currentSignature.data());
+		EXPECT_EQ(deadline, 14337735); // 279646746383234
+	}
+	{
+		uint64_t nonce_nr = 16737781616037910778;
+		uint32_t scoop_nr = BurstMath::calculate_scoop(height, currentSignature.data()); // 1389
+		unsigned long long deadline = BurstMath::calcdeadline(account_nr, nonce_nr, scoop_nr, currentBaseTarget, currentSignature.data());
+		EXPECT_EQ(deadline, 8684993); // 219207207532813
+	}
+	{
+		uint64_t nonce_nr = 13119679609447394366;
+		uint32_t scoop_nr = BurstMath::calculate_scoop(height, currentSignature.data()); // 1389
+		unsigned long long deadline = BurstMath::calcdeadline(account_nr, nonce_nr, scoop_nr, currentBaseTarget, currentSignature.data());
+		EXPECT_EQ(deadline, 5048801); // 268406527820901
+	}
+}
+
+TEST(RnD_BurstMath_CalcDeadline_QueLap, dccONburst640790withGenSigFixup) {
+	// 640790
+	// 23:00:08 * GMI: Received: HTTP/1.0 200 OK\r\nX-Ratelimit-Limit: 3\r\nX-Ratelimit-Remaining: 2\r\nX-Ratelimit-Reset: 1\r\nDate: Tue, 09 Jul 2019 21:00:08 GMT\r\nContent-Length: 151\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n{"baseTarget":63182,"generationSignature":"376198795f6c0bf351f803af4f5827fc6bdef58f68730f55179a46c46ffe3b45","height":640790,"targetDeadline":31536000}
+	// 23:00:20 found deadline=28535232 nonce=13119679609472713094 for account: 7955621360090688183 file: 7955621360090688183_13119679609472684368_30512
+	// 23:00:21 found deadline=9694344 nonce=16737781616095177518 for account: 7955621360090688183 file: 7955621360090688183_16737781616095077880_114440
+	// 23:00:40 found deadline=1642333 nonce=16737781616071735303 for account: 7955621360090688183 file: 7955621360090688183_16737781616071731968_114440
+
+	auto const height = 640790;
+	auto serverSignature = HexString::from("376198795f6c0bf351f803af4f5827fc6bdef58f68730f55179a46c46ffe3b45");
+	uint64_t currentBaseTarget = 63182;
+	uint64_t account_nr = 7955621360090688183;
+
+	auto currentSignature = diskcoin_generate_gensig(height, serverSignature);
+
+	{
+		uint64_t nonce_nr = 13119679609472713094;
+		uint32_t scoop_nr = BurstMath::calculate_scoop(height, currentSignature.data()); // 1186
+		unsigned long long deadline = BurstMath::calcdeadline(account_nr, nonce_nr, scoop_nr, currentBaseTarget, currentSignature.data());
+		EXPECT_EQ(deadline, 28535232); // 60710794689875
+	}
+	{
+		uint64_t nonce_nr = 16737781616095177518;
+		uint32_t scoop_nr = BurstMath::calculate_scoop(height, currentSignature.data()); // 1186
+		unsigned long long deadline = BurstMath::calcdeadline(account_nr, nonce_nr, scoop_nr, currentBaseTarget, currentSignature.data());
+		EXPECT_EQ(deadline, 9694344); // 249647812299895
+	}
+	{
+		uint64_t nonce_nr = 16737781616071735303;
+		uint32_t scoop_nr = BurstMath::calculate_scoop(height, currentSignature.data()); // 1186
+		unsigned long long deadline = BurstMath::calcdeadline(account_nr, nonce_nr, scoop_nr, currentBaseTarget, currentSignature.data());
+		EXPECT_EQ(deadline, 1642333); // 198609049111880
+	}
+}
