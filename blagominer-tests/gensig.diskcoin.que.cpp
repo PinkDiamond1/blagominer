@@ -4,6 +4,8 @@
 #include "reference/BurstMath.h"
 #include "hexstring.h"
 
+#include "ctaes.h"
+
 TEST(RnD_BurstMath_CalcDeadline_QueLap, dccONburst641159WithGenSigFromDump) {
 	// based on data from LIVE debugging session
 	// 23:20:17 * GMI: Received: HTTP/1.0 200 OK\r\nX-Ratelimit-Limit: 3\r\nX-Ratelimit-Remaining: 2\r\nX-Ratelimit-Reset: 1\r\nDate: Wed, 10 Jul 2019 21:20:17 GMT\r\nContent-Length: 151\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n{"baseTarget":34819,"generationSignature":"ed377f7ea5f857c565baa9e44aa94f5c8162c2fdf430d6eccdac4b856c6b5b68","height":641159,"targetDeadline":31536000}
@@ -421,7 +423,7 @@ TEST(RnD_DcminerUnUPXed_sanityChecks, blobHasherWithStringHasherOnSharedBufferWo
 	FreeLibrary(module);
 }
 
-std::vector<uint8_t> diskcoin_generate_gensig(size_t serverHeight, std::vector<uint8_t>& serverGenSig)
+std::vector<uint8_t> diskcoin_generate_gensig_binload(size_t serverHeight, std::vector<uint8_t>& serverGenSig)
 {
 	std::string modpath = "D:\\w\\q\\dcminer\\dcminer\\dcminer-unpacked.exe";
 	HMODULE module = LoadLibraryA(modpath.c_str());
@@ -450,6 +452,24 @@ std::vector<uint8_t> diskcoin_generate_gensig(size_t serverHeight, std::vector<u
 	return newGenSig;
 }
 
+std::vector<uint8_t> diskcoin_generate_gensig_aes128(size_t serverHeight, std::vector<uint8_t>& serverGenSig)
+{
+	std::ostringstream cvt("                ");
+	cvt << "DISKCOIN";
+	cvt << serverHeight;
+	std::string seed = cvt.str();
+
+	AES128_ctx ctx;
+	AES128_init(&ctx, (unsigned char*)seed.c_str());
+
+	std::vector<uint8_t> newGenSig(0x20, 'X');
+
+	AES128_decrypt(&ctx, 1, newGenSig.data() + 0x00, serverGenSig.data() + 0x00);
+	AES128_decrypt(&ctx, 1, newGenSig.data() + 0x10, serverGenSig.data() + 0x10);
+
+	return newGenSig;
+}
+
 TEST(RnD_DcminerUnUPXed_GenerateGensig, dccONburst641159) {
 	// based on data from LIVE debugging session
 	// 23:20:17 * GMI: Received: HTTP/1.0 200 OK\r\nX-Ratelimit-Limit: 3\r\nX-Ratelimit-Remaining: 2\r\nX-Ratelimit-Reset: 1\r\nDate: Wed, 10 Jul 2019 21:20:17 GMT\r\nContent-Length: 151\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n{"baseTarget":34819,"generationSignature":"ed377f7ea5f857c565baa9e44aa94f5c8162c2fdf430d6eccdac4b856c6b5b68","height":641159,"targetDeadline":31536000}
@@ -470,7 +490,7 @@ TEST(RnD_DcminerUnUPXed_GenerateGensig, dccONburst641159) {
 	uint64_t currentBaseTarget = 0x00008803; // 34819
 	uint64_t account_nr = 7955621360090688183;
 
-	auto currentSignature = diskcoin_generate_gensig(height, serverGenSig);
+	auto currentSignature = diskcoin_generate_gensig_aes128(height, serverGenSig);
 
 	auto referencedata_ExpectedSignature = HexString::from("BCEAA339BD7CD1B133749BF39F3EE6518CC94EA316FF7C49CD66F6D239A39EF5"); // 'corrected' gensig used by the miner
 	EXPECT_EQ(referencedata_ExpectedSignature, currentSignature);

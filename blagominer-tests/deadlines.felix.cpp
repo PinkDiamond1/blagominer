@@ -110,7 +110,8 @@ TEST(RnD_BurstMath_CalcDeadline_Felix, dcc006548) {
 	}
 }
 
-std::vector<uint8_t> diskcoin_generate_gensig(size_t serverHeight, std::vector<uint8_t>& serverGenSig);
+std::vector<uint8_t> diskcoin_generate_gensig_binload(size_t serverHeight, std::vector<uint8_t>& serverGenSig);
+std::vector<uint8_t> diskcoin_generate_gensig_aes128(size_t serverHeight, std::vector<uint8_t>& serverGenSig);
 
 TEST(RnD_BurstMath_CalcDeadline_Felix, dcc006479withGenSigFixup) {
 	auto const height = 6479;
@@ -118,7 +119,7 @@ TEST(RnD_BurstMath_CalcDeadline_Felix, dcc006479withGenSigFixup) {
 	uint64_t currentBaseTarget = 41866166;
 	uint64_t account_nr = 1723641494112555138;
 
-	auto currentSignature = diskcoin_generate_gensig(height, serverSignature);
+	auto currentSignature = diskcoin_generate_gensig_aes128(height, serverSignature);
 
 	{
 		uint64_t nonce_nr = 988;
@@ -140,7 +141,7 @@ TEST(RnD_BurstMath_CalcDeadline_Felix, dcc006493withGenSigFixup) {
 	uint64_t currentBaseTarget = 30090363;
 	uint64_t account_nr = 1723641494112555138;
 
-	auto currentSignature = diskcoin_generate_gensig(height, serverSignature);
+	auto currentSignature = diskcoin_generate_gensig_aes128(height, serverSignature);
 
 	{
 		uint64_t nonce_nr = 8540;
@@ -162,7 +163,7 @@ TEST(RnD_BurstMath_CalcDeadline_Felix, dcc006548withGenSigFixup) {
 	uint64_t currentBaseTarget = 28823010;
 	uint64_t account_nr = 1723641494112555138;
 
-	auto currentSignature = diskcoin_generate_gensig(height, serverSignature);
+	auto currentSignature = diskcoin_generate_gensig_aes128(height, serverSignature);
 
 	{
 		uint64_t nonce_nr = 54537;
