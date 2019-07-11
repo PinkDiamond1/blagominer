@@ -734,6 +734,8 @@
     <ClInclude Include="mshabal.h" />
     <ClInclude Include="picohttpparser.h" />
     <ClInclude Include="reference\BurstMath.h" />
+    <ClInclude Include="reference\diskcoin\ctaes.h" />
+    <ClInclude Include="reference\diskcoin\DiskcoinMath.h" />
     <ClInclude Include="volume_ntfs.h" />
     <ClInclude Include="shabal.h" />
     <ClInclude Include="inout.h" />
@@ -763,6 +765,8 @@
     <ClCompile Include="bfs.cpp" />
     <ClCompile Include="network.cpp" />
     <ClCompile Include="error.cpp" />
+    <ClCompile Include="reference\diskcoin\ctaes.c" />
+    <ClCompile Include="reference\diskcoin\DiskcoinMath.cpp" />
     <ClCompile Include="volume_ntfs.cpp" />
     <ClCompile Include="updateChecker.cpp" />
     <ClCompile Include="worker.cpp" />

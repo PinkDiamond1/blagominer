@@ -2,6 +2,7 @@
 #include <gmock/gmock.h>
 
 #include "reference/BurstMath.h"
+#include "reference/diskcoin/DiskcoinMath.h"
 #include "hexstring.h"
 
 //+ sample data from felixbrucker: testing if various 'burstmath' modules produce the same results
@@ -109,9 +110,6 @@ TEST(RnD_BurstMath_CalcDeadline_Felix, dcc006548) {
 		EXPECT_EQ(deadline, 17892974); // 45378756064
 	}
 }
-
-std::vector<uint8_t> diskcoin_generate_gensig_binload(size_t serverHeight, std::vector<uint8_t>& serverGenSig);
-std::vector<uint8_t> diskcoin_generate_gensig_aes128(size_t serverHeight, std::vector<uint8_t>& serverGenSig);
 
 TEST(RnD_BurstMath_CalcDeadline_Felix, dcc006479withGenSigFixup) {
 	auto const height = 6479;
