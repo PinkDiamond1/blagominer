@@ -1,0 +1,65 @@
+dcminer unpacked
+  config reader
+    reading AccountKey: code_0x382C
+
+?
+  check func_1e250
+  found by reffing ReadFile, Threads, etc
+  'stagger': code_0x1E628
+  'opening error': code_0x1E98B
+  at code_0x1EA45 call to func_0x1F5E0 that contains SetFilePointerEx and ReadFile
+  code_0x1EC8E mutex unlock
+  at code_0x1ECD8 call to func_0x1F5E0 that contains SetFilePointerEx and ReadFile
+    apparently followed by code_0x1ED99 with call _Thrd_start <- func_0x19F0
+      func_0x19F0 just calls **rcx
+        rcx = *local_0x190 (where id I get local_0x1C0 at first ?)
+          hard to trace:\
+
+  func_1e250 at one point
+  switches over some 0/1 and runs LEFT-or-RIGHT setup for func_0x1FCB0 ('procscoop_sph'), which
+    calls func_0x143C0 - friggin LOT of math, totally linear
+    code_0x20077
+     div qw ptr [data_0x9F150]
+    code_0x200AF
+      string ref 'found deadline='
+
+  procscoop_xxx is wrapped in queryperformancecounter and called from th_hash
+    this matches func_0x1F900
+  question remains, what is it with 2 refs from func_1e250?
+    oooh inlining..
+      at BOTH reflocs in func_1e250 the procscoop_sph is also wrapped with queryperformancecounter
+  the func_0x1F900 is actually ALSO used in func_1e250, so all 3 calls are in that proc
+  this suggests even more that func_1e250 is the 'work_i' function
+    and indeed, blago code contains 3 refs to th_hash
+    2 refs are switched over count%2 as 'final hashing' (?)
+    and the remaining 1 ref is passed to std::thread, interleaved with reading thread
+      thread is built at code_0x1EB51
+      and all params, including &func, are stacked there
+    a bit before that, at code_0x1EA45: call func_0x1F5E0='th_read'
+    and in the same block some math, probalby start= and mirrorstart=
+      important, because nonce,scoop,stagger,offset should be used there
+        and it these are OK then the only diff could be in the shabal/procscoop_xxx?
+    before th_read and math should be a loop and 'acc' holding accountid
+      func_0x13A0='Get_index_acc'
+      'getTargetDeadlineInfo' seems like it was inlined and/or optimized out?
+
+  so.. what the DL calculation depends on?
+  - scoop from coin/round info
+  - nonce
+  - account
+  - gensig from coin/round info
+
+
+
+DISKCOIN%-08d
+
+
+  func_1e250 at one point
+  switches over some 0/1 and runs LEFT-or-RIGHT setup for func_0x1FCB0 ('procscoop_sph'), which
+    calls func_0x143C0 - friggin LOT of math, totally linear
+    code_0x20077
+     div qw ptr [data_0x9F150]
+    code_0x200AF
+      string ref 'found deadline='
+
+
