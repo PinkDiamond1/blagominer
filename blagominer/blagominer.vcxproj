@@ -733,7 +733,7 @@
     <ClInclude Include="loggerCsv.h" />
     <ClInclude Include="mshabal.h" />
     <ClInclude Include="picohttpparser.h" />
-    <ClInclude Include="reference\BurstMath.h" />
+    <ClInclude Include="reference\burst\BurstMath.h" />
     <ClInclude Include="reference\diskcoin\ctaes.h" />
     <ClInclude Include="reference\diskcoin\DiskcoinMath.h" />
     <ClInclude Include="volume_ntfs.h" />
@@ -752,7 +752,6 @@
     <ClCompile Include="accounts.cpp" />
     <ClCompile Include="blagominer.cpp" />
     <ClCompile Include="common.cpp" />
-    <ClCompile Include="reference\BurstMath.cpp" />
     <ClCompile Include="elevate.cpp" />
     <ClCompile Include="filemonitor.cpp" />
     <ClCompile Include="logger.cpp" />
@@ -765,6 +764,7 @@
     <ClCompile Include="bfs.cpp" />
     <ClCompile Include="network.cpp" />
     <ClCompile Include="error.cpp" />
+    <ClCompile Include="reference\burst\BurstMath.cpp" />
     <ClCompile Include="reference\diskcoin\ctaes.c" />
     <ClCompile Include="reference\diskcoin\DiskcoinMath.cpp" />
     <ClCompile Include="volume_ntfs.cpp" />

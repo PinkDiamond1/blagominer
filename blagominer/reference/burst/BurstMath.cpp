@@ -1,6 +1,6 @@
 #include "BurstMath.h"
 
-#include "../shabal.h"
+#include "../../shabal.h"
 
 // I think I took this code from https://github.com/PoC-Consortium/Nogrod/blob/master/pkg/burstmath/libs/burstmath.c
 // but really, over last few days I saw so many copies of it that I'm not sure right now

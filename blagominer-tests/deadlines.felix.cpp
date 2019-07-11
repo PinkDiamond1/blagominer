@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "reference/BurstMath.h"
+#include "reference/burst/BurstMath.h"
 #include "reference/diskcoin/DiskcoinMath.h"
 #include "hexstring.h"
 
