@@ -5,6 +5,7 @@
 #include "reference/diskcoin/DiskcoinMath.h"
 #include "hexstring.h"
 
+
 //+ sample data from felixbrucker: testing if various 'burstmath' modules produce the same results
 
 TEST(RnD_BurstMath_CalcDeadline_Felix, unk523458) {
@@ -51,7 +52,9 @@ TEST(RnD_BurstMath_CalcDeadline_Felix, unk523460) {
 
 //- sample data from felixbrucker
 
-TEST(RnD_BurstMath_CalcDeadline_Felix, dcc006479) {
+//+ diskcoin experiments, data from felixbrucker
+
+TEST(RnD_BurstMath_CalcDeadline_Felix, dcc006479differsFromClassicBurst) {
 	auto const height = 6479;
 	auto currentSignature = HexString::from("b01f8da00aa5f6eaf801b2265c9931ecc03216ea2f62608d35df749fcfe3caad");
 	uint64_t currentBaseTarget = 41866166;
@@ -61,17 +64,17 @@ TEST(RnD_BurstMath_CalcDeadline_Felix, dcc006479) {
 		uint64_t nonce_nr = 988;
 		uint32_t scoop_nr = BurstMath::calculate_scoop(height, currentSignature.data()); // 3608
 		unsigned long long deadline = BurstMath::calcdeadline(account_nr, nonce_nr, scoop_nr, currentBaseTarget, currentSignature.data());
-		EXPECT_EQ(deadline, 12696127); // 404211863135
+		EXPECT_NE(deadline, /*dcminer:*/12696127); //burst:404211863135
 	}
 	{
 		uint64_t nonce_nr = 44459;
 		uint32_t scoop_nr = BurstMath::calculate_scoop(height, currentSignature.data()); // 3608
 		unsigned long long deadline = BurstMath::calcdeadline(account_nr, nonce_nr, scoop_nr, currentBaseTarget, currentSignature.data());
-		EXPECT_EQ(deadline, 9596714); // 365328644164
+		EXPECT_NE(deadline, /*dcminer:*/9596714); // burst:365328644164
 	}
 }
 
-TEST(RnD_BurstMath_CalcDeadline_Felix, dcc006493) {
+TEST(RnD_BurstMath_CalcDeadline_Felix, dcc006493differsFromClassicBurst) {
 	auto const height = 6493;
 	auto currentSignature = HexString::from("c6e466a394ebfeed0f137e408a2fd61224860c12301c72c11a5c68d3d3a14f55");
 	uint64_t currentBaseTarget = 30090363;
@@ -81,17 +84,17 @@ TEST(RnD_BurstMath_CalcDeadline_Felix, dcc006493) {
 		uint64_t nonce_nr = 8540;
 		uint32_t scoop_nr = BurstMath::calculate_scoop(height, currentSignature.data()); // 1940
 		unsigned long long deadline = BurstMath::calcdeadline(account_nr, nonce_nr, scoop_nr, currentBaseTarget, currentSignature.data());
-		EXPECT_EQ(deadline, 2534226); // 608875396419
+		EXPECT_NE(deadline, /*dcminer:*/2534226); // burst:608875396419
 	}
 	{
 		uint64_t nonce_nr = 19631;
 		uint32_t scoop_nr = BurstMath::calculate_scoop(height, currentSignature.data()); // 1940
 		unsigned long long deadline = BurstMath::calcdeadline(account_nr, nonce_nr, scoop_nr, currentBaseTarget, currentSignature.data());
-		EXPECT_EQ(deadline, 1216177); //587876528901
+		EXPECT_NE(deadline, /*dcminer:*/1216177); // burst:587876528901
 	}
 }
 
-TEST(RnD_BurstMath_CalcDeadline_Felix, dcc006548) {
+TEST(RnD_BurstMath_CalcDeadline_Felix, dcc006548differsFromClassicBurst) {
 	auto const height = 6548;
 	auto currentSignature = HexString::from("30acd4cf4f2abb14e052b2ee79684da33ec1838d68af89171f63695e6ce43eea");
 	uint64_t currentBaseTarget = 28823010;
@@ -101,13 +104,13 @@ TEST(RnD_BurstMath_CalcDeadline_Felix, dcc006548) {
 		uint64_t nonce_nr = 54537;
 		uint32_t scoop_nr = BurstMath::calculate_scoop(height, currentSignature.data()); // 2651
 		unsigned long long deadline = BurstMath::calcdeadline(account_nr, nonce_nr, scoop_nr, currentBaseTarget, currentSignature.data());
-		EXPECT_EQ(deadline, 22825302); // 59863254207
+		EXPECT_NE(deadline, /*dcminer:*/22825302); // burst:59863254207
 	}
 	{
 		uint64_t nonce_nr = 58049;
 		uint32_t scoop_nr = BurstMath::calculate_scoop(height, currentSignature.data()); // 2651
 		unsigned long long deadline = BurstMath::calcdeadline(account_nr, nonce_nr, scoop_nr, currentBaseTarget, currentSignature.data());
-		EXPECT_EQ(deadline, 17892974); // 45378756064
+		EXPECT_NE(deadline, /*dcminer:*/17892974); // burst:45378756064
 	}
 }
 
@@ -123,13 +126,13 @@ TEST(RnD_BurstMath_CalcDeadline_Felix, dcc006479withGenSigFixup) {
 		uint64_t nonce_nr = 988;
 		uint32_t scoop_nr = BurstMath::calculate_scoop(height, currentSignature.data()); // 3608
 		unsigned long long deadline = BurstMath::calcdeadline(account_nr, nonce_nr, scoop_nr, currentBaseTarget, currentSignature.data());
-		EXPECT_EQ(deadline, 12696127); // 404211863135
+		EXPECT_EQ(deadline, 12696127);
 	}
 	{
 		uint64_t nonce_nr = 44459;
 		uint32_t scoop_nr = BurstMath::calculate_scoop(height, currentSignature.data()); // 3608
 		unsigned long long deadline = BurstMath::calcdeadline(account_nr, nonce_nr, scoop_nr, currentBaseTarget, currentSignature.data());
-		EXPECT_EQ(deadline, 9596714); // 365328644164
+		EXPECT_EQ(deadline, 9596714);
 	}
 }
 
@@ -145,13 +148,13 @@ TEST(RnD_BurstMath_CalcDeadline_Felix, dcc006493withGenSigFixup) {
 		uint64_t nonce_nr = 8540;
 		uint32_t scoop_nr = BurstMath::calculate_scoop(height, currentSignature.data()); // 1940
 		unsigned long long deadline = BurstMath::calcdeadline(account_nr, nonce_nr, scoop_nr, currentBaseTarget, currentSignature.data());
-		EXPECT_EQ(deadline, 2534226); // 608875396419
+		EXPECT_EQ(deadline, 2534226);
 	}
 	{
 		uint64_t nonce_nr = 19631;
 		uint32_t scoop_nr = BurstMath::calculate_scoop(height, currentSignature.data()); // 1940
 		unsigned long long deadline = BurstMath::calcdeadline(account_nr, nonce_nr, scoop_nr, currentBaseTarget, currentSignature.data());
-		EXPECT_EQ(deadline, 1216177); //587876528901
+		EXPECT_EQ(deadline, 1216177);
 	}
 }
 
@@ -167,12 +170,14 @@ TEST(RnD_BurstMath_CalcDeadline_Felix, dcc006548withGenSigFixup) {
 		uint64_t nonce_nr = 54537;
 		uint32_t scoop_nr = BurstMath::calculate_scoop(height, currentSignature.data()); // 2651
 		unsigned long long deadline = BurstMath::calcdeadline(account_nr, nonce_nr, scoop_nr, currentBaseTarget, currentSignature.data());
-		EXPECT_EQ(deadline, 22825302); // 59863254207
+		EXPECT_EQ(deadline, 22825302);
 	}
 	{
 		uint64_t nonce_nr = 58049;
 		uint32_t scoop_nr = BurstMath::calculate_scoop(height, currentSignature.data()); // 2651
 		unsigned long long deadline = BurstMath::calcdeadline(account_nr, nonce_nr, scoop_nr, currentBaseTarget, currentSignature.data());
-		EXPECT_EQ(deadline, 17892974); // 45378756064
+		EXPECT_EQ(deadline, 17892974);
 	}
 }
+
+//- diskcoin experiments, data from felixbrucker
