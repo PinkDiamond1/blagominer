@@ -750,6 +750,7 @@
     <ClCompile Include="accounts.cpp" />
     <ClCompile Include="blagominer.cpp" />
     <ClCompile Include="common.cpp" />
+    <ClCompile Include="heapallocator.h" />
     <ClCompile Include="reference\BurstMath.cpp" />
     <ClCompile Include="elevate.cpp" />
     <ClCompile Include="filemonitor.cpp" />

@@ -158,6 +158,9 @@
     <ClCompile Include="reference\BurstMath.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="heapallocator.h">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="blagominer.rc">
