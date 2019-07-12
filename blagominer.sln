@@ -5,6 +5,16 @@ VisualStudioVersion = 15.0.27428.2027
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "blagominer", "blagominer\blagominer.vcxproj", "{7E2BCD41-DBC7-4565-8C4D-E92F039C2286}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{E9B09DD0-F00F-4E2B-8C1E-9BE6F6504856}"
+	ProjectSection(SolutionItems) = preProject
+		.version = .version
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{E9B09DD0-F00F-4E2B-8C1E-9BE6F6504856}"
+	ProjectSection(SolutionItems) = preProject
+		.version = .version
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
