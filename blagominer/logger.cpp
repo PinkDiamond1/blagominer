@@ -88,8 +88,7 @@ std::string Log_server(char const *const strLog)
 	size_t len_str = strlen(strLog);
 	if ((len_str> 0) && loggingConfig.enableLogging)
 	{
-		char * Msg_log = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, len_str * 2 + 1);
-		if (Msg_log == nullptr)	ShowMemErrorExit();
+		std::vector<char, heap_allocator<char>> Msg_log(len_str * 2 + 1, theHeap);
 
 		for (size_t i = 0, j = 0; i<len_str; i++, j++)
 		{
@@ -115,10 +114,9 @@ std::string Log_server(char const *const strLog)
 					}
 					else Msg_log[j] = strLog[i];
 		}
-		std::string ret(Msg_log);
-		if (Msg_log != nullptr) {
-			HeapFree(hHeap, 0, Msg_log);
-		}
+
+		std::string ret(Msg_log.data());
+
 		return ret;
 	}
 	return "";

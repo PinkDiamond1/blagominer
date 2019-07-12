@@ -5,6 +5,8 @@
 #include <vector>
 #include <ctime>
 #include <math.h>
+
+#include "heapallocator.h"
 #include "logger.h"
 
 #include <curl/curl.h>
@@ -23,6 +25,7 @@ extern bool ignoreSuspectedFastBlocks;
 extern volatile bool exit_flag;							// true if miner is to be exited
 
 extern HANDLE hHeap;							//heap
+extern heap_allocator<char> theHeap;
 
 enum MiningState {
 	QUEUED,
