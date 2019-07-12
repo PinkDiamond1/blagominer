@@ -137,6 +137,7 @@ struct t_mining_info {
 	unsigned long long deadline;			// current deadline
 	unsigned long long my_target_deadline;
 	unsigned long long POC2StartBlock;
+	bool enableDiskcoinGensigs;
 	unsigned int scoop;						// currenty scoop
 	std::vector<std::shared_ptr<t_directory_info>> dirs;
 

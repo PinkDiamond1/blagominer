@@ -51,6 +51,7 @@ void init_mining_info(std::shared_ptr<t_coin_info> coin, std::wstring name, size
 	coin->mining->enable = true;
 	coin->mining->my_target_deadline = MAXDWORD; // 4294967295;
 	coin->mining->POC2StartBlock = poc2start;
+	coin->mining->enableDiskcoinGensigs = false;
 	coin->mining->dirs = std::vector<std::shared_ptr<t_directory_info>>();
 }
 
@@ -190,6 +191,12 @@ void loadCoinConfig(Document const & document, std::string section, std::shared_
 
 			if (settings.HasMember("POC2StartBlock") && (settings["POC2StartBlock"].IsUint64())) coin->mining->POC2StartBlock = settings["POC2StartBlock"].GetUint64();
 			Log(L"POC2StartBlock: %llu", coin->mining->POC2StartBlock);
+
+			if (settings.HasMember("enableDiskcoinGensigs"))
+				if (!settings["enableDiskcoinGensigs"].IsBool())
+					Log(L"Ignoring 'enableDiskcoinGensigs': not a boolean");
+				else
+					coin->mining->enableDiskcoinGensigs = settings["enableDiskcoinGensigs"].GetBool();
 
 			if (settings.HasMember("UseHTTPS"))
 				if (!settings["UseHTTPS"].IsBool())

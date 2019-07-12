@@ -37,9 +37,11 @@ std::vector<uint8_t> diskcoin_generate_gensig_binload(size_t serverHeight, std::
 
 std::vector<uint8_t> diskcoin_generate_gensig_aes128(size_t serverHeight, std::vector<uint8_t> const& serverGenSig)
 {
+	auto cappedHeight = serverHeight <= 99999999 ? serverHeight : 99999999; // no space for more than 8 digits!
+
 	std::ostringstream cvt("                ");
 	cvt << "DISKCOIN";
-	cvt << serverHeight;
+	cvt << cappedHeight;
 	std::string seed = cvt.str();
 
 	AES128_ctx ctx;
