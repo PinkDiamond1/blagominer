@@ -455,37 +455,35 @@ void GetPass(std::shared_ptr<t_coin_info> coin, char const *const p_strFolderPat
 {
 	Log(L"Reading passphrase.");
 	FILE * pFile;
-	unsigned char * buffer;
 	size_t len_pass;
 	// TODO: get rid of ancient MAX_PATH, test it for long paths afterwards
-	char * filename = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, MAX_PATH);
-	if (filename == nullptr) ShowMemErrorExit();
-	sprintf_s(filename, MAX_PATH, "%s%s%S%s", p_strFolderPath, "solosecret-", coin->coinname.c_str(), ".txt");
+	std::vector<char> filename(MAX_PATH);
+	sprintf_s(filename.data(), filename.size(), "%s%s%S%s", p_strFolderPath, "solosecret-", coin->coinname.c_str(), ".txt");
 
 	//  printf_s("\npass from: %s\n",filename);
-	fopen_s(&pFile, filename, "rt");
+	fopen_s(&pFile, filename.data(), "rt");
+	std::unique_ptr<FILE, void(*)(FILE*)> guardPFile(pFile, [](FILE* f) { fclose(f); });
+
 	if (pFile == nullptr)
 	{
 		printToConsole(12, false, false, true, false, L"Error: %s%s%s not found. File is needed for solo mining.", L"solosecret-", coin->coinname.c_str(), L".txt");
 		system("pause > nul");
 		exit(-1);
 	}
-	if (filename != nullptr) {
-		HeapFree(hHeap, 0, filename);
-	}
+	filename.clear();
+
 	_fseeki64(pFile, 0, SEEK_END);
 	size_t const lSize = _ftelli64(pFile);
 	_fseeki64(pFile, 0, SEEK_SET);
 
-	buffer = (unsigned char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, lSize + 1);
-	if (buffer == nullptr) ShowMemErrorExit();
+	// TODO: leaving it on the heap for now to retain zero-memory effect
+	// it's actually somewhat helpful due to the data size mismatch induced by "rt" fopen flags
+	std::vector<char, heap_allocator<char>> buffer(lSize + 1, theHeap);
 
-	len_pass = fread(buffer, 1, lSize, pFile);
+	len_pass = fread(buffer.data(), 1, lSize, pFile);
 	fclose(pFile);
 
-	char *pass = nullptr;
-	pass = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, lSize * 3);
-	if (pass == nullptr) ShowMemErrorExit();
+	std::vector<char> pass(lSize * 3);
 
 	for (size_t i = 0, j = 0; i<len_pass; i++, j++)
 	{
@@ -495,19 +493,13 @@ void GetPass(std::shared_ptr<t_coin_info> coin, char const *const p_strFolderPat
 			else
 				if (isalnum(buffer[i]) == 0)
 				{
-					sprintf_s(pass + j, lSize * 3, "%%%x", (unsigned char)buffer[i]);
+					sprintf_s(pass.data() + j, lSize * 3, "%%%x", (unsigned char)buffer[i]);
 					j = j + 2;
 				}
 				else memcpy(&pass[j], &buffer[i], 1);
 	}
-	//printf_s("\n%s\n",pass);
-	if (buffer != nullptr) {
-		HeapFree(hHeap, 0, buffer);
-	}
-	coin->network->solopass = pass;
-	if (pass != nullptr) {
-		HeapFree(hHeap, 0, pass);
-	}
+
+	coin->network->solopass = pass.data();
 }
 
 
