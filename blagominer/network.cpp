@@ -226,7 +226,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 						}
 						else if (loggingConfig.logAllGetMiningInfos)
 						{
-							Log(L"Proxy %s: sent update to %S: %S", proxyName, client_address_str, buffer);
+							Log(L"Proxy %s: sent update to %S: %S", proxyName, client_address_str, buffer.data());
 						}
 					}
 					else
@@ -239,7 +239,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 						{
 							find[0] = 0;
 							//You can crash the miner when the proxy is enabled and you open the address in a browser.  wprintw("PROXY: %s\n", "Error", 0);
-							printToConsole(15, true, false, true, false, L"PROXY %s: %S", proxyName, buffer);
+							printToConsole(15, true, false, true, false, L"PROXY %s: %S", proxyName, buffer.data());
 						}
 					}
 				}
@@ -734,7 +734,7 @@ bool __impl__confirm_i__sockets(std::vector<char, heap_allocator<char>>& buffer,
 					}
 					else //got something incomprehensible
 					{
-						printToConsole(7, true, false, true, false, L"%s: %S", confirmerName, buffer);
+						printToConsole(7, true, false, true, false, L"%s: %S", confirmerName, buffer.data());
 					}
 				}
 			}
@@ -946,7 +946,7 @@ bool __impl__confirm_i__curl(std::vector<char, heap_allocator<char>>& buffer, st
 					}
 					else //got something incomprehensible
 					{
-						printToConsole(7, true, false, true, false, L"%s: %S", confirmerName, buffer);
+						printToConsole(7, true, false, true, false, L"%s: %S", confirmerName, buffer.data());
 					}
 				}
 			}
@@ -1294,7 +1294,7 @@ bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 
 		int bytes = sprintf_s(buffer.data(), buffer.size(), "https://%s:%s/%s?requestType=getMiningInfo",
 			coinInfo->network->updateraddr.c_str(), coinInfo->network->updaterport.c_str(), coinInfo->network->updaterroot.c_str());
-		curl_easy_setopt(curl, CURLOPT_URL, buffer);
+		curl_easy_setopt(curl, CURLOPT_URL, buffer.data());
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, ""); // wee need to send a POST but body may be left empty
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, 0);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);

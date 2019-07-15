@@ -1201,9 +1201,9 @@ int wmain(int argc, wchar_t **argv) {
 		//config-file: check -config flag or default to miner.conf
 		if ((argc >= 2) && (wcscmp(argv[1], L"-config") == 0)) {
 			if (wcsstr(argv[2], L":\\")) swprintf_s(conf_filename.data(), conf_filename.size(), L"%s", argv[2]);
-			else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath, argv[2]);
+			else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath.data(), argv[2]);
 		}
-		else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath, L"miner.conf");
+		else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath.data(), L"miner.conf");
 
 		load_config(conf_filename.data());
 	}
@@ -1225,7 +1225,7 @@ int wmain(int argc, wchar_t **argv) {
 
 	Csv_Init();
 
-	Log(L"Miner path: %S", p_minerPath);
+	Log(L"Miner path: %S", p_minerPath.data());
 	Log(L"Miner process elevation: %S", IsElevated() ? "active" : "inactive");
 
 	resizeConsole(win_size_x, win_size_y);
