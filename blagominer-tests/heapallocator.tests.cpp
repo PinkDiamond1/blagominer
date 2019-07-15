@@ -97,3 +97,39 @@ TEST(HeapAllocator, PassesFlagsToHeapAlloc) {
 
 	HeapFree(hHeap, 0, ptr3);
 }
+
+TEST(HeapAllocator, IsCopiableAndStillWorks) {
+	HANDLE hHeap = GetProcessHeap();
+	HeapSetInformation(NULL, HeapEnableTerminationOnCorruption, NULL, 0);
+
+	heap_allocator<char> tested1 = { hHeap, 0 };
+
+	heap_allocator<char> tested2 = tested1;
+
+	char* ptr1 = tested1.allocate(10);
+	char* ptr2 = tested2.allocate(10);
+
+	EXPECT_EQ(true, HeapValidate(hHeap, 0, ptr1));
+	EXPECT_EQ(true, HeapValidate(hHeap, 0, ptr2));
+
+	tested1.deallocate(ptr1, 10);
+	tested2.deallocate(ptr2, 10);
+}
+
+TEST(HeapAllocator, IsRebindableAndStillWorks) {
+	HANDLE hHeap = GetProcessHeap();
+	HeapSetInformation(NULL, HeapEnableTerminationOnCorruption, NULL, 0);
+
+	heap_allocator<char> tested1 = { hHeap, 0 };
+
+	heap_allocator<double> tested2 = tested1;
+
+	char* ptr1 = tested1.allocate(10);
+	double* ptr2 = tested2.allocate(10);
+
+	EXPECT_EQ(true, HeapValidate(hHeap, 0, ptr1));
+	EXPECT_EQ(true, HeapValidate(hHeap, 0, ptr2));
+
+	tested1.deallocate(ptr1, 10);
+	tested2.deallocate(ptr2, 10);
+}

@@ -32,8 +32,9 @@ public:
 	heap_allocator(HANDLE heapHandle, DWORD flags) : heapHandle(heapHandle), flags(flags) {}
 	~heap_allocator() {}
 
+	template <class U> friend class heap_allocator;
 	template <class U> struct rebind { typedef heap_allocator<U> other; };
-	template <class U> heap_allocator(const heap_allocator<U>&) {}
+	template <class U> heap_allocator(const heap_allocator<U>& other) : heapHandle(other.heapHandle), flags(other.flags) { }
 
 	pointer address(reference x) const { return &x; }
 	const_pointer address(const_reference x) const { return &x; }
