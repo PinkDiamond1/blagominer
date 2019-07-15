@@ -18,7 +18,7 @@ t_logging loggingConfig = {};
 std::vector<std::shared_ptr<t_coin_info>> allcoins;
 std::vector<std::shared_ptr<t_coin_info>> coins;
 
-char *p_minerPath = nullptr;
+std::vector<char> p_minerPath; // TODO: use std::(w)str
 unsigned long long total_size = 0;
 bool POC2 = false;
 volatile bool stopThreads = false;				// only applicable to WORKER threads
@@ -461,6 +461,7 @@ void GetPass(std::shared_ptr<t_coin_info> coin, char const *const p_strFolderPat
 	FILE * pFile;
 	unsigned char * buffer;
 	size_t len_pass;
+	// TODO: get rid of ancient MAX_PATH, test it for long paths afterwards
 	char * filename = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, MAX_PATH);
 	if (filename == nullptr) ShowMemErrorExit();
 	sprintf_s(filename, MAX_PATH, "%s%s%S%s", p_strFolderPath, "solosecret-", coin->coinname.c_str(), ".txt");
@@ -1086,9 +1087,8 @@ void closeMiner() {
 			DeleteCriticalSection(&coin->locks->bestsLock);
 		}
 
-	if (p_minerPath != nullptr) {
-		HeapFree(hHeap, 0, p_minerPath);
-	}
+	// TODO: cleanup this whole destructor insanity
+	p_minerPath.~vector();
 
 	curl_global_cleanup();
 	WSACleanup();
@@ -1183,34 +1183,15 @@ int wmain(int argc, wchar_t **argv) {
 
 	unsigned long long bytesRead = 0;
 
+	// TODO: make it std::(w)str, use sstream, use better path ops
+	// TODO: get rid of ancient MAX_PATH, test it for long paths afterwards
 	//get application path
 	size_t const cwdsz = GetCurrentDirectoryA(0, 0);
-	p_minerPath = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, cwdsz + 2);
-	if (p_minerPath == nullptr)
-	{
-		fprintf(stderr, "\nError allocating memory\n");
-		system("pause > nul");
-		exit(-1);
-	}
-	GetCurrentDirectoryA(DWORD(cwdsz), LPSTR(p_minerPath));
-	strcat_s(p_minerPath, cwdsz + 2, "\\");
+	p_minerPath.resize(cwdsz + 2);
+	GetCurrentDirectoryA(DWORD(cwdsz), p_minerPath.data());
+	strcat_s(p_minerPath.data(), cwdsz + 2, "\\");
 
 
-	wchar_t* conf_filename = (wchar_t*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, MAX_PATH * sizeof(wchar_t));
-	if (conf_filename == nullptr)
-	{
-		fprintf(stderr, "\nError allocating memory\n");
-		system("pause > nul");
-		exit(-1);
-	}
-
-	//config-file: check -config flag or default to miner.conf
-	if ((argc >= 2) && (wcscmp(argv[1], L"-config") == 0)) {
-		if (wcsstr(argv[2], L":\\")) swprintf_s(conf_filename, MAX_PATH, L"%s", argv[2]);
-		else swprintf_s(conf_filename, MAX_PATH, L"%S%s", p_minerPath, argv[2]);
-	}
-	else swprintf_s(conf_filename, MAX_PATH, L"%S%s", p_minerPath, L"miner.conf");
-	
 	// init 3rd party libs
 	curl_global_init(CURL_GLOBAL_DEFAULT);
 
@@ -1218,9 +1199,19 @@ int wmain(int argc, wchar_t **argv) {
 	init_logging_config();
 
 	//load config
-	load_config(conf_filename);
-	if (conf_filename != nullptr) {
-		HeapFree(hHeap, 0, conf_filename);
+	{
+		// TODO: make it std::(w)str, use sstream, use better path ops
+		// TODO: get rid of ancient MAX_PATH, test it for long paths afterwards
+		std::vector<wchar_t> conf_filename(MAX_PATH);
+
+		//config-file: check -config flag or default to miner.conf
+		if ((argc >= 2) && (wcscmp(argv[1], L"-config") == 0)) {
+			if (wcsstr(argv[2], L":\\")) swprintf_s(conf_filename.data(), conf_filename.size(), L"%s", argv[2]);
+			else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath, argv[2]);
+		}
+		else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath, L"miner.conf");
+
+		load_config(conf_filename.data());
 	}
 
 	std::vector<std::shared_ptr<t_coin_info>> proxycoins;
@@ -1268,7 +1259,7 @@ int wmain(int argc, wchar_t **argv) {
 	std::copy_if(allcoins.begin(), allcoins.end(), std::back_inserter(miningcoins), [](auto&& it) { return it->mining->enable; });
 	for (auto& coin : miningcoins)
 		if ((coin->mining->miner_mode == 0))
-			GetPass(coin, p_minerPath);
+			GetPass(coin, p_minerPath.data());
 
 	// server address and port
 	Log(L"Searching servers...");
