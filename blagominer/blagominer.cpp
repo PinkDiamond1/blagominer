@@ -262,7 +262,8 @@ int load_config(wchar_t const *const filename)
 		system("pause > nul");
 		exit(-1);
 	}
-	fread_s(json_, size, 1, size - 1, pFile);
+	int bytesread = fread_s(json_, size, 1, size, pFile);
+	json_[bytesread] = 0;
 	fclose(pFile);
 
 	Document document;	// Default template parameter uses UTF8 and MemoryPoolAllocator.
