@@ -1245,7 +1245,7 @@ static size_t __impl__pollLocal__curl__readcallback(void *contents, size_t size,
 	size_t oldsize = mem->size() - 1;
 	size_t delta = size * nmemb;
 	mem->resize(oldsize + delta + 1); // TODO: devise a way to use HeapReAlloc back again
-	memcpy(&mem[oldsize], contents, delta);
+	memcpy(&(*mem)[oldsize], contents, delta);
 	*(--mem->end()) = 0;
 
 	return delta;
