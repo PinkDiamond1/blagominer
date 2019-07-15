@@ -7,6 +7,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "blagominer", "blagominer\bl
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "blagominer-tests", "blagominer-tests\blagominer-tests.vcxproj", "{7D18EDEE-1E08-4410-AFBE-3F8B7509E765}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{E9B09DD0-F00F-4E2B-8C1E-9BE6F6504856}"
+	ProjectSection(SolutionItems) = preProject
+		.version = .version
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
