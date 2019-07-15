@@ -1256,10 +1256,9 @@ bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 	const wchar_t* updaterName = coinInfo->coinname.c_str();
 	bool newBlock = false;
 	
-	// TODO: fixup: extract outside like it was before
+	// TODO: fixup: extract outside like it was before? maybe?
 	std::vector<char, heap_allocator<char>> buffer(theHeap); // TODO: catch bad_alloc, quit via ShowMemErrorExit()
-	buffer.resize(1001);
-	buffer.push_back('\0');
+	buffer.resize(1000);
 
 	MemoryStruct chunk(1, theHeap);
 
