@@ -1168,8 +1168,10 @@ int wmain(int argc, wchar_t **argv) {
 	//init
 	SetConsoleCtrlHandler(OnConsoleClose, TRUE);
 	atexit(closeMiner);
+
 	hHeap = GetProcessHeap();
 	HeapSetInformation(NULL, HeapEnableTerminationOnCorruption, NULL, 0);
+	theHeap = { hHeap, HEAP_ZERO_MEMORY };
 
 	//initialize time 
 	LARGE_INTEGER li;
