@@ -244,6 +244,7 @@ int load_config(wchar_t const *const filename)
 	FILE * pFile;
 
 	_wfopen_s(&pFile, filename, L"rt");
+	std::unique_ptr<FILE, void(*)(FILE*)> guardPFile(pFile, [](FILE* f) { fclose(f); });
 
 	if (pFile == nullptr)
 	{
@@ -255,18 +256,16 @@ int load_config(wchar_t const *const filename)
 	_fseeki64(pFile, 0, SEEK_END);
 	__int64 const size = _ftelli64(pFile);
 	_fseeki64(pFile, 0, SEEK_SET);
-	char *json_ = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, size + 1);
-	if (json_ == nullptr)
-	{
-		fprintf(stderr, "\nError allocating memory\n");
-		system("pause > nul");
-		exit(-1);
-	}
-	fread_s(json_, size, 1, size - 1, pFile);
-	fclose(pFile);
+
+	// TODO: leaving it on the heap for now to retain zero-memory effect
+	// it's actually somewhat helpful due to the data size mismatch induced by "rt" fopen flags
+	std::vector<char, heap_allocator<char>> json_(size + 1, theHeap);
+	fread_s(json_.data(), size, 1, size - 1, pFile);
+
+	guardPFile.reset();
 
 	Document document;	// Default template parameter uses UTF8 and MemoryPoolAllocator.
-	if (document.Parse<kParseCommentsFlag>(json_).HasParseError()) {
+	if (document.Parse<kParseCommentsFlag>(json_.data()).HasParseError()) {
 		fprintf(stderr, "\nJSON format error (offset %u) check miner.conf\n%s\n", (unsigned)document.GetErrorOffset(), GetParseError_En(document.GetParseError())); //(offset %s  %s", (unsigned)document.GetErrorOffset(), (char*)document.GetParseError());
 		system("pause > nul");
 		exit(-1);
@@ -399,9 +398,6 @@ int load_config(wchar_t const *const filename)
 	}
 
 	Log(L"=== Config loaded ===");
-	if (json_ != nullptr) {
-		HeapFree(hHeap, 0, json_);
-	}
 
 	return 1;
 }
@@ -1136,26 +1132,32 @@ void initMiningOrProxy(std::shared_ptr<t_coin_info> coin)
 		coin->network->sessions.reserve(20);
 		coin->network->sessions2.reserve(20);
 
-		char* updaterip = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50);
-		if (updaterip == nullptr) ShowMemErrorExit();
-		char* nodeip = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50);
-		if (nodeip == nullptr) ShowMemErrorExit();
-		
-		hostname_to_ip(coin->network->nodeaddr.c_str(), nodeip);
-		printToConsole(-1, false, false, true, false, L"%s pool address    %S (ip %S:%S) %S", coin->coinname.c_str(),
-			coin->network->nodeaddr.c_str(), nodeip, coin->network->nodeport.c_str(), ((coin->network->noderoot.length() ? "on /" : "") + coin->network->noderoot).c_str());
+		// TODO:below: why do we even need this `hostname_to_ip` proc?
+		// it is written to crash the process if something goes wrong
+		// but it doesn't DO anything except logging the result
+		// also, much later the network may come and go, and the code copes with it
+		// this is some diag or fast-fail code that prevents simple CFG issues,
+		// to quit the miner ASAP when you forgot to check the network,
+		// but.. it shouldn't be HERE and shouldn't be MANDATORY
+		// I WANT to start my miner even if my f* ISP went offline,
+		// and the miner should simply resume when the network comes back
+		{
+			std::vector<char> nodeip(50); // actually, for IPv4 15 is enough, and 45 for IPv6,
+			std::vector<char> updaterip(50); // so 50 here is overallocated for no real gain
 
-		if (coin->network->updateraddr.length() > 3) hostname_to_ip(coin->network->updateraddr.c_str(), updaterip);
-		printToConsole(-1, false, false, true, false, L"%s updater address %S (ip %S:%S) %S", coin->coinname.c_str(),
-			coin->network->updateraddr.c_str(), updaterip, coin->network->updaterport.c_str(), ((coin->network->updaterroot.length() ? "on /" : "") + coin->network->updaterroot).c_str());
+			hostname_to_ip(coin->network->nodeaddr.c_str(), nodeip.data());
+			printToConsole(-1, false, false, true, false, L"%s pool address    %S (ip %S:%S) %S", coin->coinname.c_str(),
+				coin->network->nodeaddr.c_str(), nodeip.data(), coin->network->nodeport.c_str(), ((coin->network->noderoot.length() ? "on /" : "") + coin->network->noderoot).c_str());
 
-		if (updaterip != nullptr) {
-			HeapFree(hHeap, 0, updaterip);
+			// TODO: why this special condition is here? why there is none for nodeaddr?
+			if (coin->network->updateraddr.length() > 3)
+				hostname_to_ip(coin->network->updateraddr.c_str(), updaterip.data());
+			printToConsole(-1, false, false, true, false, L"%s updater address %S (ip %S:%S) %S", coin->coinname.c_str(),
+				coin->network->updateraddr.c_str(), updaterip.data(), coin->network->updaterport.c_str(), ((coin->network->updaterroot.length() ? "on /" : "") + coin->network->updaterroot).c_str());
 		}
-		if (nodeip != nullptr) {
-			HeapFree(hHeap, 0, nodeip);
-		}
 
+		// TODO: vectorize/etc
+		// TODO: RtlSecureZeroMemory, everywhere, seriously?
 		RtlSecureZeroMemory(coin->mining->oldSignature, 33);
 		RtlSecureZeroMemory(coin->mining->signature, 33);
 		RtlSecureZeroMemory(coin->mining->currentSignature, 33);
