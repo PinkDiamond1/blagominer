@@ -1261,7 +1261,7 @@ bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 	buffer.resize(1001);
 	buffer.push_back('\0');
 
-	MemoryStruct chunk(theHeap);
+	MemoryStruct chunk(1, theHeap);
 
 	CURL* curl = curl_easy_init();
 	if (!curl) {
