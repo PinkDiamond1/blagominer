@@ -35,10 +35,10 @@
   <ItemGroup>
     <ClCompile Include="crash.0000.curl_easy_cleanup-doublecleanup.tests.cpp" />
     <ClCompile Include="crash.0001.curl_easy_recv-badpointer.tests.cpp" />
-    <ClCompile Include="ctaes.c" />
     <ClCompile Include="deadlines.felix.cpp" />
     <ClCompile Include="deadlines.que.cpp" />
     <ClCompile Include="gensig.diskcoin.que.cpp" />
+    <ClCompile Include="heapallocator.tests.cpp" />
     <ClCompile Include="hexstring.tests.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="test.cpp" />
@@ -50,9 +50,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="ctaes.h" />
   </ItemGroup>
   <ItemDefinitionGroup />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

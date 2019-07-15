@@ -5,6 +5,8 @@
 #include <vector>
 #include <ctime>
 #include <math.h>
+
+#include "heapallocator.h"
 #include "logger.h"
 
 #include <curl/curl.h>
@@ -23,6 +25,7 @@ extern bool ignoreSuspectedFastBlocks;
 extern volatile bool exit_flag;							// true if miner is to be exited
 
 extern HANDLE hHeap;							//heap
+extern heap_allocator<char> theHeap;
 
 enum MiningState {
 	QUEUED,
@@ -137,6 +140,7 @@ struct t_mining_info {
 	unsigned long long deadline;			// current deadline
 	unsigned long long my_target_deadline;
 	unsigned long long POC2StartBlock;
+	bool enableDiskcoinGensigs;
 	unsigned int scoop;						// currenty scoop
 	std::vector<std::shared_ptr<t_directory_info>> dirs;
 

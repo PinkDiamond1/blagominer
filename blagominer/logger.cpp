@@ -75,13 +75,20 @@ void Log_end(void)
 	}
 }
 
+// TODO: impl seems to be nonsensically optimized - measure and cleanup
+// 1) HA/HF/memcpy to prevent overallocation in std::string? it's a TEMPORARY string for wtf's sake
+// 2) ZEROMEMORY the whole disposable buffer, while simple one '\0' terminator is enough,
+// and it exactly knows where to put it as it initially strlen()s the input data
+// 3) it initially strlen()s the input data, while in 99% of cases the caller already knows it
+// 4) allocating disposable buffer of 2*LEN size just to ensure enough spaces for escaped characters,
+// while it strlen()s the input already so 1 full scan of the data is already performed,
+// so an EXACT COUNT of escapes can be easily gathered at almost no cost
 std::string Log_server(char const *const strLog)
 {
 	size_t len_str = strlen(strLog);
 	if ((len_str> 0) && loggingConfig.enableLogging)
 	{
-		char * Msg_log = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, len_str * 2 + 1);
-		if (Msg_log == nullptr)	ShowMemErrorExit();
+		std::vector<char, heap_allocator<char>> Msg_log(len_str * 2 + 1, theHeap);
 
 		for (size_t i = 0, j = 0; i<len_str; i++, j++)
 		{
@@ -107,10 +114,9 @@ std::string Log_server(char const *const strLog)
 					}
 					else Msg_log[j] = strLog[i];
 		}
-		std::string ret(Msg_log);
-		if (Msg_log != nullptr) {
-			HeapFree(hHeap, 0, Msg_log);
-		}
+
+		std::string ret(Msg_log.data());
+
 		return ret;
 	}
 	return "";

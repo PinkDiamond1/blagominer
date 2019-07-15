@@ -87,7 +87,13 @@
     <ClInclude Include="hexstring.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="reference\BurstMath.h">
+    <ClInclude Include="reference\burst\BurstMath.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="reference\diskcoin\ctaes.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="reference\diskcoin\DiskcoinMath.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
@@ -155,7 +161,16 @@
     <ClCompile Include="volume_ntfs.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="reference\BurstMath.cpp">
+    <ClCompile Include="reference\burst\BurstMath.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="reference\diskcoin\ctaes.c">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="reference\diskcoin\DiskcoinMath.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="heapallocator.h">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

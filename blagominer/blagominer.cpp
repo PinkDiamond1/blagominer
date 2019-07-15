@@ -18,7 +18,7 @@ t_logging loggingConfig = {};
 std::vector<std::shared_ptr<t_coin_info>> allcoins;
 std::vector<std::shared_ptr<t_coin_info>> coins;
 
-char *p_minerPath = nullptr;
+std::vector<char> p_minerPath; // TODO: use std::(w)str
 unsigned long long total_size = 0;
 bool POC2 = false;
 volatile bool stopThreads = false;				// only applicable to WORKER threads
@@ -51,6 +51,7 @@ void init_mining_info(std::shared_ptr<t_coin_info> coin, std::wstring name, size
 	coin->mining->enable = true;
 	coin->mining->my_target_deadline = MAXDWORD; // 4294967295;
 	coin->mining->POC2StartBlock = poc2start;
+	coin->mining->enableDiskcoinGensigs = false;
 	coin->mining->dirs = std::vector<std::shared_ptr<t_directory_info>>();
 }
 
@@ -191,6 +192,12 @@ void loadCoinConfig(Document const & document, std::string section, std::shared_
 			if (settings.HasMember("POC2StartBlock") && (settings["POC2StartBlock"].IsUint64())) coin->mining->POC2StartBlock = settings["POC2StartBlock"].GetUint64();
 			Log(L"POC2StartBlock: %llu", coin->mining->POC2StartBlock);
 
+			if (settings.HasMember("enableDiskcoinGensigs"))
+				if (!settings["enableDiskcoinGensigs"].IsBool())
+					Log(L"Ignoring 'enableDiskcoinGensigs': not a boolean");
+				else
+					coin->mining->enableDiskcoinGensigs = settings["enableDiskcoinGensigs"].GetBool();
+
 			if (settings.HasMember("UseHTTPS"))
 				if (!settings["UseHTTPS"].IsBool())
 					Log(L"Ignoring 'UseHTTPS': not a boolean");
@@ -244,6 +251,7 @@ int load_config(wchar_t const *const filename)
 	FILE * pFile;
 
 	_wfopen_s(&pFile, filename, L"rt");
+	std::unique_ptr<FILE, void(*)(FILE*)> guardPFile(pFile, [](FILE* f) { fclose(f); });
 
 	if (pFile == nullptr)
 	{
@@ -255,18 +263,16 @@ int load_config(wchar_t const *const filename)
 	_fseeki64(pFile, 0, SEEK_END);
 	__int64 const size = _ftelli64(pFile);
 	_fseeki64(pFile, 0, SEEK_SET);
-	char *json_ = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, size + 1);
-	if (json_ == nullptr)
-	{
-		fprintf(stderr, "\nError allocating memory\n");
-		system("pause > nul");
-		exit(-1);
-	}
-	fread_s(json_, size, 1, size - 1, pFile);
-	fclose(pFile);
+
+	// TODO: leaving it on the heap for now to retain zero-memory effect
+	// it's actually somewhat helpful due to the data size mismatch induced by "rt" fopen flags
+	std::vector<char, heap_allocator<char>> json_(size + 1, theHeap);
+	int bytesread = fread_s(json_.data(), size, 1, size, pFile);
+	json_[bytesread] = 0;
+	guardPFile.reset();
 
 	Document document;	// Default template parameter uses UTF8 and MemoryPoolAllocator.
-	if (document.Parse<kParseCommentsFlag>(json_).HasParseError()) {
+	if (document.Parse<kParseCommentsFlag>(json_.data()).HasParseError()) {
 		fprintf(stderr, "\nJSON format error (offset %u) check miner.conf\n%s\n", (unsigned)document.GetErrorOffset(), GetParseError_En(document.GetParseError())); //(offset %s  %s", (unsigned)document.GetErrorOffset(), (char*)document.GetParseError());
 		system("pause > nul");
 		exit(-1);
@@ -399,9 +405,6 @@ int load_config(wchar_t const *const filename)
 	}
 
 	Log(L"=== Config loaded ===");
-	if (json_ != nullptr) {
-		HeapFree(hHeap, 0, json_);
-	}
 
 	return 1;
 }
@@ -459,36 +462,35 @@ void GetPass(std::shared_ptr<t_coin_info> coin, char const *const p_strFolderPat
 {
 	Log(L"Reading passphrase.");
 	FILE * pFile;
-	unsigned char * buffer;
 	size_t len_pass;
-	char * filename = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, MAX_PATH);
-	if (filename == nullptr) ShowMemErrorExit();
-	sprintf_s(filename, MAX_PATH, "%s%s%S%s", p_strFolderPath, "solosecret-", coin->coinname.c_str(), ".txt");
+	// TODO: get rid of ancient MAX_PATH, test it for long paths afterwards
+	std::vector<char> filename(MAX_PATH);
+	sprintf_s(filename.data(), filename.size(), "%s%s%S%s", p_strFolderPath, "solosecret-", coin->coinname.c_str(), ".txt");
 
 	//  printf_s("\npass from: %s\n",filename);
-	fopen_s(&pFile, filename, "rt");
+	fopen_s(&pFile, filename.data(), "rt");
+	std::unique_ptr<FILE, void(*)(FILE*)> guardPFile(pFile, [](FILE* f) { fclose(f); });
+
 	if (pFile == nullptr)
 	{
 		printToConsole(12, false, false, true, false, L"Error: %s%s%s not found. File is needed for solo mining.", L"solosecret-", coin->coinname.c_str(), L".txt");
 		system("pause > nul");
 		exit(-1);
 	}
-	if (filename != nullptr) {
-		HeapFree(hHeap, 0, filename);
-	}
+	filename.clear();
+
 	_fseeki64(pFile, 0, SEEK_END);
 	size_t const lSize = _ftelli64(pFile);
 	_fseeki64(pFile, 0, SEEK_SET);
 
-	buffer = (unsigned char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, lSize + 1);
-	if (buffer == nullptr) ShowMemErrorExit();
+	// TODO: leaving it on the heap for now to retain zero-memory effect
+	// it's actually somewhat helpful due to the data size mismatch induced by "rt" fopen flags
+	std::vector<char, heap_allocator<char>> buffer(lSize + 1, theHeap);
 
-	len_pass = fread(buffer, 1, lSize, pFile);
+	len_pass = fread(buffer.data(), 1, lSize, pFile);
 	fclose(pFile);
 
-	char *pass = nullptr;
-	pass = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, lSize * 3);
-	if (pass == nullptr) ShowMemErrorExit();
+	std::vector<char> pass(lSize * 3);
 
 	for (size_t i = 0, j = 0; i<len_pass; i++, j++)
 	{
@@ -498,19 +500,13 @@ void GetPass(std::shared_ptr<t_coin_info> coin, char const *const p_strFolderPat
 			else
 				if (isalnum(buffer[i]) == 0)
 				{
-					sprintf_s(pass + j, lSize * 3, "%%%x", (unsigned char)buffer[i]);
+					sprintf_s(pass.data() + j, lSize * 3, "%%%x", (unsigned char)buffer[i]);
 					j = j + 2;
 				}
 				else memcpy(&pass[j], &buffer[i], 1);
 	}
-	//printf_s("\n%s\n",pass);
-	if (buffer != nullptr) {
-		HeapFree(hHeap, 0, buffer);
-	}
-	coin->network->solopass = pass;
-	if (pass != nullptr) {
-		HeapFree(hHeap, 0, pass);
-	}
+
+	coin->network->solopass = pass.data();
 }
 
 
@@ -1040,6 +1036,8 @@ void closeMiner() {
 	Log(L"Closing miner.");
 	exitHandled = true;
 
+	exit_flag = true;
+	stopThreads = true;
 	for (auto& coin : allcoins)
 		coin->locks->stopRoundSpecificNetworkingThreads = true;
 
@@ -1086,9 +1084,8 @@ void closeMiner() {
 			DeleteCriticalSection(&coin->locks->bestsLock);
 		}
 
-	if (p_minerPath != nullptr) {
-		HeapFree(hHeap, 0, p_minerPath);
-	}
+	// TODO: cleanup this whole destructor insanity
+	p_minerPath.~vector();
 
 	curl_global_cleanup();
 	WSACleanup();
@@ -1112,7 +1109,6 @@ void closeMiner() {
 BOOL WINAPI OnConsoleClose(DWORD dwCtrlType)
 {
 	if (dwCtrlType == CTRL_CLOSE_EVENT) {
-		exit_flag = true;
 		closeMiner();
 		return TRUE;
 	}
@@ -1136,26 +1132,32 @@ void initMiningOrProxy(std::shared_ptr<t_coin_info> coin)
 		coin->network->sessions.reserve(20);
 		coin->network->sessions2.reserve(20);
 
-		char* updaterip = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50);
-		if (updaterip == nullptr) ShowMemErrorExit();
-		char* nodeip = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50);
-		if (nodeip == nullptr) ShowMemErrorExit();
-		
-		hostname_to_ip(coin->network->nodeaddr.c_str(), nodeip);
-		printToConsole(-1, false, false, true, false, L"%s pool address    %S (ip %S:%S) %S", coin->coinname.c_str(),
-			coin->network->nodeaddr.c_str(), nodeip, coin->network->nodeport.c_str(), ((coin->network->noderoot.length() ? "on /" : "") + coin->network->noderoot).c_str());
+		// TODO:below: why do we even need this `hostname_to_ip` proc?
+		// it is written to crash the process if something goes wrong
+		// but it doesn't DO anything except logging the result
+		// also, much later the network may come and go, and the code copes with it
+		// this is some diag or fast-fail code that prevents simple CFG issues,
+		// to quit the miner ASAP when you forgot to check the network,
+		// but.. it shouldn't be HERE and shouldn't be MANDATORY
+		// I WANT to start my miner even if my f* ISP went offline,
+		// and the miner should simply resume when the network comes back
+		{
+			std::vector<char> nodeip(50); // actually, for IPv4 15 is enough, and 45 for IPv6,
+			std::vector<char> updaterip(50); // so 50 here is overallocated for no real gain
 
-		if (coin->network->updateraddr.length() > 3) hostname_to_ip(coin->network->updateraddr.c_str(), updaterip);
-		printToConsole(-1, false, false, true, false, L"%s updater address %S (ip %S:%S) %S", coin->coinname.c_str(),
-			coin->network->updateraddr.c_str(), updaterip, coin->network->updaterport.c_str(), ((coin->network->updaterroot.length() ? "on /" : "") + coin->network->updaterroot).c_str());
+			hostname_to_ip(coin->network->nodeaddr.c_str(), nodeip.data());
+			printToConsole(-1, false, false, true, false, L"%s pool address    %S (ip %S:%S) %S", coin->coinname.c_str(),
+				coin->network->nodeaddr.c_str(), nodeip.data(), coin->network->nodeport.c_str(), ((coin->network->noderoot.length() ? "on /" : "") + coin->network->noderoot).c_str());
 
-		if (updaterip != nullptr) {
-			HeapFree(hHeap, 0, updaterip);
+			// TODO: why this special condition is here? why there is none for nodeaddr?
+			if (coin->network->updateraddr.length() > 3)
+				hostname_to_ip(coin->network->updateraddr.c_str(), updaterip.data());
+			printToConsole(-1, false, false, true, false, L"%s updater address %S (ip %S:%S) %S", coin->coinname.c_str(),
+				coin->network->updateraddr.c_str(), updaterip.data(), coin->network->updaterport.c_str(), ((coin->network->updaterroot.length() ? "on /" : "") + coin->network->updaterroot).c_str());
 		}
-		if (nodeip != nullptr) {
-			HeapFree(hHeap, 0, nodeip);
-		}
 
+		// TODO: vectorize/etc
+		// TODO: RtlSecureZeroMemory, everywhere, seriously?
 		RtlSecureZeroMemory(coin->mining->oldSignature, 33);
 		RtlSecureZeroMemory(coin->mining->signature, 33);
 		RtlSecureZeroMemory(coin->mining->currentSignature, 33);
@@ -1168,8 +1170,10 @@ int wmain(int argc, wchar_t **argv) {
 	//init
 	SetConsoleCtrlHandler(OnConsoleClose, TRUE);
 	atexit(closeMiner);
+
 	hHeap = GetProcessHeap();
 	HeapSetInformation(NULL, HeapEnableTerminationOnCorruption, NULL, 0);
+	theHeap = { hHeap, HEAP_ZERO_MEMORY };
 
 	//initialize time 
 	LARGE_INTEGER li;
@@ -1181,34 +1185,15 @@ int wmain(int argc, wchar_t **argv) {
 
 	unsigned long long bytesRead = 0;
 
+	// TODO: make it std::(w)str, use sstream, use better path ops
+	// TODO: get rid of ancient MAX_PATH, test it for long paths afterwards
 	//get application path
 	size_t const cwdsz = GetCurrentDirectoryA(0, 0);
-	p_minerPath = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, cwdsz + 2);
-	if (p_minerPath == nullptr)
-	{
-		fprintf(stderr, "\nError allocating memory\n");
-		system("pause > nul");
-		exit(-1);
-	}
-	GetCurrentDirectoryA(DWORD(cwdsz), LPSTR(p_minerPath));
-	strcat_s(p_minerPath, cwdsz + 2, "\\");
+	p_minerPath.resize(cwdsz + 2);
+	GetCurrentDirectoryA(DWORD(cwdsz), p_minerPath.data());
+	strcat_s(p_minerPath.data(), cwdsz + 2, "\\");
 
 
-	wchar_t* conf_filename = (wchar_t*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, MAX_PATH * sizeof(wchar_t));
-	if (conf_filename == nullptr)
-	{
-		fprintf(stderr, "\nError allocating memory\n");
-		system("pause > nul");
-		exit(-1);
-	}
-
-	//config-file: check -config flag or default to miner.conf
-	if ((argc >= 2) && (wcscmp(argv[1], L"-config") == 0)) {
-		if (wcsstr(argv[2], L":\\")) swprintf_s(conf_filename, MAX_PATH, L"%s", argv[2]);
-		else swprintf_s(conf_filename, MAX_PATH, L"%S%s", p_minerPath, argv[2]);
-	}
-	else swprintf_s(conf_filename, MAX_PATH, L"%S%s", p_minerPath, L"miner.conf");
-	
 	// init 3rd party libs
 	curl_global_init(CURL_GLOBAL_DEFAULT);
 
@@ -1216,9 +1201,19 @@ int wmain(int argc, wchar_t **argv) {
 	init_logging_config();
 
 	//load config
-	load_config(conf_filename);
-	if (conf_filename != nullptr) {
-		HeapFree(hHeap, 0, conf_filename);
+	{
+		// TODO: make it std::(w)str, use sstream, use better path ops
+		// TODO: get rid of ancient MAX_PATH, test it for long paths afterwards
+		std::vector<wchar_t> conf_filename(MAX_PATH);
+
+		//config-file: check -config flag or default to miner.conf
+		if ((argc >= 2) && (wcscmp(argv[1], L"-config") == 0)) {
+			if (wcsstr(argv[2], L":\\")) swprintf_s(conf_filename.data(), conf_filename.size(), L"%s", argv[2]);
+			else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath.data(), argv[2]);
+		}
+		else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath.data(), L"miner.conf");
+
+		load_config(conf_filename.data());
 	}
 
 	std::vector<std::shared_ptr<t_coin_info>> proxycoins;
@@ -1238,7 +1233,7 @@ int wmain(int argc, wchar_t **argv) {
 
 	Csv_Init();
 
-	Log(L"Miner path: %S", p_minerPath);
+	Log(L"Miner path: %S", p_minerPath.data());
 	Log(L"Miner process elevation: %S", IsElevated() ? "active" : "inactive");
 
 	resizeConsole(win_size_x, win_size_y);
@@ -1266,7 +1261,7 @@ int wmain(int argc, wchar_t **argv) {
 	std::copy_if(allcoins.begin(), allcoins.end(), std::back_inserter(miningcoins), [](auto&& it) { return it->mining->enable; });
 	for (auto& coin : miningcoins)
 		if ((coin->mining->miner_mode == 0))
-			GetPass(coin, p_minerPath);
+			GetPass(coin, p_minerPath.data());
 
 	// server address and port
 	Log(L"Searching servers...");

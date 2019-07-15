@@ -3,6 +3,8 @@
 
 #include <curl/curl.h>
 
+#include "reference/diskcoin/DiskcoinMath.h"
+
 static std::map <u_long, unsigned long long> satellite_size; // Structure with volumes of satellite plots
 
 void init_coinNetwork(std::shared_ptr<t_coin_info> coin)
@@ -62,11 +64,8 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 {
 	const wchar_t* proxyName = coinInfo->coinname.c_str();
 	int iResult;
-	size_t const buffer_size = 1000;
-	char* buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
-	if (buffer == nullptr) ShowMemErrorExit();
-	char* tmp_buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
-	if (tmp_buffer == nullptr) ShowMemErrorExit();
+	std::vector<char, heap_allocator<char>> buffer(1000, theHeap);
+	std::vector<char, heap_allocator<char>> tmp_buffer(1000, theHeap);
 	SOCKET ServerSocket = INVALID_SOCKET;
 	SOCKET ClientSocket = INVALID_SOCKET;
 	struct addrinfo *result = nullptr;
@@ -130,11 +129,11 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 		}
 		else
 		{
-			RtlSecureZeroMemory(buffer, buffer_size);
+			RtlSecureZeroMemory(buffer.data(), buffer.size());
 			do {
-				RtlSecureZeroMemory(tmp_buffer, buffer_size);
-				iResult = recv(ClientSocket, tmp_buffer, (int)(buffer_size - 1), 0);
-				strcat_s(buffer, buffer_size, tmp_buffer);
+				RtlSecureZeroMemory(tmp_buffer.data(), tmp_buffer.size());
+				iResult = recv(ClientSocket, tmp_buffer.data(), (int)(tmp_buffer.size() - 1), 0);
+				strcat_s(buffer.data(), buffer.size(), tmp_buffer.data());
 			} while (iResult > 0);
 
 			unsigned long long get_accountId = 0;
@@ -142,22 +141,22 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 			unsigned long long get_deadline = 0;
 			unsigned long long get_totalsize = 0;
 			// locate HTTP header
-			char *find = strstr(buffer, "\r\n\r\n");
+			char *find = strstr(buffer.data(), "\r\n\r\n");
 			if (find != nullptr)
 			{
 				const unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
-				if (strstr(buffer, "submitNonce") != nullptr)
+				if (strstr(buffer.data(), "submitNonce") != nullptr)
 				{
 
-					char *startaccountId = strstr(buffer, "accountId=");
+					char *startaccountId = strstr(buffer.data(), "accountId=");
 					if (startaccountId != nullptr)
 					{
 						startaccountId = strpbrk(startaccountId, "0123456789");
 						char *endaccountId = strpbrk(startaccountId, "& }\"");
 
-						char *startnonce = strstr(buffer, "nonce=");
-						char *startdl = strstr(buffer, "deadline=");
-						char *starttotalsize = strstr(buffer, "X-Capacity");
+						char *startnonce = strstr(buffer.data(), "nonce=");
+						char *startdl = strstr(buffer.data(), "deadline=");
+						char *starttotalsize = strstr(buffer.data(), "X-Capacity");
 						if ((startnonce != nullptr) && (startdl != nullptr))
 						{
 							startnonce = strpbrk(startnonce, "0123456789");
@@ -191,10 +190,10 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 							Log(L"Proxy %s: received DL %llu from %S", proxyName, get_deadline / coinInfo->mining->currentBaseTarget, client_address_str);
 							
 							// We confirm
-							RtlSecureZeroMemory(buffer, buffer_size);
+							RtlSecureZeroMemory(buffer.data(), buffer.size());
 							size_t acc = Get_index_acc(get_accountId, coinInfo, targetDeadlineInfo);
-							int bytes = sprintf_s(buffer, buffer_size, "HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n{\"result\": \"proxy\",\"accountId\": %llu,\"deadline\": %llu,\"targetDeadline\": %llu}", get_accountId, get_deadline / coinInfo->mining->currentBaseTarget, coinInfo->mining->bests[acc].targetDeadline);
-							iResult = send(ClientSocket, buffer, bytes, 0);
+							int bytes = sprintf_s(buffer.data(), buffer.size(), "HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n{\"result\": \"proxy\",\"accountId\": %llu,\"deadline\": %llu,\"targetDeadline\": %llu}", get_accountId, get_deadline / coinInfo->mining->currentBaseTarget, coinInfo->mining->bests[acc].targetDeadline);
+							iResult = send(ClientSocket, buffer.data(), bytes, 0);
 							if (iResult == SOCKET_ERROR)
 							{
 								Log(L"Proxy %s: ! Error sending to client: %i", proxyName, WSAGetLastError());
@@ -214,14 +213,14 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 				}
 				else
 				{
-					if (strstr(buffer, "getMiningInfo") != nullptr)
+					if (strstr(buffer.data(), "getMiningInfo") != nullptr)
 					{
 						char* str_signature = getCurrentStrSignature(coinInfo);
 
-						RtlSecureZeroMemory(buffer, buffer_size);
-						int bytes = sprintf_s(buffer, buffer_size, "HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n{\"baseTarget\":\"%llu\",\"height\":\"%llu\",\"generationSignature\":\"%s\",\"targetDeadline\":%llu}", coinInfo->mining->currentBaseTarget, coinInfo->mining->currentHeight, str_signature, targetDeadlineInfo);
+						RtlSecureZeroMemory(buffer.data(), buffer.size());
+						int bytes = sprintf_s(buffer.data(), buffer.size(), "HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n{\"baseTarget\":\"%llu\",\"height\":\"%llu\",\"generationSignature\":\"%s\",\"targetDeadline\":%llu}", coinInfo->mining->currentBaseTarget, coinInfo->mining->currentHeight, str_signature, targetDeadlineInfo);
 						delete[] str_signature;
-						iResult = send(ClientSocket, buffer, bytes, 0);
+						iResult = send(ClientSocket, buffer.data(), bytes, 0);
 						if (iResult == SOCKET_ERROR)
 						{
 							Log(L"Proxy %s: ! Error sending to client: %i", proxyName, WSAGetLastError());
@@ -229,12 +228,12 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 						}
 						else if (loggingConfig.logAllGetMiningInfos)
 						{
-							Log(L"Proxy %s: sent update to %S: %S", proxyName, client_address_str, buffer);
+							Log(L"Proxy %s: sent update to %S: %S", proxyName, client_address_str, buffer.data());
 						}
 					}
 					else
 					{
-						if ((strstr(buffer, "getBlocks") != nullptr) || (strstr(buffer, "getAccount") != nullptr) || (strstr(buffer, "getRewardRecipient") != nullptr))
+						if ((strstr(buffer.data(), "getBlocks") != nullptr) || (strstr(buffer.data(), "getAccount") != nullptr) || (strstr(buffer.data(), "getRewardRecipient") != nullptr))
 						{
 							; // do not do anything, do not mistake, skip
 						}
@@ -242,7 +241,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 						{
 							find[0] = 0;
 							//You can crash the miner when the proxy is enabled and you open the address in a browser.  wprintw("PROXY: %s\n", "Error", 0);
-							printToConsole(15, true, false, true, false, L"PROXY %s: %S", proxyName, buffer);
+							printToConsole(15, true, false, true, false, L"PROXY %s: %S", proxyName, buffer.data());
 						}
 					}
 				}
@@ -251,12 +250,6 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 		}
 		std::this_thread::yield();
 		std::this_thread::sleep_for(std::chrono::milliseconds(coinInfo->network->proxy_update_interval));
-	}
-	if (buffer != nullptr) {
-		HeapFree(hHeap, 0, buffer);
-	}
-	if (tmp_buffer != nullptr) {
-		HeapFree(hHeap, 0, tmp_buffer);
 	}
 }
 
@@ -279,7 +272,7 @@ void increaseNetworkQuality(std::shared_ptr<t_coin_info> coin) {
 }
 
 
-void __impl__send_i__sockets(char* buffer, size_t buffer_size, std::shared_ptr<t_coin_info> coinInfo, std::vector<std::shared_ptr<t_session>>& tmpSessions, unsigned long long targetDeadlineInfo, std::shared_ptr<t_shares> share)
+void __impl__send_i__sockets(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, std::vector<std::shared_ptr<t_session>>& tmpSessions, unsigned long long targetDeadlineInfo, std::shared_ptr<t_shares> share)
 {
 	const wchar_t* senderName = coinInfo->coinname.c_str();
 
@@ -324,10 +317,10 @@ void __impl__send_i__sockets(char* buffer, size_t buffer_size, std::shared_ptr<t
 		freeaddrinfo(result);
 
 		int bytes = 0;
-		RtlSecureZeroMemory(buffer, buffer_size);
+		RtlSecureZeroMemory(buffer.data(), buffer.size());
 		if (coinInfo->mining->miner_mode == 0)
 		{
-			bytes = sprintf_s(buffer, buffer_size, "POST /%s?requestType=submitNonce&secretPhrase=%s&nonce=%llu HTTP/1.0\r\nConnection: close\r\n\r\n",
+			bytes = sprintf_s(buffer.data(), buffer.size(), "POST /%s?requestType=submitNonce&secretPhrase=%s&nonce=%llu HTTP/1.0\r\nConnection: close\r\n\r\n",
 				coinInfo->network->noderoot.c_str(), coinInfo->network->solopass.c_str(), share->nonce);
 		}
 		if (coinInfo->mining->miner_mode == 1)
@@ -336,13 +329,13 @@ void __impl__send_i__sockets(char* buffer, size_t buffer_size, std::shared_ptr<t
 			for (auto It = satellite_size.begin(); It != satellite_size.end(); ++It) total = total + It->second;
 
 			char const* format = "POST /%s?requestType=submitNonce&accountId=%llu&nonce=%llu&deadline=%llu%s HTTP/1.0\r\nHost: %s:%s\r\nX-Miner: Blago %S\r\nX-Capacity: %llu\r\n%sContent-Length: 0\r\nConnection: close\r\n\r\n";
-			bytes = sprintf_s(buffer, buffer_size, format,
+			bytes = sprintf_s(buffer.data(), buffer.size(), format,
 				coinInfo->network->noderoot.c_str(), share->account_id, share->nonce, share->best, coinInfo->network->sendextraquery.c_str(),
 				coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str(), version.c_str(), total, coinInfo->network->sendextraheader.c_str());
 		}
 
 		// Sending to server
-		iResult = send(ConnectSocket, buffer, bytes, 0);
+		iResult = send(ConnectSocket, buffer.data(), bytes, 0);
 		if (iResult == SOCKET_ERROR)
 		{
 			decreaseNetworkQuality(coinInfo);
@@ -359,7 +352,7 @@ void __impl__send_i__sockets(char* buffer, size_t buffer_size, std::shared_ptr<t
 				toWStr(share->deadline, 11).c_str(),
 				toWStr(share->deadline / (24 * 60 * 60), 7).c_str(),
 				(share->deadline % (24 * 60 * 60)) / (60 * 60),
-				(share->deadline % (60 * 60)) / 60, 
+				(share->deadline % (60 * 60)) / 60,
 				share->deadline % 60);
 
 			tmpSessions.push_back(std::make_shared<t_session>(ConnectSocket, share->deadline, *share));
@@ -376,16 +369,12 @@ void __impl__send_i__sockets(char* buffer, size_t buffer_size, std::shared_ptr<t
 	}
 }
 
-void __impl__send_i__curl(std::shared_ptr<t_coin_info> coinInfo, std::vector<std::shared_ptr<t_session2>>& tmpSessions, unsigned long long targetDeadlineInfo, std::shared_ptr<t_shares> share)
+void __impl__send_i__curl(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, std::vector<std::shared_ptr<t_session2>>& tmpSessions, unsigned long long targetDeadlineInfo, std::shared_ptr<t_shares> share)
 {
 	bool failed = false;
 
 	const wchar_t* senderName = coinInfo->coinname.c_str();
 	bool newBlock = false;
-
-	size_t const buffer_size = 1000;
-	char *buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
-	if (buffer == nullptr) ShowMemErrorExit();
 
 	// curl_easy_cleanup is safe here: we either own the handle and clean it up here,
 	// or we release it and pass to the session queue and then don't clean it up here.
@@ -439,11 +428,11 @@ void __impl__send_i__curl(std::shared_ptr<t_coin_info> coinInfo, std::vector<std
 			FD_ZERO(&writefds);
 			FD_SET(sockfd, &writefds);
 
-			RtlSecureZeroMemory(buffer, buffer_size);
+			RtlSecureZeroMemory(buffer.data(), buffer.size());
 			int bytes = 0;
 			if (coinInfo->mining->miner_mode == 0)
 			{
-				bytes = sprintf_s(buffer, buffer_size, "POST /%s?requestType=submitNonce&secretPhrase=%s&nonce=%llu HTTP/1.0\r\nConnection: close\r\n\r\n",
+				bytes = sprintf_s(buffer.data(), buffer.size(), "POST /%s?requestType=submitNonce&secretPhrase=%s&nonce=%llu HTTP/1.0\r\nConnection: close\r\n\r\n",
 					coinInfo->network->noderoot.c_str(), coinInfo->network->solopass.c_str(), share->nonce);
 			}
 			if (coinInfo->mining->miner_mode == 1)
@@ -452,7 +441,7 @@ void __impl__send_i__curl(std::shared_ptr<t_coin_info> coinInfo, std::vector<std
 				for (auto It = satellite_size.begin(); It != satellite_size.end(); ++It) total = total + It->second;
 
 				char const* format = "POST /%s?requestType=submitNonce&accountId=%llu&nonce=%llu&deadline=%llu%s HTTP/1.0\r\nHost: %s:%s\r\nX-Miner: Blago %S\r\nX-Capacity: %llu\r\n%sContent-Length: 0\r\nConnection: close\r\n\r\n";
-				bytes = sprintf_s(buffer, buffer_size, format,
+				bytes = sprintf_s(buffer.data(), buffer.size(), format,
 					coinInfo->network->noderoot.c_str(), share->account_id, share->nonce, share->best, coinInfo->network->sendextraquery.c_str(),
 					coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str(), version.c_str(), total, coinInfo->network->sendextraheader.c_str());
 			}
@@ -462,9 +451,9 @@ void __impl__send_i__curl(std::shared_ptr<t_coin_info> coinInfo, std::vector<std
 			tv.tv_usec = (coinInfo->network->submitTimeout % 1000) * 1000;
 
 			size_t total_sent = 0;
-			do {
+			do { // TODO: at some point of time, refactor that loop. also, copy&paste&adapt for RECV - maybe that's where 10060 come from?
 				size_t sent = 0;
-				res = curl_easy_send(curl.get(), buffer + total_sent, bytes - total_sent, &sent);
+				res = curl_easy_send(curl.get(), buffer.data() + total_sent, bytes - total_sent, &sent);
 				total_sent += sent;
 				if (total_sent >= bytes)
 					break;
@@ -519,13 +508,10 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 	const wchar_t* senderName = coinInfo->coinname.c_str();
 	Log(L"Sender %s: started thread", senderName);
 
-	size_t const buffer_size = 1000;
-	char* buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
-	if (buffer == nullptr) ShowMemErrorExit();
+	std::vector<char, heap_allocator<char>> buffer(1000, theHeap);
 
 	std::vector<std::shared_ptr<t_session>> tmpSessions;
 	std::vector<std::shared_ptr<t_session2>> tmpSessions2;
-
 	while (!exit_flag && !coinInfo->locks->stopRoundSpecificNetworkingThreads) {
 		std::shared_ptr<t_shares> share;
 
@@ -593,18 +579,16 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 		}
 
 		if (coinInfo->network->usehttps)
-			__impl__send_i__curl(coinInfo, tmpSessions2, targetDeadlineInfo, share);
+			__impl__send_i__curl(buffer, coinInfo, tmpSessions2, targetDeadlineInfo, share);
 		else
-			__impl__send_i__sockets(buffer, buffer_size, coinInfo, tmpSessions, targetDeadlineInfo, share);
+			__impl__send_i__sockets(buffer, coinInfo, tmpSessions, targetDeadlineInfo, share);
 	}
-	if (buffer != nullptr) {
-		HeapFree(hHeap, 0, buffer);
-	}
+
 	Log(L"Sender %s: All work done, shutting down.", senderName);
 }
 
 
-bool __impl__confirm_i__sockets(char* buffer, size_t buffer_size, std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, char*& find, bool& nonJsonSuccessDetected, std::shared_ptr<t_session>& session) {
+bool __impl__confirm_i__sockets(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, char*& find, bool& nonJsonSuccessDetected, std::shared_ptr<t_session>& session) {
 	bool failed = false;
 
 	const wchar_t* confirmerName = coinInfo->coinname.c_str();
@@ -651,8 +635,8 @@ bool __impl__confirm_i__sockets(char* buffer, size_t buffer_size, std::shared_pt
 		printToConsole(12, true, false, true, false, L"SENDER %s: ioctlsocket failed: %i", confirmerName, WSAGetLastError());
 		return true;
 	}
-	RtlSecureZeroMemory(buffer, buffer_size);
-	iResult = recv(ConnectSocket, buffer, (int)buffer_size, 0);
+	RtlSecureZeroMemory(buffer.data(), buffer.size());
+	iResult = recv(ConnectSocket, buffer.data(), (int)buffer.size(), 0); // TODO: no -1 for \0, no loop&reread...
 
 	if (iResult == SOCKET_ERROR)
 	{
@@ -702,12 +686,12 @@ bool __impl__confirm_i__sockets(char* buffer, size_t buffer_size, std::shared_pt
 		}
 		else //received a pool response
 		{
-			find = strstr(buffer, "{");
+			find = strstr(buffer.data(), "{");
 			if (find == nullptr)
 			{
-				find = strstr(buffer, "\r\n\r\n");
+				find = strstr(buffer.data(), "\r\n\r\n");
 				if (find != nullptr) find = find + 4;
-				else find = buffer;
+				else find = buffer.data();
 			}
 
 			unsigned long long ndeadline;
@@ -732,7 +716,7 @@ bool __impl__confirm_i__sockets(char* buffer, size_t buffer_size, std::shared_pt
 					size_t msg_len;
 					struct phr_header headers[12];
 					size_t num_headers = sizeof(headers) / sizeof(headers[0]);
-					phr_parse_response(buffer, strlen(buffer), &minor_version, &status, &msg, &msg_len, headers, &num_headers, 0);
+					phr_parse_response(buffer.data(), strlen(buffer.data()), &minor_version, &status, &msg, &msg_len, headers, &num_headers, 0);
 
 					if (status != 0)
 					{
@@ -752,7 +736,7 @@ bool __impl__confirm_i__sockets(char* buffer, size_t buffer_size, std::shared_pt
 					}
 					else //got something incomprehensible
 					{
-						printToConsole(7, true, false, true, false, L"%s: %S", confirmerName, buffer);
+						printToConsole(7, true, false, true, false, L"%s: %S", confirmerName, buffer.data());
 					}
 				}
 			}
@@ -801,14 +785,10 @@ static int wait_on_socket(curl_socket_t sockfd, int for_recv, long timeout_ms)
 	return res;
 }
 
-bool __impl__confirm_i__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, char*& find, bool& nonJsonSuccessDetected, std::shared_ptr<t_session2>& session) {
+bool __impl__confirm_i__curl(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, char*& find, bool& nonJsonSuccessDetected, std::shared_ptr<t_session2>& session) {
 	bool failed = false;
 
 	const wchar_t* confirmerName = coinInfo->coinname.c_str();
-
-	size_t const buffer_size = 1000;
-	char *buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
-	if (buffer == nullptr) ShowMemErrorExit();
 
 	int iResult = 0;
 
@@ -848,12 +828,12 @@ bool __impl__confirm_i__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 		FD_ZERO(&readfds);
 		FD_SET(sockfd, &readfds);
 
-		RtlSecureZeroMemory(buffer, buffer_size);
+		RtlSecureZeroMemory(buffer.data(), buffer.size());
 
 		size_t total_recvd = 0;
 		do {
 			size_t recvd = 0;
-			res = curl_easy_recv(curl, buffer + total_recvd, buffer_size - total_recvd, &recvd);
+			res = curl_easy_recv(curl, buffer.data() + total_recvd, buffer.size() - total_recvd, &recvd); // TODO: bug: no '-1' for terminator
 
 			if (res == CURLE_AGAIN)
 				if (wait_on_socket(sockfd, 1, coinInfo->network->submitTimeout))
@@ -918,12 +898,12 @@ bool __impl__confirm_i__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 		}
 		else //received a pool response
 		{
-			find = strstr(buffer, "{");
+			find = strstr(buffer.data(), "{");
 			if (find == nullptr)
 			{
-				find = strstr(buffer, "\r\n\r\n");
+				find = strstr(buffer.data(), "\r\n\r\n");
 				if (find != nullptr) find = find + 4;
-				else find = buffer;
+				else find = buffer.data();
 			}
 
 			unsigned long long ndeadline;
@@ -948,7 +928,7 @@ bool __impl__confirm_i__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 					size_t msg_len;
 					struct phr_header headers[12];
 					size_t num_headers = sizeof(headers) / sizeof(headers[0]);
-					phr_parse_response(buffer, strlen(buffer), &minor_version, &status, &msg, &msg_len, headers, &num_headers, 0);
+					phr_parse_response(buffer.data(), strlen(buffer.data()), &minor_version, &status, &msg, &msg_len, headers, &num_headers, 0);
 
 					if (status != 0)
 					{
@@ -968,7 +948,7 @@ bool __impl__confirm_i__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 					}
 					else //got something incomprehensible
 					{
-						printToConsole(7, true, false, true, false, L"%s: %S", confirmerName, buffer);
+						printToConsole(7, true, false, true, false, L"%s: %S", confirmerName, buffer.data());
 					}
 				}
 			}
@@ -995,9 +975,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 
 	SOCKET ConnectSocket;
 	int iResult = 0;
-	size_t const buffer_size = 1000;
-	char* buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
-	if (buffer == nullptr) ShowMemErrorExit();
+	std::vector<char, heap_allocator<char>> buffer(1000, theHeap);
 
 	while (!exit_flag && !coinInfo->locks->stopRoundSpecificNetworkingThreads) {
 
@@ -1016,9 +994,9 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 		bool failedOrNoData;
 
 		if (coinInfo->network->usehttps)
-			failedOrNoData = __impl__confirm_i__curl(coinInfo, answ, find, nonJsonSuccessDetected, session2);
+			failedOrNoData = __impl__confirm_i__curl(buffer, coinInfo, answ, find, nonJsonSuccessDetected, session2);
 		else
-			failedOrNoData = __impl__confirm_i__sockets(buffer, buffer_size, coinInfo, answ, find, nonJsonSuccessDetected, session);
+			failedOrNoData = __impl__confirm_i__sockets(buffer, coinInfo, answ, find, nonJsonSuccessDetected, session);
 
 		t_session sessionX_(NULL, -1, t_shares("", 0, 0, 0, 0, 0, 0));
 		t_session* sessionX = &sessionX_;
@@ -1139,9 +1117,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 		std::this_thread::yield();
 		std::this_thread::sleep_for(std::chrono::milliseconds(coinInfo->network->send_interval));
 	}
-	if (buffer != nullptr) {
-		HeapFree(hHeap, 0, buffer);
-	}
+
 	Log(L"Confirmer %s: All work done, shutting down.", confirmerName);
 }
 
@@ -1168,9 +1144,8 @@ bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, rapidjson
 
 	const wchar_t* updaterName = coinInfo->coinname.c_str();
 	bool newBlock = false;
-	size_t const buffer_size = 1000;
-	char *buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
-	if (buffer == nullptr) ShowMemErrorExit();
+
+	std::vector<char, heap_allocator<char>> buffer(1001, theHeap); // TODO: catch bad_alloc, quit via ShowMemErrorExit()
 
 	int iResult;
 	struct addrinfo *result = nullptr;
@@ -1207,9 +1182,9 @@ bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, rapidjson
 				failed = true;
 			}
 			else {
-				int bytes = sprintf_s(buffer, buffer_size, "POST /%s?requestType=getMiningInfo HTTP/1.0\r\nHost: %s:%s\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+				int bytes = sprintf_s(buffer.data(), buffer.size(), "POST /%s?requestType=getMiningInfo HTTP/1.0\r\nHost: %s:%s\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
 					coinInfo->network->updaterroot.c_str(), coinInfo->network->updateraddr.c_str(), coinInfo->network->updaterport.c_str());
-				iResult = send(UpdaterSocket, buffer, bytes, 0);
+				iResult = send(UpdaterSocket, buffer.data(), bytes, 0);
 				if (iResult == SOCKET_ERROR)
 				{
 					decreaseNetworkQuality(coinInfo);
@@ -1217,11 +1192,11 @@ bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, rapidjson
 					failed = true;
 				}
 				else {
-					RtlSecureZeroMemory(buffer, buffer_size);
+					RtlSecureZeroMemory(buffer.data(), buffer.size());
 					size_t  pos = 0;
 					iResult = 0;
 					do {
-						iResult = recv(UpdaterSocket, &buffer[pos], (int)(buffer_size - pos - 1), 0);
+						iResult = recv(UpdaterSocket, &buffer[pos], (int)(buffer.size() - pos - 1), 0);
 						if (iResult > 0) pos += (size_t)iResult;
 					} while (iResult > 0);
 					if (iResult == SOCKET_ERROR)
@@ -1233,16 +1208,16 @@ bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, rapidjson
 					else {
 						increaseNetworkQuality(coinInfo);
 						if (loggingConfig.logAllGetMiningInfos) {
-							Log(L"* GMI %s: Received: %S", updaterName, Log_server(buffer).c_str());
+							Log(L"* GMI %s: Received: %S", updaterName, Log_server(buffer.data()).c_str());
 						}
 
-						rawResponse = buffer;
+						rawResponse = { buffer.begin(), buffer.end() };
 						rapidjson::Document& gmi = output;
 
 						// locate HTTP header
-						char const* find = strstr(buffer, "\r\n\r\n");
+						char const* find = strstr(buffer.data(), "\r\n\r\n");
 						if (find == nullptr) {
-							Log(L"*! GMI %s: error message from pool: %S", updaterName, Log_server(buffer).c_str());
+							Log(L"*! GMI %s: error message from pool: %S", updaterName, Log_server(buffer.data()).c_str());
 							failed = true;
 						}
 						else if (loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(find).HasParseError()) {
@@ -1250,7 +1225,7 @@ bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, rapidjson
 							failed = true;
 						}
 						else if (!loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(find).HasParseError()) {
-							Log(L"*! GMI %s: error parsing JSON message from pool: %S", updaterName, Log_server(buffer).c_str());
+							Log(L"*! GMI %s: error parsing JSON message from pool: %S", updaterName, Log_server(buffer.data()).c_str());
 							failed = true;
 						}
 					}
@@ -1260,29 +1235,22 @@ bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, rapidjson
 		iResult = closesocket(UpdaterSocket);
 		freeaddrinfo(result);
 	}
-	if (buffer != nullptr) {
-		HeapFree(hHeap, 0, buffer);
-	}
+
 	return failed;
 }
 
-struct MemoryStruct { char *memory; size_t size; };
+typedef std::vector<char, heap_allocator<char>> MemoryStruct;
 static size_t __impl__pollLocal__curl__readcallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
-	size_t realsize = size * nmemb;
-	struct MemoryStruct *mem = (struct MemoryStruct *)userp;
+	MemoryStruct *mem = (MemoryStruct *)userp;
 
-	char *ptr = !mem->memory ?
-		(char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, mem->size + realsize + 1)
-		: (char*)HeapReAlloc(hHeap, HEAP_ZERO_MEMORY, mem->memory, mem->size + realsize + 1);
-	if (!ptr) ShowMemErrorExit();
+	size_t oldsize = mem->size() - 1;
+	size_t delta = size * nmemb;
+	mem->resize(oldsize + delta + 1); // TODO: devise a way to use HeapReAlloc back again
+	memcpy(&(*mem)[oldsize], contents, delta);
+	*(--mem->end()) = 0;
 
-	mem->memory = ptr;
-	memcpy(&(mem->memory[mem->size]), contents, realsize);
-	mem->size += realsize;
-	mem->memory[mem->size] = 0;
-
-	return realsize;
+	return delta;
 }
 bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, std::string& rawResponse) {
 	bool failed = false;
@@ -1290,14 +1258,11 @@ bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 	const wchar_t* updaterName = coinInfo->coinname.c_str();
 	bool newBlock = false;
 	
-	// TODO: fixup: extract outside like it was before
-	size_t const buffer_size = 1000;
-	char *buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
-	if (buffer == nullptr) ShowMemErrorExit();
+	// TODO: fixup: extract outside like it was before? maybe?
+	std::vector<char, heap_allocator<char>> buffer(theHeap); // TODO: catch bad_alloc, quit via ShowMemErrorExit()
+	buffer.resize(1000);
 
-	struct MemoryStruct chunk;
-	chunk.memory = 0;
-	chunk.size = 0;
+	MemoryStruct chunk(1, theHeap);
 
 	CURL* curl = curl_easy_init();
 	if (!curl) {
@@ -1328,9 +1293,9 @@ bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
 		}
 
-		int bytes = sprintf_s(buffer, buffer_size, "https://%s:%s/%s?requestType=getMiningInfo",
+		int bytes = sprintf_s(buffer.data(), buffer.size(), "https://%s:%s/%s?requestType=getMiningInfo",
 			coinInfo->network->updateraddr.c_str(), coinInfo->network->updaterport.c_str(), coinInfo->network->updaterroot.c_str());
-		curl_easy_setopt(curl, CURLOPT_URL, buffer);
+		curl_easy_setopt(curl, CURLOPT_URL, buffer.data());
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, ""); // wee need to send a POST but body may be left empty
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, 0);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
@@ -1349,17 +1314,17 @@ bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 		else {
 			increaseNetworkQuality(coinInfo);
 			if (loggingConfig.logAllGetMiningInfos) {
-				Log(L"* GMI %s: Received: %S", updaterName, Log_server(chunk.memory).c_str());
+				Log(L"* GMI %s: Received: %S", updaterName, Log_server(chunk.data()).c_str());
 			}
 
-			rawResponse.assign(chunk.memory, chunk.size); // TODO: not so 'raw', that's just the response BODY with no headers
+			rawResponse.assign(chunk.begin(), chunk.end()); // TODO: not so 'raw', that's just the response BODY with no headers
 			rapidjson::Document& gmi = output;
-			if (loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(chunk.memory).HasParseError()) {
+			if (loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(chunk.data(), chunk.size()).HasParseError()) {
 				Log(L"*! GMI %s: error parsing JSON message from pool", updaterName);
 				failed = true;
 			}
-			else if (!loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(chunk.memory).HasParseError()) {
-				Log(L"*! GMI %s: error parsing JSON message from pool: %S", updaterName, Log_server(chunk.memory).c_str());
+			else if (!loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(chunk.data(), chunk.size()).HasParseError()) {
+				Log(L"*! GMI %s: error parsing JSON message from pool: %S", updaterName, Log_server(chunk.data()).c_str());
 				failed = true;
 			}
 		}
@@ -1368,12 +1333,6 @@ bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 		curl_easy_cleanup(curl);
 	}
 
-	if (chunk.memory != nullptr) {
-		HeapFree(hHeap, 0, chunk.memory);
-	}
-	if (buffer != nullptr) {
-		HeapFree(hHeap, 0, buffer);
-	}
 	return failed;
 }
 
@@ -1399,10 +1358,11 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 			if (gmi["baseTarget"].IsInt64())coinInfo->mining->baseTarget = gmi["baseTarget"].GetInt64();
 	}
 
+	uint64_t height = INTMAX_MAX;
 	if (gmi.HasMember("height")) {
-		if (gmi["height"].IsString())	setHeight(coinInfo, _strtoui64(gmi["height"].GetString(), 0, 10));
+		if (gmi["height"].IsString())	setHeight(coinInfo, height = _strtoui64(gmi["height"].GetString(), 0, 10));
 		else
-			if (gmi["height"].IsInt64()) setHeight(coinInfo, gmi["height"].GetInt64());
+			if (gmi["height"].IsInt64()) setHeight(coinInfo, height = gmi["height"].GetInt64());
 	}
 
 	//POC2 determination
@@ -1414,6 +1374,13 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 		setStrSignature(coinInfo, gmi["generationSignature"].GetString());
 		char sig[33];
 		size_t sigLen = xstr2strr(sig, 33, gmi["generationSignature"].GetString());
+
+		if (coinInfo->mining->enableDiskcoinGensigs) {
+			std::vector<uint8_t> tmp = { sig,sig + 32 };
+			auto newsig = diskcoin_generate_gensig_aes128(height, tmp);
+			std::copy(newsig.begin(), newsig.end(), sig);
+		}
+
 		bool sigDiffer = signaturesDiffer(coinInfo, sig);
 										
 		if (sigLen <= 1) {

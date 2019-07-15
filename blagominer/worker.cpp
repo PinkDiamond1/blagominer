@@ -45,6 +45,14 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 	//for (auto iter = files.begin(); iter != files.end(); ++iter)
 	for (auto iter = directory->files.rbegin(); iter != directory->files.rend(); ++iter)
 	{
+		// New block while processing: Stop.
+		if (stopThreads)
+		{
+			worker_progress[local_num].isAlive = false;
+			Log(L"[%zu] Reading directory: %S interrupted", local_num, directory->dir.c_str());
+			return;
+		}
+
 		if (iter->done) {
 			Log(L"Skipping file %S, since it has already been processed in the interrupted run.", iter->Name.c_str());
 			continue;
@@ -206,6 +214,19 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		size_t acc = Get_index_acc(key, coinInfo, getTargetDeadlineInfo(coinInfo));
 		for (unsigned long long n = 0; n < nonces; n += stagger)
 		{
+			// New block while processing: Stop.
+			if (stopThreads)
+			{
+				worker_progress[local_num].isAlive = false;
+				Log(L"[%zu] Reading file: %S interrupted", local_num, iter->Name.c_str());
+				CloseHandle(ifile);
+				Log(L"[%zu] Freeing caches.", local_num);
+				VirtualFree(cache, 0, MEM_RELEASE); //Cleanup Thread 1
+				VirtualFree(cache2, 0, MEM_RELEASE); //Cleanup Thread 2
+				if (p2 != POC2) VirtualFree(MirrorCache, 0, MEM_RELEASE); //PoC2 Cleanup
+				return;
+			}
+
 			cache_size_local = cache_size_local_backup;
 			//Parallel Processing
 			bool err = false;
@@ -222,6 +243,18 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			unsigned long long i;
 			for (i = cache_size_local; i < min(nonces, stagger); i += cache_size_local)
 			{
+				// New block while processing: Stop.
+				if (stopThreads)
+				{
+					worker_progress[local_num].isAlive = false;
+					Log(L"[%zu] Reading file: %S interrupted", local_num, iter->Name.c_str());
+					CloseHandle(ifile);
+					Log(L"[%zu] Freeing caches.", local_num);
+					VirtualFree(cache, 0, MEM_RELEASE); //Cleanup Thread 1
+					VirtualFree(cache2, 0, MEM_RELEASE); //Cleanup Thread 2
+					if (p2 != POC2) VirtualFree(MirrorCache, 0, MEM_RELEASE); //PoC2 Cleanup
+					return;
+				}
 
 				//Threadded Hashing
 				err = false;
@@ -259,19 +292,6 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				read.join();
 				count += 1;
 				if (cont) continue;
-
-				// New block while processing: Stop.
-				if (stopThreads)
-				{
-					worker_progress[local_num].isAlive = false;
-					Log(L"[%zu] Reading file: %S interrupted", local_num, iter->Name.c_str());
-					CloseHandle(ifile);
-					Log(L"[%zu] Freeing caches.", local_num);
-					VirtualFree(cache, 0, MEM_RELEASE); //Cleanup Thread 1
-					VirtualFree(cache2, 0, MEM_RELEASE); //Cleanup Thread 2
-					if (p2 != POC2) VirtualFree(MirrorCache, 0, MEM_RELEASE); //PoC2 Cleanup
-					return;
-				}
 			}
 
 			//Final Hashing

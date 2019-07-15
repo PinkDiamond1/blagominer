@@ -29,6 +29,7 @@ bool ignoreSuspectedFastBlocks = true;
 volatile bool exit_flag = false;
 
 HANDLE hHeap;
+heap_allocator<char> theHeap;
 
 unsigned long long getHeight(std::shared_ptr<t_coin_info> coin) {
 	std::lock_guard<std::mutex> lockGuard(coin->locks->mHeight);
