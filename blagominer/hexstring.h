@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <string>
 #include <vector>
 
@@ -51,6 +52,29 @@ public:
 		std::vector<uint8_t> tmp;
 		tmp.resize((text.size() + 1) / 2);
 		hex2bin(text, tmp.data());
+		return tmp;
+	}
+
+	template<size_t N>
+	static std::unique_ptr<std::array<uint8_t, N>> arrayfrom(std::string const& text)
+	{
+		auto vector = from(text);
+		if (vector.size() != N) throw std::invalid_argument("Wrong input data size");
+		std::unique_ptr<std::array<uint8_t,N>> tmp = std::make_unique<std::array<uint8_t, N>>();
+		std::copy(vector.begin(), vector.end(), tmp->begin());
+		return tmp;
+	}
+
+	template<size_t N>
+	static std::string string(std::array<uint8_t, N> const& data)
+	{
+		std::string tmp;
+		tmp.reserve(data.size() * 2);
+		for (auto it = data.begin(); it < data.end(); ++it)
+		{
+			tmp.push_back(nibble2char(*it / 0x10));
+			tmp.push_back(nibble2char(*it % 0x10));
+		}
 		return tmp;
 	}
 

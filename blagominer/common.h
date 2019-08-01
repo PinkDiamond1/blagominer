@@ -2,6 +2,7 @@
 
 #include "stdafx.h"
 #include <mutex>
+#include <array>
 #include <vector>
 #include <ctime>
 #include <math.h>
