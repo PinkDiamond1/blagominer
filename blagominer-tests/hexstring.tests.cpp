@@ -28,3 +28,15 @@ TEST(HexStringTest, ParsesNonEvenStrings) {
 	auto output = HexString::from(input);
 	EXPECT_THAT(output, ElementsAre(0x0b, 0x6d, 0xbe, 0xa6, 0xf6, 0xc2, 0x5f, 0x03, 0x9a, 0x00));
 }
+
+TEST(HexStringTest, StringifiesHexDataForEachByte) {
+	auto const input = std::vector<uint8_t>({ 0x1b, 0x6d, 0xbe, 0xa6, 0xf6, 0xc2, 0x5f, 0x03, 0x9a, 0x00 });
+	auto output = HexString::string(input);
+	EXPECT_THAT(output, "1b6dbea6f6c25f039a00");
+}
+
+TEST(HexStringTest, StringifiesHexDataWithLeadingZeroes) {
+	auto const input = std::vector<uint8_t>({ 0x00, 0x0d, 0xbe, 0xa6, 0xf6, 0xc2, 0x5f, 0x03, 0x9a, 0x00 });
+	auto output = HexString::string(input);
+	EXPECT_THAT(output, "000dbea6f6c25f039a00");
+}
