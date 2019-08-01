@@ -6,6 +6,7 @@
 #include <vector>
 #include <ctime>
 #include <math.h>
+#include <optional>
 
 #include "heapallocator.h"
 #include "logger.h"
@@ -198,6 +199,45 @@ struct t_coin_info {
 extern std::vector<std::shared_ptr<t_coin_info>> allcoins;
 extern std::vector<std::shared_ptr<t_coin_info>> coins;
 extern t_logging loggingConfig;
+
+struct t_roundreplay_round_test {
+	enum RoundTestMode { RMT_UNKNOWN = 0, RMT_NORMAL = 1, RMT_OFFLINE = 2 };
+	RoundTestMode mode;
+
+	unsigned long long assume_account;
+	unsigned long long assume_nonce;
+
+	std::optional<unsigned int> assume_scoop;
+	std::optional<std::string> assume_scoop_low;
+	std::optional<std::string> assume_scoop_high;
+
+	std::optional<unsigned int> check_scoop;
+	std::optional<std::string> check_scoop_low;
+	std::optional<std::string> check_scoop_high;
+	std::optional<unsigned long long> check_deadline;
+};
+
+struct t_roundreplay_round {
+	unsigned long long height;
+	std::string signature;
+	unsigned long long baseTarget;
+
+	std::vector<t_roundreplay_round_test> tests;
+};
+
+struct t_roundreplay {
+	bool isEnabled;
+	std::string coinName;
+	std::vector<t_roundreplay_round> rounds;
+};
+
+struct t_testmode_config {
+	bool isEnabled;
+	t_roundreplay roundReplay;
+};
+
+extern t_testmode_config testmodeConfig;
+
 
 unsigned long long getHeight(std::shared_ptr<t_coin_info> coin);
 void setHeight(std::shared_ptr<t_coin_info> coin, const unsigned long long height);

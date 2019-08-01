@@ -18,6 +18,8 @@ t_logging loggingConfig = {};
 std::vector<std::shared_ptr<t_coin_info>> allcoins;
 std::vector<std::shared_ptr<t_coin_info>> coins;
 
+t_testmode_config testmodeConfig;
+
 std::vector<char> p_minerPath; // TODO: use std::(w)str
 unsigned long long total_size = 0;
 bool POC2 = false;
@@ -407,6 +409,225 @@ int load_config(wchar_t const *const filename)
 	Log(L"=== Config loaded ===");
 
 	return 1;
+}
+
+bool load_testmode_config(wchar_t const *const filename)
+{
+	FILE * pFile;
+
+	_wfopen_s(&pFile, filename, L"rt");
+	std::unique_ptr<FILE, void(*)(FILE*)> guardPFile(pFile, [](FILE* f) { fclose(f); });
+
+	if (pFile == nullptr)
+	{
+		Log(L"=== TestMode disabled (file not found) ===");
+		return true;
+	}
+
+	_fseeki64(pFile, 0, SEEK_END);
+	__int64 const size = _ftelli64(pFile);
+	_fseeki64(pFile, 0, SEEK_SET);
+
+	// TODO: leaving it on the heap for now to retain zero-memory effect
+	// it's actually somewhat helpful due to the data size mismatch induced by "rt" fopen flags
+	std::vector<char, heap_allocator<char>> json_(size + 1, theHeap);
+	int bytesread = fread_s(json_.data(), size, 1, size, pFile);
+	json_[bytesread] = 0;
+	guardPFile.reset();
+
+	Document document;	// Default template parameter uses UTF8 and MemoryPoolAllocator.
+	if (document.Parse<kParseCommentsFlag>(json_.data()).HasParseError()) {
+		fprintf(stderr, "\nJSON format error (offset %u) check testmode.conf\n%s\n", (unsigned)document.GetErrorOffset(), GetParseError_En(document.GetParseError())); //(offset %s  %s", (unsigned)document.GetErrorOffset(), (char*)document.GetParseError());
+		system("pause > nul");
+		exit(-1);
+	}
+
+	if (document.IsObject())
+	{	// Document is a JSON value represents the root of DOM. Root can be either an object or array.
+
+		if (document.HasMember("enabled") && document["enabled"].IsBool())
+			testmodeConfig.isEnabled = document["enabled"].GetBool();
+
+		if (!testmodeConfig.isEnabled)
+		{
+			Log(L"=== TestMode disabled (disabled by config) ===");
+			return true;
+		}
+
+		if (document.HasMember("RoundReplay") && document["RoundReplay"].IsObject())
+		{
+			Log(L"### Loading configuration for RoundReplay ###");
+
+			const Value& cfg_replay = document["RoundReplay"];
+
+			if (cfg_replay.HasMember("coin") && cfg_replay["coin"].IsString())
+				testmodeConfig.roundReplay.coinName = cfg_replay["coin"].GetString();
+			else
+			{
+				Log(L"ERROR: missing or invalid RoundReplay.coin");
+				return false;
+			}
+			Log(L"coin: %S", testmodeConfig.roundReplay.coinName.c_str());
+
+			if (cfg_replay.HasMember("rounds") && cfg_replay["rounds"].IsArray())
+			{
+				Log(L"...loading RoundReplay.rounds");
+
+				const Value& cfg_rounds = cfg_replay["rounds"];
+				for (SizeType idx_round = 0; idx_round < cfg_rounds.Size(); ++idx_round)
+				{
+					const Value& cfg_round = cfg_rounds[idx_round];
+					if (!cfg_round.IsObject())
+					{
+						Log(L"ERROR: invalid RoundReplay.rounds[%zu]", idx_round);
+						return false;
+					}
+
+					Log(L"...loading RoundReplay.rounds[%zu]", idx_round);
+					t_roundreplay_round round;
+					{
+						if (cfg_round.HasMember("height") && cfg_round["height"].IsUint64())
+							round.height = cfg_round["height"].GetUint64();
+						else
+						{
+							Log(L"ERROR: missing or invalid RoundReplay.rounds[%zu].height", idx_round);
+							return false;
+						}
+						Log(L"height: %zu", round.height);
+
+						if (cfg_round.HasMember("gensig") && cfg_round["gensig"].IsString())
+							round.signature = cfg_round["gensig"].GetString();
+						else
+						{
+							Log(L"ERROR: missing or invalid RoundReplay.rounds[%zu].gensig", idx_round);
+							return false;
+						}
+						Log(L"gensig: %S", round.signature.c_str());
+
+						if (cfg_round.HasMember("baseTgt") && cfg_round["baseTgt"].IsUint64())
+							round.baseTarget = cfg_round["baseTgt"].GetUint64();
+						else
+						{
+							Log(L"ERROR: missing or invalid RoundReplay.rounds[%zu].baseTgt", idx_round);
+							return false;
+						}
+						Log(L"baseTgt: %zu", round.baseTarget);
+
+						if (cfg_round.HasMember("tests") && cfg_round["tests"].IsArray())
+						{
+							Log(L"...loading RoundReplay.rounds[%zu].tests", idx_round);
+
+							const Value& cfg_tests = cfg_round["tests"];
+							for (SizeType idx_test = 0; idx_test < cfg_tests.Size(); ++idx_test)
+							{
+								const Value& cfg_test = cfg_tests[idx_test];
+								if (!cfg_test.IsObject())
+								{
+									Log(L"ERROR: invalid RoundReplay.rounds[%zu].tests[%zu]", idx_round, idx_test);
+									return false;
+								}
+
+								Log(L"...loading RoundReplay.rounds[%zu].tests[%zu]", idx_round, idx_test);
+								t_roundreplay_round_test test;
+								{
+									bool hasMode = false;
+									if (cfg_test.HasMember("mode") && cfg_test["mode"].IsString())
+									{
+										std::string tmp = cfg_test["mode"].GetString();
+										if (tmp == "normal") { hasMode = true; test.mode = t_roundreplay_round_test::RoundTestMode::RMT_NORMAL; }
+										if (tmp == "offline") { hasMode = true; test.mode = t_roundreplay_round_test::RoundTestMode::RMT_OFFLINE; }
+									}
+									if (hasMode)
+										Log(L"mode: %S", test.mode == t_roundreplay_round_test::RoundTestMode::RMT_NORMAL ? "normal" : "offline");
+									else
+									{
+										Log(L"ERROR: missing or invalid RoundReplay.rounds[%zu].tests[%zu].mode", idx_round, idx_test);
+										return false;
+									}
+
+									if (cfg_test.HasMember("assume_account") && cfg_test["assume_account"].IsUint64())
+									{
+										test.assume_account = cfg_test["assume_account"].GetUint64();
+										Log(L"assume_account: %zu", test.assume_account);
+									}
+									else
+									{
+										Log(L"ERROR: missing or invalid RoundReplay.rounds[%zu].tests[%zu].assume_account", idx_round, idx_test);
+										return false;
+									}
+
+									if (cfg_test.HasMember("assume_nonce") && cfg_test["assume_nonce"].IsUint64())
+									{
+										test.assume_nonce = cfg_test["assume_nonce"].GetUint64();
+										Log(L"assume_nonce: %zu", test.assume_nonce);
+									}
+									else
+									{
+										Log(L"ERROR: missing or invalid RoundReplay.rounds[%zu].tests[%zu].assume_nonce", idx_round, idx_test);
+										return false;
+									}
+
+									if (cfg_test.HasMember("assume_scoop") && cfg_test["assume_scoop"].IsUint())
+									{
+										test.assume_scoop = cfg_test["assume_scoop"].GetUint();
+										Log(L"assume_scoop: %u", test.assume_scoop.value());
+									}
+
+									if (cfg_test.HasMember("assume_scoop_low") && cfg_test["assume_scoop_low"].IsString())
+									{
+										test.assume_scoop_low = cfg_test["assume_scoop_low"].GetString();
+										Log(L"assume_scoop_low: %S", test.assume_scoop_low.value().c_str());
+									}
+
+									if (cfg_test.HasMember("assume_scoop_high") && cfg_test["assume_scoop_high"].IsString())
+									{
+										test.assume_scoop_high = cfg_test["assume_scoop_high"].GetString();
+										Log(L"assume_scoop_high: %S", test.assume_scoop_high.value().c_str());
+									}
+
+									if (cfg_test.HasMember("check_scoop") && cfg_test["check_scoop"].IsUint())
+									{
+										test.check_scoop = cfg_test["check_scoop"].GetUint();
+										Log(L"check_scoop: %u", test.check_scoop.value());
+									}
+
+									if (cfg_test.HasMember("check_scoop_low") && cfg_test["check_scoop_low"].IsString())
+									{
+										test.check_scoop_low = cfg_test["check_scoop_low"].GetString();
+										Log(L"check_scoop_low: %S", test.check_scoop_low.value().c_str());
+									}
+
+									if (cfg_test.HasMember("check_scoop_high") && cfg_test["check_scoop_high"].IsString())
+									{
+										test.check_scoop_high = cfg_test["check_scoop_high"].GetString();
+										Log(L"check_scoop_high: %S", test.check_scoop_high.value().c_str());
+									}
+
+									if (cfg_test.HasMember("check_deadline") && cfg_test["check_deadline"].IsUint64())
+									{
+										test.check_deadline = cfg_test["check_deadline"].GetUint64();
+										Log(L"check_deadline: %zu", test.check_deadline.value());
+									}
+								}
+
+								Log(L"...loading RoundReplay.rounds[].tests[] - done");
+								round.tests.push_back(test);
+							}
+						}
+					}
+
+					Log(L"...loading RoundReplay.rounds[] - done");
+					testmodeConfig.roundReplay.rounds.push_back(round);
+				}
+			}
+
+			Log(L"...loading configuration for RoundReplay - done");
+			testmodeConfig.roundReplay.isEnabled = true;
+		}
+	}
+
+	Log(L"=== TestMode active ===");
+	return true;
 }
 
 
@@ -1200,6 +1421,8 @@ int wmain(int argc, wchar_t **argv) {
 	// Initialize configuration.
 	init_logging_config();
 
+	// TODO: below: cut that [1][2] argv crap and refactor it to proper position-agnostic param parsing
+
 	//load config
 	{
 		// TODO: make it std::(w)str, use sstream, use better path ops
@@ -1207,6 +1430,11 @@ int wmain(int argc, wchar_t **argv) {
 		std::vector<wchar_t> conf_filename(MAX_PATH);
 
 		//config-file: check -config flag or default to miner.conf
+		if ((argc >= 4) && (wcscmp(argv[3], L"-config") == 0)) {
+			if (wcsstr(argv[4], L":\\")) swprintf_s(conf_filename.data(), conf_filename.size(), L"%s", argv[4]);
+			else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath.data(), argv[4]);
+		}
+		else
 		if ((argc >= 2) && (wcscmp(argv[1], L"-config") == 0)) {
 			if (wcsstr(argv[2], L":\\")) swprintf_s(conf_filename.data(), conf_filename.size(), L"%s", argv[2]);
 			else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath.data(), argv[2]);
@@ -1214,6 +1442,32 @@ int wmain(int argc, wchar_t **argv) {
 		else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath.data(), L"miner.conf");
 
 		load_config(conf_filename.data());
+	}
+
+	// load testmode config
+	{
+		// TODO: make it std::(w)str, use sstream, use better path ops
+		// TODO: get rid of ancient MAX_PATH, test it for long paths afterwards
+		std::vector<wchar_t> conf_filename(MAX_PATH);
+
+		//config-file: check -config flag or default to miner.conf
+		if ((argc >= 4) && (wcscmp(argv[3], L"-testconfig") == 0)) {
+			if (wcsstr(argv[4], L":\\")) swprintf_s(conf_filename.data(), conf_filename.size(), L"%s", argv[4]);
+			else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath.data(), argv[4]);
+		}
+		else
+		if ((argc >= 2) && (wcscmp(argv[1], L"-testconfig") == 0)) {
+			if (wcsstr(argv[2], L":\\")) swprintf_s(conf_filename.data(), conf_filename.size(), L"%s", argv[2]);
+			else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath.data(), argv[2]);
+		}
+		else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath.data(), L"testmode.conf");
+
+		if (!load_testmode_config(conf_filename.data()))
+		{
+			fwprintf(stderr, L"\nError. testmode config file %s is broken\n", conf_filename.data());
+			system("pause > nul");
+			exit(-1);
+		}
 	}
 
 	std::vector<std::shared_ptr<t_coin_info>> proxycoins;
