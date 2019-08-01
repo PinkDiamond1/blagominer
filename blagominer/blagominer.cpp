@@ -13,7 +13,7 @@ std::thread updateChecker;
 
 const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
 
-t_logging loggingConfig = {};
+t_logging loggingConfig;
 
 std::vector<std::shared_ptr<t_coin_info>> allcoins;
 std::vector<std::shared_ptr<t_coin_info>> coins;
@@ -1003,12 +1003,12 @@ void newRound(std::shared_ptr<t_coin_info > coinCurrentlyMining) {
 	}
 
 	// if it was inactive, or if we just shut it down to clean up connections - restart it for the new round
-	if (!coinCurrentlyMining->network->sender.joinable()) {
+	if (!coinCurrentlyMining->network->sender.joinable() && !testmodeConfig.isEnabled) {
 		coinCurrentlyMining->network->sender = std::thread(send_i, coinCurrentlyMining);
 	}
 
 	// if it was inactive, or if we just shut it down to clean up connections - restart it for the new round
-	if (!coinCurrentlyMining->network->confirmer.joinable()) {
+	if (!coinCurrentlyMining->network->confirmer.joinable() && !testmodeConfig.isEnabled) {
 		coinCurrentlyMining->network->confirmer = std::thread(confirm_i, coinCurrentlyMining);
 	}
 }
@@ -1500,6 +1500,7 @@ int wmain(int argc, wchar_t **argv) {
 	printToConsole(4, false, false, true, false, L"HTTPS and patches: quetzalcoatl (6/2019)");
 	printToConsole(4, false, false, true, false, L"NTFS optimization: quetzalcoatl (6/2019)");
 	printToConsole(4, false, false, true, false, L"Multi mining mod: quetzalcoatl (7/2019)");
+	printToConsole(4, false, false, true, false, L"Test mode option: quetzalcoatl (8/2019)");
 
 	GetCPUInfo();
 
@@ -1595,20 +1596,21 @@ int wmain(int argc, wchar_t **argv) {
 
 	// Run Proxy
 	for (auto& coin : allcoins)
-		if (coin->network->enable_proxy)
+		// note: theoretically, PROXY mode could work with ROUNDREPLAY as well to test slaves.. but scoop data couldn't be checked
+		if (coin->network->enable_proxy && !testmodeConfig.isEnabled)
 		{
 			coin->proxyThread = std::thread(proxy_i, coin);
 			printToConsole(25, false, false, false, true, L"%s proxy thread started", coin->coinname.c_str());
 		}
 
 	// Run version checker
-	if (checkForUpdateInterval > 0) {
+	if (checkForUpdateInterval > 0 && !testmodeConfig.isEnabled) {
 		updateChecker = std::thread(checkForUpdate);
 	}
 
 	// Run updater
 	for (auto& coin : allcoins)
-		if (coin->mining->enable || coin->network->enable_proxy)
+		if ((coin->mining->enable || coin->network->enable_proxy) && !testmodeConfig.isEnabled)
 		{
 			coin->updaterThread = std::thread(updater_i, coin);
 			printToConsole(25, false, false, false, true, L"%s updater thread started", coin->coinname.c_str());
@@ -1618,7 +1620,8 @@ int wmain(int argc, wchar_t **argv) {
 
 	// Run proxy-only
 	for (auto& coin : allcoins)
-		if (!coin->mining->enable && coin->network->enable_proxy)
+		// note: theoretically, PROXY mode could work with ROUNDREPLAY as well to test slaves.. but scoop data couldn't be checked
+		if (!coin->mining->enable && coin->network->enable_proxy && !testmodeConfig.isEnabled)
 		{
 			coin->proxyOnlyThread = std::thread(handleProxyOnly, coin);
 			printToConsole(25, false, false, false, true, L"%s proxy-only thread started", coin->coinname.c_str());
@@ -1655,7 +1658,7 @@ int wmain(int argc, wchar_t **argv) {
 		Log(L"Update mining info");
 		// Waiting for mining information
 		bool firstDataAvailable = false;
-		while (!firstDataAvailable) {
+		while (!firstDataAvailable && !testmodeConfig.isEnabled) {
 			for (auto& c : coins) {
 				if (c->mining->enable && getHeight(c) != 0) {
 					firstDataAvailable = getNewMiningInfo(coins, nullptr, queue);
@@ -1665,7 +1668,10 @@ int wmain(int argc, wchar_t **argv) {
 			std::this_thread::yield();
 			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		}
-
+		if (testmodeConfig.isEnabled) {
+			; // TODO: inject FIRST round data into target COIN
+			; // or even: spoof COINQUEUE with multiple entries for the same coin! I'm pretty sure that only the UPDATER thread reorders entries and the main loop simply POPs!
+		}
 
 		for (auto& coin : allcoins)
 			Log(L"%s height: %llu", coin->coinname.c_str(), getHeight(coin));
@@ -1718,13 +1724,16 @@ int wmain(int argc, wchar_t **argv) {
 		memcpy(&local_32, &global_32, sizeof(global_32));
 
 		std::shared_ptr<t_coin_info> miningCoin;
-		while (!exit_flag)
+		while (!exit_flag && (!testmodeConfig.isEnabled || !testmodeConfig.roundReplay.isFinished))
 		{
 			worker.clear();
 			worker_progress.clear();
 			stopThreads = false;
 			int oldThreadsRunning = -1;
 			double thread_time;
+
+			if(testmodeConfig.isEnabled)
+				Log(L"=== TestMode active ===");
 
 			std::wstring out = L"Coin queue: ";
 			for (auto& c : queue) {
@@ -1955,7 +1964,8 @@ int wmain(int argc, wchar_t **argv) {
 				Log(L"New block, no mining has been interrupted.");
 			}
 
-			std::thread{ Csv_Submitted,  miningCoin, miningCoin->mining->currentHeight, miningCoin->mining->currentBaseTarget, 4398046511104 / 240 / miningCoin->mining->currentBaseTarget, thread_time, miningCoin->mining->state == DONE, miningCoin->mining->deadline }.detach();
+			if (!testmodeConfig.isEnabled)
+				std::thread{ Csv_Submitted,  miningCoin, miningCoin->mining->currentHeight, miningCoin->mining->currentBaseTarget, 4398046511104 / 240 / miningCoin->mining->currentBaseTarget, thread_time, miningCoin->mining->state == DONE, miningCoin->mining->deadline }.detach();
 
 			//prepare for next round if not yet done
 			if (!exit_flag && miningCoin->mining->state != DONE) memcpy(&local_32, &global_32, sizeof(global_32));
