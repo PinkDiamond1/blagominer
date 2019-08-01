@@ -32,12 +32,32 @@ namespace BurstMath
 	}
 
 	uint64_t calcdeadline(uint64_t account_nr, uint64_t nonce_nr, uint32_t scoop_nr, uint64_t currentBaseTarget, uint8_t currentSignature[32]) {
+		uint8_t(*ptr1)[32] = nullptr;
+		uint8_t(*ptr2)[32] = nullptr;
+		auto dl = calcdeadline(account_nr, nonce_nr, scoop_nr, currentBaseTarget, currentSignature, ptr1, ptr2);
+		delete[] ptr1;
+		delete[] ptr2;
+		return dl;
+	}
+
+	uint64_t calcdeadline(
+		uint64_t account_nr,
+		uint64_t nonce_nr,
+		uint32_t scoop_nr,
+		uint64_t currentBaseTarget,
+		uint8_t currentSignature[32],
+		uint8_t (*&scoopLow)[32], uint8_t (*&scoopHigh)[32]
+	) {
 		///* simulate reading ACCOUNT:NONCENR:SCOOPNR from files == generate the part of the plot..
 		const auto NONCE_SIZE = 4096 * 64;
 		const auto HASH_SIZE = 32;
 		const auto HASH_CAP = 4096;
 		const auto SCOOP_SIZE = 64;
 
+		uint8_t scoop[SCOOP_SIZE];
+
+		if(scoopLow == nullptr || scoopHigh == nullptr)
+		{
 		char final[32];
 		char gendata[16 + NONCE_SIZE];
 
@@ -81,10 +101,22 @@ namespace BurstMath
 		for (int i = 0; i < NONCE_SIZE; i++)
 			gendata[i] ^= (final[i % 32]);
 
-		uint8_t scoop[SCOOP_SIZE];
 		memcpy(scoop, gendata + (scoop_nr * SCOOP_SIZE), 32);
 		memcpy(scoop + 32, gendata + ((4095 - scoop_nr) * SCOOP_SIZE) + 32, 32);
 		///* now we have the data 'read from the plot files' in SCOOP array
+
+		// sidenote: is it possible to write a `new` expr that returns constant-length array pointer type?
+		// RE: as of 'now', apparently not yet (https://stackoverflow.com/questions/19467909/will-the-new-expression-ever-return-a-pointer-to-an-array)
+		scoopLow = new uint8_t[1][HASH_SIZE]; // small trick to get `int(*)[32]` pointer to new'd `int[32]` array
+		scoopHigh = new uint8_t[1][HASH_SIZE]; // TODO: and yeah, I should clean it up to use std::vector<> or std::array<>
+		memcpy_s(scoopLow, HASH_SIZE, scoop + 0, 32);
+		memcpy_s(scoopHigh, HASH_SIZE, scoop + 32, 32);
+		}
+		else
+		{
+		memcpy_s(scoop + 0, HASH_SIZE, scoopLow, 32);
+		memcpy_s(scoop + 32, HASH_SIZE, scoopHigh, 32);
+		}
 
 		///* back to orig algo from blago shabal.cpp:procscoop_sph()
 		sph_shabal_context xx;
