@@ -1376,9 +1376,10 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 		size_t sigLen = xstr2strr(sig, 33, gmi["generationSignature"].GetString());
 
 		if (coinInfo->mining->enableDiskcoinGensigs) {
-			std::vector<uint8_t> tmp = { sig,sig + 32 };
+			std::array<uint8_t, 32> tmp;
+			std::copy(sig, sig + 32, tmp.data());
 			auto newsig = diskcoin_generate_gensig_aes128(height, tmp);
-			std::copy(newsig.begin(), newsig.end(), sig);
+			std::copy(newsig->begin(), newsig->end(), sig);
 		}
 
 		bool sigDiffer = signaturesDiffer(coinInfo, sig);
