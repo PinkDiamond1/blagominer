@@ -461,13 +461,16 @@ bool load_testmode_config(wchar_t const *const filename)
 			const Value& cfg_replay = document["RoundReplay"];
 
 			if (cfg_replay.HasMember("coin") && cfg_replay["coin"].IsString())
-				testmodeConfig.roundReplay.coinName = cfg_replay["coin"].GetString();
+			{
+				std::string tmp = cfg_replay["coin"].GetString();
+				testmodeConfig.roundReplay.coinName = std::wstring(tmp.begin(), tmp.end());
+			}
 			else
 			{
 				Log(L"ERROR: missing or invalid RoundReplay.coin");
 				return false;
 			}
-			Log(L"coin: %S", testmodeConfig.roundReplay.coinName.c_str());
+			Log(L"coin: %s", testmodeConfig.roundReplay.coinName.c_str());
 
 			if (cfg_replay.HasMember("rounds") && cfg_replay["rounds"].IsArray())
 			{

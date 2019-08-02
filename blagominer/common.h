@@ -227,7 +227,7 @@ struct t_roundreplay_round {
 
 struct t_roundreplay {
 	bool isEnabled;
-	std::string coinName;
+	std::wstring coinName;
 	std::vector<t_roundreplay_round> rounds;
 
 	bool isFinished;
