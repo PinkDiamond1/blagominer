@@ -1473,6 +1473,9 @@ int wmain(int argc, wchar_t **argv) {
 		}
 	}
 
+	if (testmodeConfig.isEnabled)
+		loggingConfig.enableCsv = false;
+
 	std::vector<std::shared_ptr<t_coin_info>> proxycoins;
 	std::copy_if(allcoins.begin(), allcoins.end(), std::back_inserter(proxycoins), [](auto&& it) { return it->network->enable_proxy; });
 	std::vector<std::string> proxyports;
