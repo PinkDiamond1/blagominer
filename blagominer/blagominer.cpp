@@ -516,6 +516,12 @@ bool load_testmode_config(wchar_t const *const filename)
 						}
 						Log(L"baseTgt: %zu", round.baseTarget);
 
+						if (cfg_round.HasMember("assume_POCx") && cfg_round["assume_POCx"].IsBool())
+						{
+							round.assume_POC2 = cfg_round["assume_POCx"].GetBool();
+							Log(L"assume_POCx: %d", round.assume_POC2.value());
+						}
+
 						if (cfg_round.HasMember("tests") && cfg_round["tests"].IsArray())
 						{
 							Log(L"...loading RoundReplay.rounds[%zu].tests", idx_round);
@@ -1786,6 +1792,14 @@ int wmain(int argc, wchar_t **argv) {
 			queue.erase(queue.begin());
 
 			newRound(miningCoin);
+
+			// usually that is performed by the "//POC2 determination" in pollLocal()
+			// TODO: HELLO MULTIMINING!
+			if (testmodeConfig.isEnabled)
+				if (miningCoin->testround->assume_POC2.has_value())
+					POC2 = miningCoin->testround->assume_POC2.value();
+				else
+					POC2 = getHeight(miningCoin) >= miningCoin->mining->POC2StartBlock;
 
 			if (miningCoin->mining->enable && miningCoin->mining->state == INTERRUPTED) {
 				Log(L"------------------------    Continuing %s block: %llu", miningCoin->coinname.c_str(), miningCoin->mining->currentHeight);

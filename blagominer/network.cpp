@@ -1365,6 +1365,7 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 			if (gmi["height"].IsInt64()) setHeight(coinInfo, height = gmi["height"].GetInt64());
 	}
 
+	// TODO: HELLO MULTIMINING! that SHOULD NOT BE HERE!
 	//POC2 determination
 	if (getHeight(coinInfo) >= coinInfo->mining->POC2StartBlock) {
 		POC2 = true;

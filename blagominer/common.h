@@ -226,6 +226,8 @@ struct t_roundreplay_round {
 	std::string signature;
 	unsigned long long baseTarget;
 
+	std::optional<bool> assume_POC2;
+
 	std::vector<t_roundreplay_round_test> tests;
 };
 
