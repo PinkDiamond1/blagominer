@@ -1397,6 +1397,7 @@ std::shared_ptr<t_coin_info> cloneCoinSetup(std::shared_ptr<t_coin_info> const &
 	result->coinname = src->coinname;
 	//result->logging - nah, in testmode it is disabled anyways
 	init_mining_info(result, src->coinname, src->mining->priority, src->mining->POC2StartBlock);
+	std::transform(src->mining->dirs.begin(), src->mining->dirs.end(), std::back_inserter(result->mining->dirs), [](auto&& item) { return std::make_shared<t_directory_info>(*item); });
 	result->network = src->network;
 	initMiningOrProxy(result);
 	return result;
