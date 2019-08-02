@@ -1390,6 +1390,18 @@ void initMiningOrProxy(std::shared_ptr<t_coin_info> coin)
 	}
 }
 
+std::shared_ptr<t_coin_info> cloneCoinSetup(std::shared_ptr<t_coin_info> const & src)
+{
+	auto result = std::make_shared<t_coin_info>();
+
+	result->coinname = src->coinname;
+	//result->logging - nah, in testmode it is disabled anyways
+	init_mining_info(result, src->coinname, src->mining->priority, src->mining->POC2StartBlock);
+	result->network = src->network;
+	initMiningOrProxy(result);
+	return result;
+}
+
 int wmain(int argc, wchar_t **argv) {
 	//init
 	SetConsoleCtrlHandler(OnConsoleClose, TRUE);
@@ -1675,8 +1687,28 @@ int wmain(int argc, wchar_t **argv) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		}
 		if (testmodeConfig.isEnabled) {
-			; // TODO: inject FIRST round data into target COIN
-			; // or even: spoof COINQUEUE with multiple entries for the same coin! I'm pretty sure that only the UPDATER thread reorders entries and the main loop simply POPs!
+			// spoof COINQUEUE with multiple entries for the same coin! I'm pretty sure that only the UPDATER thread reorders entries and the main loop simply POPs!
+			auto const referenceSetup = std::find_if(allcoins.begin(), allcoins.end(), [](auto&& coin) { return coin->coinname == testmodeConfig.roundReplay.coinName; });
+
+			for(auto&& round : testmodeConfig.roundReplay.rounds)
+				for (auto&& test : round.tests)
+				{
+					auto newCoin = cloneCoinSetup(*referenceSetup);
+
+					newCoin->mining->height = round.height;
+
+					std::copy(round.signature.begin(), round.signature.end(), newCoin->mining->str_signature);
+
+					char sig[33];
+					size_t sigLen = xstr2strr(sig, 33, round.signature.c_str());
+					std::copy(sig, sig + 32, newCoin->mining->signature);
+
+					newCoin->mining->baseTarget = round.baseTarget;
+
+					newCoin->testround = &round;
+
+					queue.push_back(newCoin);
+				}
 		}
 
 		for (auto& coin : allcoins)
@@ -1870,6 +1902,12 @@ int wmain(int argc, wchar_t **argv) {
 					else if (!queue.empty()) {
 						Log(L"Next coin in queue.");
 						break;
+					}
+					else if (testmodeConfig.isEnabled) {
+						exit_flag = true;
+						printToConsole(12, false, true, true, false, L"TestMode has finished all tasks, exiting.");
+						system("pause > nul");
+						continue;
 					}
 
 					if (use_wakeup)

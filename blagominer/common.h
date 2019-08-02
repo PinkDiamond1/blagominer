@@ -184,6 +184,8 @@ struct t_network_info {
 	std::thread confirmer;
 };
 
+struct t_roundreplay_round;
+
 struct t_coin_info {
 	std::wstring coinname;
 	CoinLogFiles logging;
@@ -193,6 +195,8 @@ struct t_coin_info {
 	std::thread proxyThread;
 	std::thread updaterThread;
 	std::thread proxyOnlyThread;
+
+	t_roundreplay_round* testround;
 };
 
 
