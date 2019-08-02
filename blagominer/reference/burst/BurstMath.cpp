@@ -34,7 +34,7 @@ namespace BurstMath
 	uint64_t calcdeadline(uint64_t account_nr, uint64_t nonce_nr, uint32_t scoop_nr, uint64_t currentBaseTarget, std::array<uint8_t, 32> const & currentSignature) {
 		std::unique_ptr<std::array<uint8_t, 32>> ptr1;
 		std::unique_ptr<std::array<uint8_t, 32>> ptr2;
-		return calcdeadline(account_nr, nonce_nr, scoop_nr, currentBaseTarget, currentSignature, ptr1, ptr2);
+		return calcdeadline(account_nr, nonce_nr, scoop_nr, currentBaseTarget, currentSignature, ptr1, ptr2, false);
 	}
 
 	uint64_t calcdeadline(
@@ -44,6 +44,7 @@ namespace BurstMath
 		uint64_t currentBaseTarget,
 		std::array<uint8_t, 32> const & currentSignature,
 		std::unique_ptr<std::array<uint8_t, 32>>& scoopLow, std::unique_ptr<std::array<uint8_t, 32>>& scoopHigh
+		, bool simulate_messedup_POC1_POC2
 	) {
 		///* simulate reading ACCOUNT:NONCENR:SCOOPNR from files == generate the part of the plot..
 		const auto NONCE_SIZE = 4096 * 64;
@@ -98,8 +99,18 @@ namespace BurstMath
 		for (int i = 0; i < NONCE_SIZE; i++)
 			gendata[i] ^= (final[i % 32]);
 
-		memcpy(scoop, gendata + (scoop_nr * SCOOP_SIZE), 32);
-		memcpy(scoop + 32, gendata + ((4095 - scoop_nr) * SCOOP_SIZE) + 32, 32);
+		if (!simulate_messedup_POC1_POC2)
+		{
+			// normal POC2 operation
+			memcpy(scoop, gendata + (scoop_nr * SCOOP_SIZE), 32);
+			memcpy(scoop + 32, gendata + ((4095 - scoop_nr) * SCOOP_SIZE) + 32, 32);
+		}
+		else
+		{
+			// simulate a POC2 data file being read in POC1 mode
+			memcpy(scoop, gendata + (scoop_nr * SCOOP_SIZE), 32);
+			memcpy(scoop + 32, gendata + (scoop_nr * SCOOP_SIZE) + 32, 32);
+		}
 		///* now we have the data 'read from the plot files' in SCOOP array
 
 		// sidenote: is it possible to write a `new` expr that returns constant-length array pointer type (`uint8_t(*)[32]`)?
@@ -111,6 +122,7 @@ namespace BurstMath
 		}
 		else
 		{
+		if (simulate_messedup_POC1_POC2) throw std::invalid_argument("simulate_messedup_POC1_POC2 option has no sense when providing specific scoop data");
 		memcpy_s(scoop + 0, HASH_SIZE, scoopLow.get(), 32);
 		memcpy_s(scoop + 32, HASH_SIZE, scoopHigh.get(), 32);
 		}
