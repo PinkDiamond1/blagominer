@@ -15,6 +15,7 @@ mshabal512_context global_512;
 mshabal512_context_fast global_512_fast;
 
 //ALL CPUs
+//scratchpad memory: 64b = 1nonce/scoop; size of input DATA array must be at least N*scratchpad
 void procscoop_sph(std::shared_ptr<t_coin_info> coin, const unsigned long long nonce, const unsigned long long n, char const *const data, const size_t acc, const std::string &file_name) {
 	char const *cache;
 	char sig[32 + 128];
@@ -25,6 +26,7 @@ void procscoop_sph(std::shared_ptr<t_coin_info> coin, const unsigned long long n
 	sph_shabal_context x;
 	for (unsigned long long v = 0; v < n; v++)
 	{
+		// below: consumes 64bytes of data = 1nonces/scoops at the same time = 64bytes, consecutive
 		memcpy_s(&sig[32], sizeof(sig) - 32, &cache[v * 64], sizeof(char) * 64);
 
 		memcpy(&x, &global_32, sizeof(global_32)); // optimization: sph_shabal256_init(&x);
@@ -103,6 +105,7 @@ void procscoop_sph(std::shared_ptr<t_coin_info> coin, const unsigned long long n
 }
 
 //SSE fast
+//scratchpad memory: 256b = 4nonces/scoops; size of input DATA array must be at least N*scratchpad
 void procscoop_sse_fast(std::shared_ptr<t_coin_info> coin, unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
 	char const *cache;
 	char sig0[32];
@@ -147,6 +150,7 @@ void procscoop_sse_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 		// NB: this can be further optimised by preshuffling plot files depending on SIMD length and use avx2 memcpy
 		// did not find a away yet to completely avoid memcpys
 
+		// below: consumes 4vectors of 64bytes of data = 4nonces/scoops at the same time = 256bytes, consecutive
 		for (int j = 0; j < 64 / 2; j += 4) {
 			size_t o = j;
 			u1.words[j + 0 + 32] = *(mshabal_u32 *)(&cache[(v + 0) * 64] + o);
@@ -255,6 +259,7 @@ void procscoop_sse_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 }
 
 //AVX fast
+//scratchpad memory: 256b = 4nonces/scoops; size of input DATA array must be at least N*scratchpad
 void procscoop_avx_fast(std::shared_ptr<t_coin_info> coin, unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
 	char const *cache;
 	char sig0[32];
@@ -299,6 +304,7 @@ void procscoop_avx_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 									 // NB: this can be further optimised by preshuffling plot files depending on SIMD length and use avx2 memcpy
 									 // did not find a away yet to completely avoid memcpys
 
+		// below: consumes 4vectors of 64bytes of data = 4nonces/scoops at the same time = 256bytes, consecutive
 		for (int j = 0; j < 64 / 2; j += 4) {
 			size_t o = j;
 			u1.words[j + 0 + 32] = *(mshabal_u32 *)(&cache[(v + 0) * 64] + o);
@@ -407,6 +413,7 @@ void procscoop_avx_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 }
 
 //AVX2 fast
+//scratchpad memory: 512b = 8nonces/scoops; size of input DATA array must be at least N*scratchpad
 void procscoop_avx2_fast(std::shared_ptr<t_coin_info> coin, unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
 	char const *cache;
 	char sig0[32];
@@ -464,6 +471,7 @@ void procscoop_avx2_fast(std::shared_ptr<t_coin_info> coin, unsigned long long c
 									 //NB: this can be further optimised by preshuffling plot files depending on SIMD length and use avx2 memcpy
 									 //Did not find a away yet to completely avoid memcpys
 
+		// below: consumes 8vectors of 64bytes of data = 8nonces/scoops at the same time = 512bytes, consecutive
 		for (int j = 0; j < 64 * MSHABAL256_FACTOR / 2; j += 4 * MSHABAL256_FACTOR) {
 			size_t o = j / MSHABAL256_FACTOR;
 			u1.words[j + 0 + 64] = *(mshabal_u32 *)(&cache[(v + 0) * 64] + o);
@@ -608,6 +616,7 @@ void procscoop_avx2_fast(std::shared_ptr<t_coin_info> coin, unsigned long long c
 }
 
 //AVX512 fast
+//scratchpad memory: 1024b = 16nonces/scoops; size of input DATA array must be at least N*scratchpad
 void procscoop_avx512_fast(std::shared_ptr<t_coin_info> coin, unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
 	char const *cache;
 	char sig0[32];
@@ -689,6 +698,7 @@ void procscoop_avx512_fast(std::shared_ptr<t_coin_info> coin, unsigned long long
 									 //NB: this can be further optimised by preshuffling plot files depending on SIMD length and use avx2 memcpy
 									 //Did not find a away yet to completely avoid memcpys
 
+		// below: consumes 16vectors of 64bytes of data = 16nonces/scoops at the same time = 1024bytes, consecutive
 		for (int j = 0; j < 64 * MSHABAL512_FACTOR / 2; j += 4 * MSHABAL512_FACTOR) {
 			size_t o = j / MSHABAL512_FACTOR;
 			u1.words[j + 0 + 128] = *(mshabal_u32 *)(&cache[(v + 0) * 64] + o);

@@ -202,7 +202,10 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		else
 		{
 			// in offline testmode, only one specific nonce/scoop is generated
-			cache_size_local = 1;
+			// warning: even though in offline testmode we're interested in only a single nonce data (thus we'd want cache_size_local=1)
+			// the CACHE data is passed directly to shabal routines which blindly assume certain data block sizes
+			// since HERE we don't want to switch over CPUIDs, we pick a value that covers LONGEST shabal scratchpad memory supported
+			cache_size_local = 16; // right now AVX512 has the largest input buffer reqs
 		}
 
 		size_t cache_size_local_backup = cache_size_local;
@@ -291,6 +294,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			//Initial Reading
 			if (!testmodeIgnoresPlotfiles)
 			{
+			// WARNING: th_read may MUTATE cache_size_local when it hits an EOF/etc
 			th_read(ifile, start, MirrorStart, &cont, &bytes, &(*iter), &flip, p2, 0, stagger, &cache_size_local, cache, MirrorCache);
 			// TODO: implement 'assume_scoop_low','assume_scoop_high' testmode options
 			// TODO: implement 'check_scoop_low','check_scoop_high' testmode options
@@ -300,6 +304,11 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			{
 			// TODO: generate nonce/scoop data in offline testmode; write to CACHE or CACHE2 depending on COUNT%2 - see below
 			int wait = 0;
+			// warning: even though in offline testmode we're allocated a larger buffer due to shabal implementation's reqs,
+			// the higher value was needed only for VirtualAlloc, and we cannot keep value of `cache_size_local` that high.
+			// we DO WANT =1 because the internal loops in shabal implementation actually iterate over this `cache_size_local` value
+			// and we DONT WANT to let them run more than a single initial iteration
+			cache_size_local_backup = cache_size_local = 1;
 			}
 
 			char *cachep;
@@ -353,6 +362,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 					cachep = cache2;
 				}
 				// in offline testmode, IFILE == INVALIDHANDLE, forcing SetFilePointerEx to fail and set `cont` to true
+				// WARNING: th_read may MUTATE cache_size_local when it hits an EOF/etc
 				std::thread read = std::thread(th_read, ifile, start, MirrorStart, &cont, &bytes, &(*iter), &flip, p2, i, stagger, &cache_size_local, cachep, MirrorCache);
 
 				//Join threads
@@ -466,19 +476,19 @@ void th_read(HANDLE ifile, unsigned long long const start, unsigned long long co
 		*cache_size_local = stagger - i;  // the remainder
 
 #ifdef __AVX512F__
-		if (*cache_size_local < 16)
+		if (*cache_size_local < 16) // these checks are related to shabal-impl's scratchpad memory size = number of 'vectorized' nonces/scoops
 		{
 			printToConsole(12, false, false, true, false, L"WARNING: %llu", *cache_size_local);
 		}
 #else
 #ifdef __AVX2__
-		if (*cache_size_local < 8)
+		if (*cache_size_local < 8) // these checks are related to shabal-impl's scratchpad memory size = number of 'vectorized' nonces/scoops
 		{
 			printToConsole(12, false, false, true, false, L"WARNING: %llu", *cache_size_local);
 		}
 #else
 #ifdef __AVX__
-		if (*cache_size_local < 4)
+		if (*cache_size_local < 4) // these checks are related to shabal-impl's scratchpad memory size = number of 'vectorized' nonces/scoops
 		{
 			printToConsole(12, false, false, true, false, L"WARNING: %llu", *cache_size_local);
 		}
