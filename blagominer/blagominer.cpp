@@ -937,7 +937,7 @@ void updateCurrentMiningInfo(std::shared_ptr<t_coin_info> coin) {
 		if (coin->testround2->check_scoop.has_value())
 		{
 			if (coin->mining->scoop != coin->testround2->check_scoop.value())
-				Log(L"TESTMODE: CHECK ERROR: Scopp number differs: %u, expected: %u, height: %llu, gensig: %S",
+				Log(L"TESTMODE: CHECK ERROR: Scoop number differs: %u, expected: %u, height: %llu, gensig: %S",
 					coin->mining->scoop, coin->testround2->check_scoop.value(),
 					coin->mining->currentHeight, HexString::string(std::vector<uint8_t>(coin->mining->currentSignature + 0, coin->mining->currentSignature + 32)).c_str());
 		}
