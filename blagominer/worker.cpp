@@ -100,6 +100,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		bfs = iter->BFS;
 		tail = 0;
 
+		// TODO: below: now that's a creative way of testing if integer division resulted in nonzero remainder
 		// Checking the stagger's nonce count
 		if ((double)(nonces % stagger) > DBL_EPSILON && !bfs && !testmodeIgnoresPlotfiles)
 		{
@@ -206,6 +207,11 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			// the CACHE data is passed directly to shabal routines which blindly assume certain data block sizes
 			// since HERE we don't want to switch over CPUIDs, we pick a value that covers LONGEST shabal scratchpad memory supported
 			cache_size_local = 16; // right now AVX512 has the largest input buffer reqs
+			key = coinInfo->testround2->assume_account;
+			nonce = coinInfo->testround2->assume_nonce;
+			nonces = 1;
+			stagger = 1;
+			filename = "offline";
 		}
 
 		size_t cache_size_local_backup = cache_size_local;
@@ -264,7 +270,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 
 		size_t acc = Get_index_acc(key, coinInfo, getTargetDeadlineInfo(coinInfo));
 		// in offline testmode, we don't need ANY further reading, one step is enough
-		for (unsigned long long n = 0; n < nonces && !testmodeIgnoresPlotfiles || testmodeIgnoresPlotfiles && n <= 0; n += stagger)
+		for (unsigned long long n = 0; n < nonces; n += stagger)
 		{
 			// New block while processing: Stop.
 			if (stopThreads)
@@ -309,26 +315,24 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			// we DO WANT =1 because the internal loops in shabal implementation actually iterate over this `cache_size_local` value
 			// and we DONT WANT to let them run more than a single initial iteration
 			cache_size_local_backup = cache_size_local = 1;
+			bytes = cache_size_local * 64; // for statistics in th_hash, and for a few error checks below 
 			}
 
 			char *cachep;
 			unsigned long long i;
-			// in offline testmode, we don't need ANY further reading, one step is enough
-			for (i = cache_size_local; i < min(nonces, stagger) && !testmodeIgnoresPlotfiles || testmodeIgnoresPlotfiles && i <= 1; i += cache_size_local)
+			// in offline test mode, this loop will NEVER iterate, because cache_size_local==nonces==stagger
+			for (i = cache_size_local; i < min(nonces, stagger); i += cache_size_local)
 			{
 				// New block while processing: Stop.
 				if (stopThreads)
 				{
 					worker_progress[local_num].isAlive = false;
-					if (!testmodeIgnoresPlotfiles)
-					{
 					Log(L"[%zu] Reading file: %S interrupted", local_num, iter->Name.c_str());
 					CloseHandle(ifile);
-					}
 					Log(L"[%zu] Freeing caches.", local_num);
 					VirtualFree(cache, 0, MEM_RELEASE); //Cleanup Thread 1
 					VirtualFree(cache2, 0, MEM_RELEASE); //Cleanup Thread 2
-					if (p2 != POC2 && !testmodeIgnoresPlotfiles) VirtualFree(MirrorCache, 0, MEM_RELEASE); //PoC2 Cleanup
+					if (p2 != POC2) VirtualFree(MirrorCache, 0, MEM_RELEASE); //PoC2 Cleanup
 					return;
 				}
 
@@ -342,7 +346,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				}
 
 				//check if hashing would fail
-				if (bytes != cache_size_local * 64 && !testmodeIgnoresPlotfiles)
+				if (bytes != cache_size_local * 64)
 				{
 					std::thread{ increaseReadError, iter->Name.c_str() }.detach();
 					Log(L"File %S (%S): Unexpected end of file.", iter->Name.c_str(), iter->Path.c_str());
@@ -361,7 +365,6 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				else {
 					cachep = cache2;
 				}
-				// in offline testmode, IFILE == INVALIDHANDLE, forcing SetFilePointerEx to fail and set `cont` to true
 				// WARNING: th_read may MUTATE cache_size_local when it hits an EOF/etc
 				std::thread read = std::thread(th_read, ifile, start, MirrorStart, &cont, &bytes, &(*iter), &flip, p2, i, stagger, &cache_size_local, cachep, MirrorCache);
 
