@@ -8,6 +8,9 @@ size_t readChunkSize = 16384;		// Size of HDD reads in nonces (1 nonce in scoop 
 
 void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_info> directory, const size_t local_num)
 {
+	// when the mode is OFFLINE then the miner doesn't scan the files and just generates the plot data on the fly
+	// therefore we need a simple way to force the loop to do exactly 1 iteration and disable all normal file-ops
+	bool testmodeIgnoresPlotfiles = testmodeConfig.isEnabled && coinInfo->testround2->mode == t_roundreplay_round_test::RoundTestMode::RMT_OFFLINE;
 
 	__int64 start_work_time, end_work_time;
 	__int64 start_time_read, end_time_read;
@@ -27,7 +30,10 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 
 	unsigned long long files_size_per_thread = 0;
 
+	if (!testmodeIgnoresPlotfiles)
 	Log(L"Start thread: [%zu] %S", local_num, path_loc_str.c_str());
+	else
+	Log(L"Start thread: [%zu] testmode:offline", local_num);
 
 	if (directory->files.empty()) {
 		bool dummyvar;
@@ -43,7 +49,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 	bool isbfs = false;
 	
 	//for (auto iter = files.begin(); iter != files.end(); ++iter)
-	for (auto iter = directory->files.rbegin(); iter != directory->files.rend(); ++iter)
+	for (auto iter = testmodeIgnoresPlotfiles ? --directory->files.rend() : directory->files.rbegin(); iter != directory->files.rend(); ++iter)
 	{
 		// New block while processing: Stop.
 		if (stopThreads)
@@ -57,6 +63,14 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			Log(L"Skipping file %S, since it has already been processed in the interrupted run.", iter->Name.c_str());
 			continue;
 		}
+
+		{
+			// in online testmode, we don't want to waste time reading all files
+			// only nonce/scoop from specific test round matters, so we can skip other files
+			// TODO: implement
+			int wait = 0;
+		}
+
 		//Log("[%zu] Beginning main loop over files.", local_num);
 		unsigned long long key, nonce, nonces, stagger, offset, tail;
 		bool p2, bfs;
@@ -66,20 +80,24 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		nonces = iter->Nonces;
 		stagger = iter->Stagger;
 		offset = iter->Offset;
-		p2 = iter->P2;
+		// offline testmode assumes POC2 algorithms, so 'assume POC1' option can be used to test POC1/2 mixups
+		p2 = iter->P2 && !testmodeIgnoresPlotfiles || testmodeIgnoresPlotfiles && true;
 		bfs = iter->BFS;
 		tail = 0;
 
 		// Checking the stagger's nonce count
-		if ((double)(nonces % stagger) > DBL_EPSILON && !bfs)
+		if ((double)(nonces % stagger) > DBL_EPSILON && !bfs && !testmodeIgnoresPlotfiles)
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
 			Log(L"File %S (%S) wrong stagger?", iter->Name.c_str(), iter->Path.c_str());
 			printToConsole(12, true, false, true, false, L"File %S wrong stagger?", iter->Name.c_str());
 		}
 
+		// in testmode, updateCurrentMiningInfo from blagominer.cpp makes sure the `scoop` is properly set up
 		const unsigned int scoop = coinInfo->mining->scoop;
 
+		if (!testmodeIgnoresPlotfiles)
+		{
 		// Checking for plot damage
 		if (nonces != (iter->Size) / (4096 * 64))
 		{
@@ -139,6 +157,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 
 		//PoC2 cache size added (shuffling needs more cache)
 
+		// below: this is irrelevant in offline testmode as long as resulting cachesizes are long enough to fit one nonce
 		if (p2 != POC2) {
 			if ((stagger == nonces) && (cache_size2 < stagger)) cache_size_local = cache_size2;  // optimized plot
 			else cache_size_local = stagger; // regular plot
@@ -164,11 +183,19 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		cache_size_local = (cache_size_local / (size_t)(bytesPerSector / 64)) * (size_t)(bytesPerSector / 64);
 		//wprintw(win_main, "round: %llu\n", cache_size_local);
 
+		} //!testmodeIgnoresPlotfiles
+		else
+		{
+			// in offline testmode, only one specific nonce/scoop is generated
+			cache_size_local = 1;
+		}
+
 		size_t cache_size_local_backup = cache_size_local;
 		char *cache = (char *)VirtualAlloc(nullptr, cache_size_local * 64, MEM_COMMIT, PAGE_READWRITE); //cache thread1
 		char *cache2 = (char *)VirtualAlloc(nullptr, cache_size_local * 64, MEM_COMMIT, PAGE_READWRITE); //cache thread2
 		char *MirrorCache = nullptr;
-		if (p2 != POC2) {
+		// for offline testmode, data is generated already in desired format, no mirroring needed
+		if (p2 != POC2 && !testmodeIgnoresPlotfiles) {
 			MirrorCache = (char *)VirtualAlloc(nullptr, cache_size_local * 64, MEM_COMMIT, PAGE_READWRITE); //PoC2 cache
 			if (MirrorCache == nullptr) ShowMemErrorExit();
 			converted = true;
@@ -179,10 +206,15 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		if (cache == nullptr) ShowMemErrorExit();
 		if (cache2 == nullptr) ShowMemErrorExit();
 
+		if (!testmodeIgnoresPlotfiles)
 		Log(L"[%zu] Read file : %S", local_num, iter->Name.c_str());
+		else
+		Log(L"[%zu] Generating nonce : %llu", local_num, coinInfo->testround2->assume_nonce);
 
 		//wprintw(win_main, "%S \n", str2wstr(iter->Path + iter->Name).c_str());
 		HANDLE ifile = INVALID_HANDLE_VALUE;
+		if (!testmodeIgnoresPlotfiles)
+		{
 		if (bfs) {
 			ifile = CreateFileA((iter->Path).c_str(), GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_FLAG_NO_BUFFERING, nullptr);
 		}
@@ -200,6 +232,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			continue;
 		}
 		files_size_per_thread += iter->Size;
+		}//?testmodeIgnoresPlotfiles
 
 		unsigned long long start, bytes;
 
@@ -212,18 +245,22 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		bool flip = false;
 
 		size_t acc = Get_index_acc(key, coinInfo, getTargetDeadlineInfo(coinInfo));
-		for (unsigned long long n = 0; n < nonces; n += stagger)
+		// in offline testmode, we don't need ANY further reading, one step is enough
+		for (unsigned long long n = 0; n < nonces && !testmodeIgnoresPlotfiles || testmodeIgnoresPlotfiles && n <= 0; n += stagger)
 		{
 			// New block while processing: Stop.
 			if (stopThreads)
 			{
 				worker_progress[local_num].isAlive = false;
+				if (!testmodeIgnoresPlotfiles)
+				{
 				Log(L"[%zu] Reading file: %S interrupted", local_num, iter->Name.c_str());
 				CloseHandle(ifile);
+				}
 				Log(L"[%zu] Freeing caches.", local_num);
 				VirtualFree(cache, 0, MEM_RELEASE); //Cleanup Thread 1
 				VirtualFree(cache2, 0, MEM_RELEASE); //Cleanup Thread 2
-				if (p2 != POC2) VirtualFree(MirrorCache, 0, MEM_RELEASE); //PoC2 Cleanup
+				if (p2 != POC2 && !testmodeIgnoresPlotfiles) VirtualFree(MirrorCache, 0, MEM_RELEASE); //PoC2 Cleanup
 				return;
 			}
 
@@ -237,22 +274,32 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			int count = 0;
 
 			//Initial Reading
+			if (!testmodeIgnoresPlotfiles)
 			th_read(ifile, start, MirrorStart, &cont, &bytes, &(*iter), &flip, p2, 0, stagger, &cache_size_local, cache, MirrorCache);
+			else
+			{
+			// TODO: generate nonce/scoop data in offline testmode; write to CACHE or CACHE2 depending on COUNT%2 - see below
+			int wait = 0;
+			}
 
 			char *cachep;
 			unsigned long long i;
-			for (i = cache_size_local; i < min(nonces, stagger); i += cache_size_local)
+			// in offline testmode, we don't need ANY further reading, one step is enough
+			for (i = cache_size_local; i < min(nonces, stagger) && !testmodeIgnoresPlotfiles || testmodeIgnoresPlotfiles && i <= 1; i += cache_size_local)
 			{
 				// New block while processing: Stop.
 				if (stopThreads)
 				{
 					worker_progress[local_num].isAlive = false;
+					if (!testmodeIgnoresPlotfiles)
+					{
 					Log(L"[%zu] Reading file: %S interrupted", local_num, iter->Name.c_str());
 					CloseHandle(ifile);
+					}
 					Log(L"[%zu] Freeing caches.", local_num);
 					VirtualFree(cache, 0, MEM_RELEASE); //Cleanup Thread 1
 					VirtualFree(cache2, 0, MEM_RELEASE); //Cleanup Thread 2
-					if (p2 != POC2) VirtualFree(MirrorCache, 0, MEM_RELEASE); //PoC2 Cleanup
+					if (p2 != POC2 && !testmodeIgnoresPlotfiles) VirtualFree(MirrorCache, 0, MEM_RELEASE); //PoC2 Cleanup
 					return;
 				}
 
@@ -266,7 +313,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				}
 
 				//check if hashing would fail
-				if (bytes != cache_size_local * 64)
+				if (bytes != cache_size_local * 64 && !testmodeIgnoresPlotfiles)
 				{
 					std::thread{ increaseReadError, iter->Name.c_str() }.detach();
 					Log(L"File %S (%S): Unexpected end of file.", iter->Name.c_str(), iter->Path.c_str());
@@ -285,6 +332,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				else {
 					cachep = cache2;
 				}
+				// in offline testmode, IFILE == INVALIDHANDLE, forcing SetFilePointerEx to fail and set `cont` to true
 				std::thread read = std::thread(th_read, ifile, start, MirrorStart, &cont, &bytes, &(*iter), &flip, p2, i, stagger, &cache_size_local, cachep, MirrorCache);
 
 				//Join threads
@@ -292,12 +340,15 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				read.join();
 				count += 1;
 				if (cont) continue;
+				// TODO: above: `cont` is set when error occurs, but the loop ends here anyways, what's the point in that conditional continue here?!
+				// I can only guess that it was meant not for this (scoop reading), but for one of the outer loops, but the, it could not be meant
+				// for the 'directory/file' loop, as it SKIPS the cleanups.. so, only 'nonce' loop is left as an option.. time for some archeology?
 			}
 
 			//Final Hashing
 			//check if hashing would fail
 			if (!err) {
-				if (bytes != cache_size_local * 64)
+				if (bytes != cache_size_local * 64 && !testmodeIgnoresPlotfiles)
 				{
 					std::thread{ increaseReadError, iter->Name.c_str() }.detach();
 					Log(L"Unexpected end of file %S (%S)", iter->Name.c_str(), path_loc_str.c_str());
@@ -318,7 +369,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		}
 		QueryPerformanceCounter((LARGE_INTEGER*)&end_time_read);
 		//bfs seek optimisation
-		if (bfs && iter == directory->files.rend()) {
+		if (bfs && iter == directory->files.rend() && !testmodeIgnoresPlotfiles) {
 			//assuming physical hard disk mid at scoop 1587
 			start = 0 * 4096 * 64 + 1587 * stagger * 64 + 6 * 64 * 64;
 			if (!SetFilePointerEx(ifile, liDistanceToMove, nullptr, FILE_BEGIN))
@@ -329,6 +380,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			}
 		}
 		iter->done = true;
+		if (!testmodeIgnoresPlotfiles)
+		{
 		if (pcFreq != 0) {
 			Log(L"[%zu] Close file: %S (%S) [@ %llu ms]", local_num, iter->Name.c_str(), path_loc_str.c_str(), (long long unsigned)((double)(end_time_read - start_time_read) * 1000 / pcFreq));
 		}
@@ -336,10 +389,11 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			Log(L"[%zu] Close file: %S (%S)", local_num, iter->Name.c_str(), path_loc_str.c_str());
 		}
 		CloseHandle(ifile);
+		}
 		Log(L"[%zu] Freeing caches.", local_num);
 		VirtualFree(cache, 0, MEM_RELEASE);
 		VirtualFree(cache2, 0, MEM_RELEASE); //Cleanup Thread 2
-		if (p2 != POC2) VirtualFree(MirrorCache, 0, MEM_RELEASE); //PoC2 Cleanup
+		if (p2 != POC2 && !testmodeIgnoresPlotfiles) VirtualFree(MirrorCache, 0, MEM_RELEASE); //PoC2 Cleanup
 	}
 	//Log("[%zu] All files processed.", local_num);
 	worker_progress[local_num].isAlive = false;
@@ -347,7 +401,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 
 	//if (use_boost) SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_NORMAL);
 
-	if (use_debug && pcFreq != 0)
+	// in offline testmode I turn it off just to not have to analyze&patch it
+	if (use_debug && pcFreq != 0 && !testmodeIgnoresPlotfiles)
 	{
 		double thread_time = (double)(end_work_time - start_work_time) / pcFreq;
 		if (thread_time != 0) {
@@ -372,7 +427,10 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		}
 	}
 	directory->done = true;
+	if (!testmodeIgnoresPlotfiles)
 	Log(L"[%zu] Finished directory %S.", local_num, path_loc_str.c_str());
+	else
+	Log(L"[%zu] Finished testmode:offline.", local_num);
 	return;
 }
 
