@@ -304,6 +304,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			{
 			// WARNING: th_read may MUTATE cache_size_local when it hits an EOF/etc
 			th_read(ifile, start, MirrorStart, &cont, &bytes, &(*iter), &flip, p2, 0, stagger, &cache_size_local, cache, MirrorCache);
+			// WARNING: if this initial read FAILS and sets CONT and trims cache_size_local - nothing handles this condition!
 			}
 			else
 			{
@@ -377,6 +378,11 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			char *cachep;
 			unsigned long long i;
 			// in offline test mode, this loop will NEVER iterate, because cache_size_local==nonces==stagger
+			// WARNING: in += the `cache_size_local_backup` should be used, becase `cache_size_local` could be trimmed by initial th_read
+			// RE:WARNING: not! actually, it's stateful - initial `i` is OK as it's the actual number read, then AFTER iteration, `cache_size_local` comes from threaded th_read
+			// the only downside (or feature?) of this mechanism is that changes to the `cache_size_local` are monotonic: only downwards, so it might incrementally slowdown
+			// the reading and finally could start failing when the buffer is smaller than shabal implementation's reqs
+			// TODO: analyze if there's a need to reset `cache_size_local` to `cache_size_local_backup` just before starting threaded th_read
 			for (i = cache_size_local; i < min(nonces, stagger); i += cache_size_local)
 			{
 				// New block while processing: Stop.
@@ -422,6 +428,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 					cachep = cache2;
 				}
 				// WARNING: th_read may MUTATE cache_size_local when it hits an EOF/etc
+				// WARNING: if `cache_size_local` was already broken, should we revert to `cache_size_local_backup` before reading again?
 				std::thread read = std::thread(th_read, ifile, start, MirrorStart, &cont, &bytes, &(*iter), &flip, p2, i, stagger, &cache_size_local, cachep, MirrorCache);
 
 				//Join threads
@@ -655,7 +662,6 @@ readend:
 }
 
 void th_hash(std::shared_ptr<t_coin_info> coin, std::string const& filename, double * const sum_time_proc, const size_t &local_num, unsigned long long const bytes, size_t const cache_size_local, unsigned long long const i, unsigned long long const nonce, unsigned long long const n, char const * const cache, size_t const acc) {
-	// TODO: SPH: 1dl, but SSE: 4dls, AVX: 4dls, AVX2: 8dls, AVX512: 16dls -- what will actually happen in offline test mode when we simulate reading only 1 specific NONCE?
 	LARGE_INTEGER li;
 	LARGE_INTEGER start_time_proc;
 	QueryPerformanceCounter(&start_time_proc);

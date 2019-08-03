@@ -500,6 +500,7 @@ bool load_testmode_config(wchar_t const *const filename)
 						Log(L"height: %zu", round.height);
 
 						if (cfg_round.HasMember("gensig") && cfg_round["gensig"].IsString())
+							// TODO: add length assertion and/or parseability assertion and/or parse immediately
 							round.signature = cfg_round["gensig"].GetString();
 						else
 						{
@@ -585,12 +586,14 @@ bool load_testmode_config(wchar_t const *const filename)
 
 									if (cfg_test.HasMember("assume_scoop_low") && cfg_test["assume_scoop_low"].IsString())
 									{
+										// TODO: add length assertion and/or parseability assertion and/or parse immediately
 										test.assume_scoop_low = cfg_test["assume_scoop_low"].GetString();
 										Log(L"assume_scoop_low: %S", test.assume_scoop_low.value().c_str());
 									}
 
 									if (cfg_test.HasMember("assume_scoop_high") && cfg_test["assume_scoop_high"].IsString())
 									{
+										// TODO: add length assertion and/or parseability assertion and/or parse immediately
 										test.assume_scoop_high = cfg_test["assume_scoop_high"].GetString();
 										Log(L"assume_scoop_high: %S", test.assume_scoop_high.value().c_str());
 									}
