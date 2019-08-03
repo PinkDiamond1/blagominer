@@ -79,6 +79,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		}
 
 		const unsigned int scoop = coinInfo->mining->scoop;
+		bool POC2 = coinInfo->isPoc2Round();
+		size_t acc = Get_index_acc(key, coinInfo, getTargetDeadlineInfo(coinInfo));
 
 		// Checking for plot damage
 		if (nonces != (iter->Size) / (4096 * 64))
@@ -139,7 +141,6 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 
 		//PoC2 cache size added (shuffling needs more cache)
 
-		bool POC2 = coinInfo->isPoc2Round();
 		if (p2 != POC2) {
 			if ((stagger == nonces) && (cache_size2 < stagger)) cache_size_local = cache_size2;  // optimized plot
 			else cache_size_local = stagger; // regular plot
@@ -212,7 +213,6 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		LARGE_INTEGER MirrorliDistanceToMove = { 0 };
 		bool flip = false;
 
-		size_t acc = Get_index_acc(key, coinInfo, getTargetDeadlineInfo(coinInfo));
 		for (unsigned long long n = 0; n < nonces; n += stagger)
 		{
 			// New block while processing: Stop.
