@@ -1,5 +1,7 @@
 ﻿#include "stdafx.h"
 #include "worker.h"
+#include "reference/burst/BurstMath.h"
+#include "hexstring.h"
 
 bool use_boost = false;				// use optimisations if true
 size_t cache_size1 = 16384;			// Cache in nonces (1 nonce in scoop = 64 bytes) for native POC
@@ -302,21 +304,75 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			{
 			// WARNING: th_read may MUTATE cache_size_local when it hits an EOF/etc
 			th_read(ifile, start, MirrorStart, &cont, &bytes, &(*iter), &flip, p2, 0, stagger, &cache_size_local, cache, MirrorCache);
-			// TODO: implement 'assume_scoop_low','assume_scoop_high' testmode options
-			// TODO: implement 'check_scoop_low','check_scoop_high' testmode options
-			// alternatively, can be done in shabal..
 			}
 			else
 			{
-			// TODO: generate nonce/scoop data in offline testmode; write to CACHE or CACHE2 depending on COUNT%2 - see below
-			int wait = 0;
+			// generate nonce/scoop data in offline testmode
 			// warning: even though in offline testmode we're allocated a larger buffer due to shabal implementation's reqs,
 			// the higher value was needed only for VirtualAlloc, and we cannot keep value of `cache_size_local` that high.
 			// we DO WANT =1 because the internal loops in shabal implementation actually iterate over this `cache_size_local` value
 			// and we DONT WANT to let them run more than a single initial iteration
 			cache_size_local_backup = cache_size_local = 1;
 			bytes = cache_size_local * 64; // for statistics in th_hash, and for a few error checks below 
+			if (!coinInfo->testround2->assume_scoop_low.has_value() || !coinInfo->testround2->assume_scoop_high.has_value()) // scoop data not fully provided?
+			{
+				// below: right now we don't have any other plotting routines other than those embedded within reference calcdeadline
+				// the only result needed are the inspection buffers `scooplow` and `scoophigh`,
+				// the whole rest of deadline calculation is irrelevant, so we just pass trash as basetarget and gensig
+				auto trash1 = 1llu;
+				auto trash2 = std::array<uint8_t, 32>();
+				auto scooplow = std::make_unique<std::array<uint8_t, 32>>();
+				auto scoophigh = std::make_unique<std::array<uint8_t, 32>>();
+				//offline testmode always generates data in a format correct for shabal implementations
+				//if 'assume_POC2' indicates POC1, it means that the configuration asks for POC1/POC2 messup simulation
+				//TODO: actually, 'assume_POC2' is such a bad name.. try to invent something better considering its semantical difference in ONLINE/OFFLINE modes
+				bool poc1poc2mixup = coinInfo->testround1->assume_POC2.has_value() && coinInfo->testround1->assume_POC2.value() == false;
+				auto deadline = BurstMath::calcdeadline(key, nonce, scoop, trash1, trash2, scooplow, scoophigh, poc1poc2mixup);
+				memcpy_s(cache + 0, 64 - 0, scooplow->data(), 32);
+				memcpy_s(cache + 32, 64 - 32, scoophigh->data(), 32);
 			}
+			}
+
+			if (testmodeConfig.isEnabled)
+				if (coinInfo->testround2->assume_nonce >= (nonce + n + 0) && coinInfo->testround2->assume_nonce < (nonce + n + 0 + cache_size_local))
+				{
+					size_t nonceIndexInCache = coinInfo->testround2->assume_nonce - (nonce + n + 0);
+					size_t nonceOffsetInCache = nonceIndexInCache * 64;
+					if (coinInfo->testround2->assume_scoop_low.has_value())
+					{
+						auto scooplow = HexString::arrayfrom<32>(coinInfo->testround2->assume_scoop_low.value());
+						memcpy_s(cache + nonceOffsetInCache + 0, 64, scooplow->data(), 32);
+					}
+					if (coinInfo->testround2->assume_scoop_high.has_value())
+					{
+						auto scoophigh = HexString::arrayfrom<32>(coinInfo->testround2->assume_scoop_high.value());
+						memcpy_s(cache + nonceOffsetInCache + 32, 64 - 32, scoophigh->data(), 32);
+					}
+					if (coinInfo->testround2->check_scoop_low.has_value())
+					{
+						auto expected = coinInfo->testround2->check_scoop_low.value();
+						auto scooplow = HexString::string(std::vector<uint8_t>(cache + nonceOffsetInCache + 0, cache + nonceOffsetInCache + 32));
+						if (scooplow != expected)
+						{
+							Log(L"TESTMODE: CHECK ERROR: scoop high chunk differs, nonce: %llu, scoop: %u, file: %S",
+								coinInfo->testround2->assume_nonce, scoop, filename.c_str());
+							Log(L"SCP: low expected: %S", expected.c_str());
+							Log(L"SCP: low actual:   %S", scooplow.c_str());
+						}
+					}
+					if (coinInfo->testround2->check_scoop_high.has_value())
+					{
+						auto expected = coinInfo->testround2->check_scoop_high.value();
+						auto scoophigh = HexString::string(std::vector<uint8_t>(cache + nonceOffsetInCache + 32, cache + nonceOffsetInCache + 64));
+						if (scoophigh != expected)
+						{
+							Log(L"TESTMODE: CHECK ERROR: scoop high chunk differs, nonce: %llu, scoop: %u, file: %S",
+								coinInfo->testround2->assume_nonce, scoop, filename.c_str());
+							Log(L"SCP: high expected: %S", expected.c_str());
+							Log(L"SCP: high actual:   %S", scoophigh.c_str());
+						}
+					}
+				}
 
 			char *cachep;
 			unsigned long long i;
@@ -371,12 +427,46 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				//Join threads
 				hash.join();
 				read.join();
-				{
-					// TODO: implement 'assume_scoop_low','assume_scoop_high' testmode options
-					// TODO: implement 'check_scoop_low','check_scoop_high' testmode options
-					// NTS: must be here, not earlier, because reading is threaded!
-					// alternatively, can be done in shabal..
-				}
+				if (testmodeConfig.isEnabled)
+					if (coinInfo->testround2->assume_nonce >= (nonce + n + i) && coinInfo->testround2->assume_nonce < (nonce + n + i + cache_size_local))
+					{
+						size_t nonceIndexInCache = coinInfo->testround2->assume_nonce - (nonce + n + i);
+						size_t nonceOffsetInCache = nonceIndexInCache * 64;
+						if (coinInfo->testround2->assume_scoop_low.has_value())
+						{
+							auto scooplow = HexString::arrayfrom<32>(coinInfo->testround2->assume_scoop_low.value());
+							memcpy_s(cache + nonceOffsetInCache + 0, 64, scooplow->data(), 32);
+						}
+						if (coinInfo->testround2->assume_scoop_high.has_value())
+						{
+							auto scoophigh = HexString::arrayfrom<32>(coinInfo->testround2->assume_scoop_high.value());
+							memcpy_s(cache + nonceOffsetInCache + 32, 64 - 32, scoophigh->data(), 32);
+						}
+						if (coinInfo->testround2->check_scoop_low.has_value())
+						{
+							auto expected = coinInfo->testround2->check_scoop_low.value();
+							auto scooplow = HexString::string(std::vector<uint8_t>(cache + nonceOffsetInCache + 0, cache + nonceOffsetInCache + 32));
+							if (scooplow != expected)
+							{
+								Log(L"TESTMODE: CHECK ERROR: scoop high chunk differs, nonce: %llu, scoop: %u, file: %S",
+									coinInfo->testround2->assume_nonce, scoop, filename.c_str());
+								Log(L"SCP: low expected: %S", expected.c_str());
+								Log(L"SCP: low actual:   %S", scooplow.c_str());
+							}
+						}
+						if (coinInfo->testround2->check_scoop_high.has_value())
+						{
+							auto expected = coinInfo->testround2->check_scoop_high.value();
+							auto scoophigh = HexString::string(std::vector<uint8_t>(cache + nonceOffsetInCache + 32, cache + nonceOffsetInCache + 64));
+							if (scoophigh != expected)
+							{
+								Log(L"TESTMODE: CHECK ERROR: scoop high chunk differs, nonce: %llu, scoop: %u, file: %S",
+									coinInfo->testround2->assume_nonce, scoop, filename.c_str());
+								Log(L"SCP: high expected: %S", expected.c_str());
+								Log(L"SCP: high actual:   %S", scoophigh.c_str());
+							}
+						}
+					}
 				count += 1;
 				if (cont) continue;
 				// TODO: above: `cont` is set when error occurs, but the loop ends here anyways, what's the point in that conditional continue here?!
