@@ -49,9 +49,9 @@ void procscoop_sph(std::shared_ptr<t_coin_info> coin, const unsigned long long n
 
 						if (dlForNonce != coin->testround2->check_deadline.value())
 						{
-							Log(L"TESTMODE: CHECK ERROR: SPH: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu",
+							Log(L"TESTMODE: CHECK ERROR: SPH: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %S",
 								dlForNonce, coin->testround2->check_deadline.value(),
-								(nonce + v), coin->mining->currentBaseTarget, coin->mining->currentHeight);
+								(nonce + v), coin->mining->currentBaseTarget, coin->mining->currentHeight, file_name.c_str());
 							Log(L"SIG: %llu <= %S", dlForNonce,
 								HexString::string(std::vector<uint8_t>(sig + 0, sig + 32)).c_str());
 							Log(L"SCP: %llu <= %S %S", dlForNonce,
@@ -185,9 +185,9 @@ void procscoop_sse_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 
 						if (dlForNonce != coin->testround2->check_deadline.value())
 						{
-							Log(L"TESTMODE: CHECK ERROR: SSE: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu",
+							Log(L"TESTMODE: CHECK ERROR: SSE: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %S",
 								dlForNonce, coin->testround2->check_deadline.value(),
-								(nonce + v + idx), coin->mining->currentBaseTarget, coin->mining->currentHeight);
+								(nonce + v + idx), coin->mining->currentBaseTarget, coin->mining->currentHeight, file_name.c_str());
 							Log(L"SIG: %llu <= %S", dlForNonce,
 								HexString::string(std::vector<uint8_t>(sig0 + 0, sig0 + 32)).c_str());
 							Log(L"SCP: %llu <= %S %S", dlForNonce,
@@ -337,9 +337,9 @@ void procscoop_avx_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 
 						if (dlForNonce != coin->testround2->check_deadline.value())
 						{
-							Log(L"TESTMODE: CHECK ERROR: AVX: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu",
+							Log(L"TESTMODE: CHECK ERROR: AVX: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %S",
 								dlForNonce, coin->testround2->check_deadline.value(),
-								(nonce + v + idx), coin->mining->currentBaseTarget, coin->mining->currentHeight);
+								(nonce + v + idx), coin->mining->currentBaseTarget, coin->mining->currentHeight, file_name.c_str());
 							Log(L"SIG: %llu <= %S", dlForNonce,
 								HexString::string(std::vector<uint8_t>(sig0 + 0, sig0 + 32)).c_str());
 							Log(L"SCP: %llu <= %S %S", dlForNonce,
@@ -518,9 +518,9 @@ void procscoop_avx2_fast(std::shared_ptr<t_coin_info> coin, unsigned long long c
 
 						if (dlForNonce != coin->testround2->check_deadline.value())
 						{
-							Log(L"TESTMODE: CHECK ERROR: AVX2: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu",
+							Log(L"TESTMODE: CHECK ERROR: AVX2: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %S",
 								dlForNonce, coin->testround2->check_deadline.value(),
-								(nonce + v + idx), coin->mining->currentBaseTarget, coin->mining->currentHeight);
+								(nonce + v + idx), coin->mining->currentBaseTarget, coin->mining->currentHeight, file_name.c_str());
 							Log(L"SIG: %llu <= %S", dlForNonce,
 								HexString::string(std::vector<uint8_t>(sig0 + 0, sig0 + 32)).c_str());
 							Log(L"SCP: %llu <= %S %S", dlForNonce,
@@ -775,9 +775,9 @@ void procscoop_avx512_fast(std::shared_ptr<t_coin_info> coin, unsigned long long
 
 						if (dlForNonce != coin->testround2->check_deadline.value())
 						{
-							Log(L"TESTMODE: CHECK ERROR: SSE: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu",
+							Log(L"TESTMODE: CHECK ERROR: SSE: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %S",
 								dlForNonce, coin->testround2->check_deadline.value(),
-								(nonce + v + idx), coin->mining->currentBaseTarget, coin->mining->currentHeight);
+								(nonce + v + idx), coin->mining->currentBaseTarget, coin->mining->currentHeight, file_name.c_str());
 							Log(L"SIG: %llu <= %S", dlForNonce,
 								HexString::string(std::vector<uint8_t>(sig0 + 0, sig0 + 32)).c_str());
 							Log(L"SCP: %llu <= %S %S", dlForNonce,
