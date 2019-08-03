@@ -85,9 +85,11 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		}
 
 		//Log("[%zu] Beginning main loop over files.", local_num);
+		std::string filename;
 		unsigned long long key, nonce, nonces, stagger, offset, tail;
 		bool p2, bfs;
 		QueryPerformanceCounter((LARGE_INTEGER*)&start_time_read);
+		filename = iter->Name;
 		key = iter->Key;
 		nonce = iter->StartNonce;
 		nonces = iter->Nonces;
@@ -340,7 +342,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 					break;
 				}
 
-				std::thread hash(th_hash, coinInfo, &(*iter), &sum_time_proc, local_num, bytes, cache_size_local, i - cache_size_local, nonce, n, cachep, acc);
+				std::thread hash(th_hash, coinInfo, filename, &sum_time_proc, local_num, bytes, cache_size_local, i - cache_size_local, nonce, n, cachep, acc);
 
 				cont = false;
 				//Threadded Reading
@@ -383,10 +385,10 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			if (!err)
 			{
 				if (count % 2 == 0) {
-					th_hash(coinInfo, &(*iter), &sum_time_proc, local_num, bytes, cache_size_local, i - cache_size_local, nonce, n, cache, acc);
+					th_hash(coinInfo, filename, &sum_time_proc, local_num, bytes, cache_size_local, i - cache_size_local, nonce, n, cache, acc);
 				}
 				else {
-					th_hash(coinInfo, &(*iter), &sum_time_proc, local_num, bytes, cache_size_local, i - cache_size_local, nonce, n, cache2, acc);
+					th_hash(coinInfo, filename, &sum_time_proc, local_num, bytes, cache_size_local, i - cache_size_local, nonce, n, cache2, acc);
 				}
 			}
 
@@ -549,23 +551,23 @@ readend:
 	}
 }
 
-void th_hash(std::shared_ptr<t_coin_info> coin, t_files const * const iter, double * const sum_time_proc, const size_t &local_num, unsigned long long const bytes, size_t const cache_size_local, unsigned long long const i, unsigned long long const nonce, unsigned long long const n, char const * const cache, size_t const acc) {
+void th_hash(std::shared_ptr<t_coin_info> coin, std::string const& filename, double * const sum_time_proc, const size_t &local_num, unsigned long long const bytes, size_t const cache_size_local, unsigned long long const i, unsigned long long const nonce, unsigned long long const n, char const * const cache, size_t const acc) {
 	// TODO: SPH: 1dl, but SSE: 4dls, AVX: 4dls, AVX2: 8dls, AVX512: 16dls -- what will actually happen in offline test mode when we simulate reading only 1 specific NONCE?
 	LARGE_INTEGER li;
 	LARGE_INTEGER start_time_proc;
 	QueryPerformanceCounter(&start_time_proc);
 
 #ifdef __AVX512F__
-	procscoop_avx512_fast(coin, n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block AVX2
+	procscoop_avx512_fast(coin, n + nonce + i, cache_size_local, cache, acc, filename);// Process block AVX2
 #else
 #ifdef __AVX2__
-	procscoop_avx2_fast(coin, n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block AVX2
+	procscoop_avx2_fast(coin, n + nonce + i, cache_size_local, cache, acc, filename);// Process block AVX2
 #else
 	#ifdef __AVX__
-		procscoop_avx_fast(coin, n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block AVX
+		procscoop_avx_fast(coin, n + nonce + i, cache_size_local, cache, acc, filename);// Process block AVX
 	#else
-			procscoop_sse_fast(coin, n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block SSE
-		//	procscoop_sph(coin, n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block SPH, please uncomment one of the two when compiling    
+			procscoop_sse_fast(coin, n + nonce + i, cache_size_local, cache, acc, filename);// Process block SSE
+		//	procscoop_sph(coin, n + nonce + i, cache_size_local, cache, acc, filename);// Process block SPH, please uncomment one of the two when compiling    
 	#endif
 #endif
 #endif
