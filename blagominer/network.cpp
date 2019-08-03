@@ -1365,11 +1365,6 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 			if (gmi["height"].IsInt64()) setHeight(coinInfo, height = gmi["height"].GetInt64());
 	}
 
-	//POC2 determination
-	if (getHeight(coinInfo) >= coinInfo->mining->POC2StartBlock) {
-		POC2 = true;
-	}
-
 	if (gmi.HasMember("generationSignature")) {
 		setStrSignature(coinInfo, gmi["generationSignature"].GetString());
 		char sig[33];

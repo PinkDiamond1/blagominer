@@ -191,6 +191,8 @@ struct t_coin_info {
 	std::thread proxyThread;
 	std::thread updaterThread;
 	std::thread proxyOnlyThread;
+
+	bool isPoc2Round();
 };
 
 

@@ -20,7 +20,6 @@ std::vector<std::shared_ptr<t_coin_info>> coins;
 
 std::vector<char> p_minerPath; // TODO: use std::(w)str
 unsigned long long total_size = 0;
-bool POC2 = false;
 volatile bool stopThreads = false;				// only applicable to WORKER threads
 bool use_wakeup = false;						// wakeup HDDs if true
 unsigned int hddWakeUpTimer = 180;              // HDD wakeup timer in seconds
@@ -1492,7 +1491,7 @@ int wmain(int argc, wchar_t **argv) {
 					toWStr(miningCoin->coinname, 10).c_str(),
 					toWStr(miningCoin->mining->currentBaseTarget, 7).c_str(), sepChar,
 					toWStr(4398046511104 / 240 / miningCoin->mining->currentBaseTarget, 8).c_str(), sepChar,
-					POC2 ? 2 : 1);
+					miningCoin->isPoc2Round() ? 2 : 1);
 			}
 			else if (miningCoin->mining->enable) {
 				Log(L"------------------------    New %s block: %llu", miningCoin->coinname.c_str(), miningCoin->mining->currentHeight);
@@ -1501,7 +1500,7 @@ int wmain(int argc, wchar_t **argv) {
 					toWStr(miningCoin->coinname, 10).c_str(),
 					toWStr(miningCoin->mining->currentBaseTarget, 7).c_str(), sepChar,
 					toWStr(4398046511104 / 240 / miningCoin->mining->currentBaseTarget, 8).c_str(), sepChar,
-					POC2 ? 2 : 1);
+					miningCoin->isPoc2Round() ? 2 : 1);
 			}
 
 			QueryPerformanceCounter((LARGE_INTEGER*)&start_threads_time);
