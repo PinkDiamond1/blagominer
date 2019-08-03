@@ -68,11 +68,20 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			continue;
 		}
 
+		// in online testmode, we don't want to waste time reading all files
+		// only nonce/scoop from specific test round does matter, so we can skip all other files
+		if (testmodeConfig.isEnabled && !testmodeIgnoresPlotfiles)
 		{
-			// in online testmode, we don't want to waste time reading all files
-			// only nonce/scoop from specific test round matters, so we can skip other files
-			// TODO: implement
-			int wait = 0;
+			if (iter->Key != coinInfo->testround2->assume_account)
+			{
+				Log(L"TESTMODE: account mismatch, skipping file: %S (%S)", iter->Name.c_str(), iter->Path.c_str());
+				continue;
+			}
+			if (!(iter->StartNonce <= coinInfo->testround2->assume_nonce && (iter->StartNonce + iter->Nonces) > coinInfo->testround2->assume_nonce))
+			{
+				Log(L"TESTMODE: nonce range mismatch, skipping file: %S (%S)", iter->Name.c_str(), iter->Path.c_str());
+				continue;
+			}
 		}
 
 		//Log("[%zu] Beginning main loop over files.", local_num);
