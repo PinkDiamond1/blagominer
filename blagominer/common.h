@@ -111,6 +111,7 @@ struct CoinLogFiles {
 };
 
 
+// TODO: this locking scheme IS SO WRONG.. and even things like 'baseTarget' or 'scoop' are not protected..
 struct t_locks {
 	std::mutex mHeight;
 	std::mutex mTargetDeadlineInfo;

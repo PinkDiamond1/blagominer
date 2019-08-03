@@ -1062,6 +1062,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 
 					if (ndeadline != sessionX->deadline)
 					{
+						// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
 						Log(L"Confirmer %s: Calculated and confirmed deadlines don't match. Fast block or corrupted file? Response: %S", confirmerName, find);
 						std::thread{ Csv_Fail, coinInfo, sessionX->body.height, sessionX->body.file_name, sessionX->body.baseTarget,
 							4398046511104 / 240 / sessionX->body.baseTarget, sessionX->body.nonce, sessionX->deadline, ndeadline, find }.detach();
@@ -1073,6 +1074,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 				}
 				else {
 					if (answ.HasMember("errorDescription")) {
+						// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
 						Log(L"Confirmer %s: Deadline %llu sent with error: %S", confirmerName, sessionX->deadline, find);
 						std::thread{ Csv_Fail, coinInfo, sessionX->body.height, sessionX->body.file_name, sessionX->body.baseTarget,
 								4398046511104 / 240 / sessionX->body.baseTarget, sessionX->body.nonce, sessionX->deadline, 0, find }.detach();
