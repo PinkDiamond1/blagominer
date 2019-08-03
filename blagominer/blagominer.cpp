@@ -1697,6 +1697,13 @@ int wmain(int argc, wchar_t **argv) {
 			// spoof COINQUEUE with multiple entries for the same coin! I'm pretty sure that only the UPDATER thread reorders entries and the main loop simply POPs!
 			auto const referenceSetup = std::find_if(allcoins.begin(), allcoins.end(), [](auto&& coin) { return coin->coinname == testmodeConfig.roundReplay.coinName; });
 
+			if (referenceSetup == allcoins.end())
+			{
+				printToConsole(12, false, true, true, false, L"TestMode config error: coin %s not found in miner.conf", testmodeConfig.roundReplay.coinName.c_str());
+				system("pause > nul");
+				exit(-1);
+			}
+
 			for(auto&& round : testmodeConfig.roundReplay.rounds)
 				for (auto&& test : round.tests)
 				{
