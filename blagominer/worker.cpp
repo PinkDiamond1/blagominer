@@ -291,6 +291,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			{
 			th_read(ifile, start, MirrorStart, &cont, &bytes, &(*iter), &flip, p2, 0, stagger, &cache_size_local, cache, MirrorCache);
 			// TODO: implement 'assume_scoop_low','assume_scoop_high' testmode options
+			// TODO: implement 'check_scoop_low','check_scoop_high' testmode options
 			// alternatively, can be done in shabal..
 			}
 			else
@@ -357,6 +358,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				read.join();
 				{
 					// TODO: implement 'assume_scoop_low','assume_scoop_high' testmode options
+					// TODO: implement 'check_scoop_low','check_scoop_high' testmode options
 					// NTS: must be here, not earlier, because reading is threaded!
 					// alternatively, can be done in shabal..
 				}
