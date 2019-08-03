@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "shabal.h"
+#include "hexstring.h"
 
 // context for 1-dimensional shabal (32bit)
 sph_shabal_context global_32;
@@ -31,7 +32,34 @@ void procscoop_sph(std::shared_ptr<t_coin_info> coin, const unsigned long long n
 		sph_shabal256_close(&x, res);
 
 		unsigned long long *wertung = (unsigned long long*)res;
-		
+		if (testmodeConfig.isEnabled)
+			if (coin->testround2->check_deadline.has_value())
+				if (coin->mining->bests[acc].account_id == coin->testround2->assume_account)
+					if (coin->testround2->assume_nonce - (nonce + v) <= 0)
+					{
+						auto idx = coin->testround2->assume_nonce - (nonce + v);
+						unsigned long long dlForNonce;
+						switch (idx)
+						{
+							case 0: dlForNonce = *wertung; break;
+							default: throw std::logic_error("missing switch case or wrong switch value");
+						}
+
+						dlForNonce /= coin->mining->currentBaseTarget;
+
+						if (dlForNonce != coin->testround2->check_deadline.value())
+						{
+							Log(L"TESTMODE: CHECK ERROR: SPH: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu",
+								dlForNonce, coin->testround2->check_deadline.value(),
+								(nonce + v), coin->mining->currentBaseTarget, coin->mining->currentHeight);
+							Log(L"SIG: %llu <= %S", dlForNonce,
+								HexString::string(std::vector<uint8_t>(sig + 0, sig + 32)).c_str());
+							Log(L"SCP: %llu <= %S %S", dlForNonce,
+								HexString::string(std::vector<uint8_t>(cache + (v + idx) * 64 + 0, cache + (v + idx) * 64 + 32)).c_str(),
+								HexString::string(std::vector<uint8_t>(cache + (v + idx) * 64 + 32, cache + (v + idx) * 64 + 63)).c_str());
+						}
+					}
+
 		unsigned long long deadline = *wertung / coin->mining->currentBaseTarget;
 		if (deadline <= coin->mining->bests[acc].targetDeadline)
 		{
@@ -137,6 +165,36 @@ void procscoop_sse_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 		unsigned long long *wertung1 = (unsigned long long*)res1;
 		unsigned long long *wertung2 = (unsigned long long*)res2;
 		unsigned long long *wertung3 = (unsigned long long*)res3;
+		if (testmodeConfig.isEnabled)
+			if (coin->testround2->check_deadline.has_value())
+				if (coin->mining->bests[acc].account_id == coin->testround2->assume_account)
+					if (coin->testround2->assume_nonce - (nonce + v) <= 3)
+					{
+						auto idx = coin->testround2->assume_nonce - (nonce + v);
+						unsigned long long dlForNonce;
+						switch (idx)
+						{
+							case 0: dlForNonce = *wertung; break;
+							case 1: dlForNonce = *wertung1; break;
+							case 2: dlForNonce = *wertung2; break;
+							case 3: dlForNonce = *wertung3; break;
+							default: throw std::logic_error("missing switch case or wrong switch value");
+						}
+
+						dlForNonce /= coin->mining->currentBaseTarget;
+
+						if (dlForNonce != coin->testround2->check_deadline.value())
+						{
+							Log(L"TESTMODE: CHECK ERROR: SSE: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu",
+								dlForNonce, coin->testround2->check_deadline.value(),
+								(nonce + v + idx), coin->mining->currentBaseTarget, coin->mining->currentHeight);
+							Log(L"SIG: %llu <= %S", dlForNonce,
+								HexString::string(std::vector<uint8_t>(sig0 + 0, sig0 + 32)).c_str());
+							Log(L"SCP: %llu <= %S %S", dlForNonce,
+								HexString::string(std::vector<uint8_t>(cache + (v + idx) * 64 + 0, cache + (v + idx) * 64 + 32)).c_str(),
+								HexString::string(std::vector<uint8_t>(cache + (v + idx) * 64 + 32, cache + (v + idx) * 64 + 63)).c_str());
+						}
+					}
 		unsigned posn = 0;
 		if (*wertung1 < *wertung)
 		{
@@ -259,6 +317,36 @@ void procscoop_avx_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 		unsigned long long *wertung1 = (unsigned long long*)res1;
 		unsigned long long *wertung2 = (unsigned long long*)res2;
 		unsigned long long *wertung3 = (unsigned long long*)res3;
+		if (testmodeConfig.isEnabled)
+			if (coin->testround2->check_deadline.has_value())
+				if (coin->mining->bests[acc].account_id == coin->testround2->assume_account)
+					if (coin->testround2->assume_nonce - (nonce + v) <= 3)
+					{
+						auto idx = coin->testround2->assume_nonce - (nonce + v);
+						unsigned long long dlForNonce;
+						switch (idx)
+						{
+							case 0: dlForNonce = *wertung; break;
+							case 1: dlForNonce = *wertung1; break;
+							case 2: dlForNonce = *wertung2; break;
+							case 3: dlForNonce = *wertung3; break;
+							default: throw std::logic_error("missing switch case or wrong switch value");
+						}
+
+						dlForNonce /= coin->mining->currentBaseTarget;
+
+						if (dlForNonce != coin->testround2->check_deadline.value())
+						{
+							Log(L"TESTMODE: CHECK ERROR: AVX: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu",
+								dlForNonce, coin->testround2->check_deadline.value(),
+								(nonce + v + idx), coin->mining->currentBaseTarget, coin->mining->currentHeight);
+							Log(L"SIG: %llu <= %S", dlForNonce,
+								HexString::string(std::vector<uint8_t>(sig0 + 0, sig0 + 32)).c_str());
+							Log(L"SCP: %llu <= %S %S", dlForNonce,
+								HexString::string(std::vector<uint8_t>(cache + (v + idx) * 64 + 0, cache + (v + idx) * 64 + 32)).c_str(),
+								HexString::string(std::vector<uint8_t>(cache + (v + idx) * 64 + 32, cache + (v + idx) * 64 + 63)).c_str());
+						}
+					}
 		unsigned posn = 0;
 		if (*wertung1 < *wertung)
 		{
@@ -406,6 +494,40 @@ void procscoop_avx2_fast(std::shared_ptr<t_coin_info> coin, unsigned long long c
 		unsigned long long *wertung5 = (unsigned long long*)res5;
 		unsigned long long *wertung6 = (unsigned long long*)res6;
 		unsigned long long *wertung7 = (unsigned long long*)res7;
+		if (testmodeConfig.isEnabled)
+			if (coin->testround2->check_deadline.has_value())
+				if (coin->mining->bests[acc].account_id == coin->testround2->assume_account)
+					if (coin->testround2->assume_nonce - (nonce + v) <= 7)
+					{
+						auto idx = coin->testround2->assume_nonce - (nonce + v);
+						unsigned long long dlForNonce;
+						switch (idx)
+						{
+							case 0: dlForNonce = *wertung; break;
+							case 1: dlForNonce = *wertung1; break;
+							case 2: dlForNonce = *wertung2; break;
+							case 3: dlForNonce = *wertung3; break;
+							case 4: dlForNonce = *wertung4; break;
+							case 5: dlForNonce = *wertung5; break;
+							case 6: dlForNonce = *wertung6; break;
+							case 7: dlForNonce = *wertung7; break;
+							default: throw std::logic_error("missing switch case or wrong switch value");
+						}
+
+						dlForNonce /= coin->mining->currentBaseTarget;
+
+						if (dlForNonce != coin->testround2->check_deadline.value())
+						{
+							Log(L"TESTMODE: CHECK ERROR: AVX2: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu",
+								dlForNonce, coin->testround2->check_deadline.value(),
+								(nonce + v + idx), coin->mining->currentBaseTarget, coin->mining->currentHeight);
+							Log(L"SIG: %llu <= %S", dlForNonce,
+								HexString::string(std::vector<uint8_t>(sig0 + 0, sig0 + 32)).c_str());
+							Log(L"SCP: %llu <= %S %S", dlForNonce,
+								HexString::string(std::vector<uint8_t>(cache + (v + idx) * 64 + 0, cache + (v + idx) * 64 + 32)).c_str(),
+								HexString::string(std::vector<uint8_t>(cache + (v + idx) * 64 + 32, cache + (v + idx) * 64 + 63)).c_str());
+						}
+					}
 		unsigned posn = 0;
 		if (*wertung1 < *wertung)
 		{
@@ -621,6 +743,48 @@ void procscoop_avx512_fast(std::shared_ptr<t_coin_info> coin, unsigned long long
 		unsigned long long *wertung13 = (unsigned long long*)res13;
 		unsigned long long *wertung14 = (unsigned long long*)res14;
 		unsigned long long *wertung15 = (unsigned long long*)res15;
+		if (testmodeConfig.isEnabled)
+			if (coin->testround2->check_deadline.has_value())
+				if (coin->mining->bests[acc].account_id == coin->testround2->assume_account)
+					if (coin->testround2->assume_nonce - (nonce + v) <= 15)
+					{
+						auto idx = coin->testround2->assume_nonce - (nonce + v);
+						unsigned long long dlForNonce;
+						switch (idx)
+						{
+							case 0: dlForNonce = *wertung; break;
+							case 1: dlForNonce = *wertung1; break;
+							case 2: dlForNonce = *wertung2; break;
+							case 3: dlForNonce = *wertung3; break;
+							case 4: dlForNonce = *wertung4; break;
+							case 5: dlForNonce = *wertung5; break;
+							case 6: dlForNonce = *wertung6; break;
+							case 7: dlForNonce = *wertung7; break;
+							case 8: dlForNonce = *wertung8; break;
+							case 9: dlForNonce = *wertung9; break;
+							case 10: dlForNonce = *wertung10; break;
+							case 11: dlForNonce = *wertung11; break;
+							case 12: dlForNonce = *wertung12; break;
+							case 13: dlForNonce = *wertung13; break;
+							case 14: dlForNonce = *wertung14; break;
+							case 15: dlForNonce = *wertung15; break;
+							default: throw std::logic_error("missing switch case or wrong switch value");
+						}
+
+						dlForNonce /= coin->mining->currentBaseTarget;
+
+						if (dlForNonce != coin->testround2->check_deadline.value())
+						{
+							Log(L"TESTMODE: CHECK ERROR: SSE: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu",
+								dlForNonce, coin->testround2->check_deadline.value(),
+								(nonce + v + idx), coin->mining->currentBaseTarget, coin->mining->currentHeight);
+							Log(L"SIG: %llu <= %S", dlForNonce,
+								HexString::string(std::vector<uint8_t>(sig0 + 0, sig0 + 32)).c_str());
+							Log(L"SCP: %llu <= %S %S", dlForNonce,
+								HexString::string(std::vector<uint8_t>(cache + (v + idx) * 64 + 0, cache + (v + idx) * 64 + 32)).c_str(),
+								HexString::string(std::vector<uint8_t>(cache + (v + idx) * 64 + 32, cache + (v + idx) * 64 + 63)).c_str());
+						}
+					}
 		unsigned posn = 0;
 		if (*wertung1 < *wertung)
 		{
