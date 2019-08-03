@@ -322,8 +322,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				// the whole rest of deadline calculation is irrelevant, so we just pass trash as basetarget and gensig
 				auto trash1 = 1llu;
 				auto trash2 = std::array<uint8_t, 32>();
-				auto scooplow = std::make_unique<std::array<uint8_t, 32>>();
-				auto scoophigh = std::make_unique<std::array<uint8_t, 32>>();
+				std::unique_ptr<std::array<uint8_t, 32>> scooplow;
+				std::unique_ptr<std::array<uint8_t, 32>> scoophigh;
 				//offline testmode always generates data in a format correct for shabal implementations
 				//if 'assume_POC2' indicates POC1, it means that the configuration asks for POC1/POC2 messup simulation
 				//TODO: actually, 'assume_POC2' is such a bad name.. try to invent something better considering its semantical difference in ONLINE/OFFLINE modes
