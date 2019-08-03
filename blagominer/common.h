@@ -228,7 +228,7 @@ struct t_roundreplay_round {
 	std::string signature;
 	unsigned long long baseTarget;
 
-	std::optional<bool> assume_POC2;
+	std::optional<bool> assume_POC2; // TODO: since it's round X test, move that to the TEST // obvious in OFFLINE, and in ONLINE remember the mode is SHORT not FULL!
 
 	std::vector<t_roundreplay_round_test> tests;
 };

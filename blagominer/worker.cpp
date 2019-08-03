@@ -51,6 +51,10 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 	//for (auto iter = files.begin(); iter != files.end(); ++iter)
 	for (auto iter = testmodeIgnoresPlotfiles ? --directory->files.rend() : directory->files.rbegin(); iter != directory->files.rend(); ++iter)
 	{
+		// TODO: above: RBEGIN/REND? why? that may totally interfere with @ ordering option..
+		// but right now the @ ordering seems to work fine, strance
+		// I wonder what would be the effect if it's changed back to normal
+
 		// New block while processing: Stop.
 		if (stopThreads)
 		{
@@ -275,7 +279,11 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 
 			//Initial Reading
 			if (!testmodeIgnoresPlotfiles)
+			{
 			th_read(ifile, start, MirrorStart, &cont, &bytes, &(*iter), &flip, p2, 0, stagger, &cache_size_local, cache, MirrorCache);
+			// TODO: implement 'assume_scoop_low','assume_scoop_high' testmode options
+			// alternatively, can be done in shabal..
+			}
 			else
 			{
 			// TODO: generate nonce/scoop data in offline testmode; write to CACHE or CACHE2 depending on COUNT%2 - see below
@@ -338,6 +346,11 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				//Join threads
 				hash.join();
 				read.join();
+				{
+					// TODO: implement 'assume_scoop_low','assume_scoop_high' testmode options
+					// NTS: must be here, not earlier, because reading is threaded!
+					// alternatively, can be done in shabal..
+				}
 				count += 1;
 				if (cont) continue;
 				// TODO: above: `cont` is set when error occurs, but the loop ends here anyways, what's the point in that conditional continue here?!
@@ -526,6 +539,7 @@ readend:
 }
 
 void th_hash(std::shared_ptr<t_coin_info> coin, t_files const * const iter, double * const sum_time_proc, const size_t &local_num, unsigned long long const bytes, size_t const cache_size_local, unsigned long long const i, unsigned long long const nonce, unsigned long long const n, char const * const cache, size_t const acc) {
+	// TODO: SPH: 1dl, but SSE: 4dls, AVX: 4dls, AVX2: 8dls, AVX512: 16dls -- what will actually happen in offline test mode when we simulate reading only 1 specific NONCE?
 	LARGE_INTEGER li;
 	LARGE_INTEGER start_time_proc;
 	QueryPerformanceCounter(&start_time_proc);
