@@ -185,6 +185,7 @@ struct t_network_info {
 };
 
 struct t_roundreplay_round;
+struct t_roundreplay_round_test;
 
 struct t_coin_info {
 	std::wstring coinname;
@@ -196,7 +197,8 @@ struct t_coin_info {
 	std::thread updaterThread;
 	std::thread proxyOnlyThread;
 
-	t_roundreplay_round* testround;
+	t_roundreplay_round* testround1;
+	t_roundreplay_round_test* testround2;
 };
 
 

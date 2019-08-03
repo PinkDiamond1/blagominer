@@ -1704,6 +1704,7 @@ int wmain(int argc, wchar_t **argv) {
 				exit(-1);
 			}
 
+			// each round*test pair is a SEPARATE mining round that the testmode must execute
 			for(auto&& round : testmodeConfig.roundReplay.rounds)
 				for (auto&& test : round.tests)
 				{
@@ -1719,7 +1720,8 @@ int wmain(int argc, wchar_t **argv) {
 
 					newCoin->mining->baseTarget = round.baseTarget;
 
-					newCoin->testround = &round;
+					newCoin->testround1 = &round;
+					newCoin->testround2 = &test;
 
 					queue.push_back(newCoin);
 				}
@@ -1803,8 +1805,8 @@ int wmain(int argc, wchar_t **argv) {
 			// usually that is performed by the "//POC2 determination" in pollLocal()
 			// TODO: HELLO MULTIMINING!
 			if (testmodeConfig.isEnabled)
-				if (miningCoin->testround->assume_POC2.has_value())
-					POC2 = miningCoin->testround->assume_POC2.value();
+				if (miningCoin->testround1->assume_POC2.has_value())
+					POC2 = miningCoin->testround1->assume_POC2.value();
 				else
 					POC2 = getHeight(miningCoin) >= miningCoin->mining->POC2StartBlock;
 
