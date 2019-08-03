@@ -3,6 +3,7 @@
 #include "blagominer.h"
 
 #include <curl/curl.h>
+#include "hexstring.h"
 
 bool exitHandled = false;
 
@@ -898,7 +899,7 @@ unsigned int calcScoop(std::shared_ptr<t_coin_info> coin) {
 	Log(L"Calculating scoop for %s", coin->coinname.c_str());
 	char scoopgen[40];
 	memmove(scoopgen, coin->mining->signature, 32);
-	const char *mov = (char*)&coin->mining->currentHeight;
+	const char *mov = (char*)&coin->mining->currentHeight; // TODO: why not CURRENT SIGNATURE?!
 	scoopgen[32] = mov[7];
 	scoopgen[33] = mov[6];
 	scoopgen[34] = mov[5];
@@ -926,9 +927,20 @@ void updateCurrentMiningInfo(std::shared_ptr<t_coin_info> coin) {
 	coin->mining->currentHeight = coin->mining->height;
 	coin->mining->currentBaseTarget = coin->mining->baseTarget;
 
-	if (coin->mining->enable) {
-		coin->mining->scoop = calcScoop(coin);
-	}
+	if (coin->mining->enable)
+		if (!(testmodeConfig.isEnabled && coin->testround2->assume_scoop.has_value()))
+			coin->mining->scoop = calcScoop(coin);
+		else
+			coin->mining->scoop = coin->testround2->assume_scoop.value();
+
+	if (testmodeConfig.isEnabled)
+		if (coin->testround2->check_scoop.has_value())
+		{
+			if (coin->mining->scoop != coin->testround2->check_scoop.value())
+				Log(L"TESTMODE: CHECK ERROR: Scopp number differs: %u, expected: %u, height: %llu, gensig: %S",
+					coin->mining->scoop, coin->testround2->check_scoop.value(),
+					coin->mining->currentHeight, HexString::string(std::vector<uint8_t>(coin->mining->currentSignature + 0, coin->mining->currentSignature + 32)).c_str());
+		}
 }
 
 void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& currentQueue, std::shared_ptr<t_coin_info> newCoin,
