@@ -1796,7 +1796,7 @@ int wmain(int argc, wchar_t **argv) {
 		memcpy(&local_32, &global_32, sizeof(global_32));
 
 		std::shared_ptr<t_coin_info> miningCoin;
-		while (!exit_flag && (!testmodeConfig.isEnabled || !testmodeConfig.roundReplay.isFinished))
+		while (!exit_flag)
 		{
 			worker.clear();
 			worker_progress.clear();
