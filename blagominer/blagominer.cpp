@@ -1852,7 +1852,9 @@ int wmain(int argc, wchar_t **argv) {
 
 			// Run worker threads
 			std::vector<std::string> roundDirectories;
-			for (size_t i = 0; i < miningCoin->mining->dirs.size(); i++)
+			// in offline test mode, we dont need parallel workers to read many plot files, it's one specific nonce/scoop generated on the fly
+			size_t workersNeeded = miningCoin->testround2->mode == t_roundreplay_round_test::RoundTestMode::RMT_OFFLINE ? 1 : miningCoin->mining->dirs.size();
+			for (size_t i = 0; i < workersNeeded; i++)
 			{
 				if (miningCoin->mining->dirs.at(i)->done) {
 					// This directory has already been processed. Skipping.
