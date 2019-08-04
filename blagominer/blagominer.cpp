@@ -2053,6 +2053,7 @@ int wmain(int argc, wchar_t **argv) {
 			if (!testmodeConfig.isEnabled)
 				std::thread{ Csv_Submitted,  miningCoin, miningCoin->mining->currentHeight, miningCoin->mining->currentBaseTarget, 4398046511104 / 240 / miningCoin->mining->currentBaseTarget, thread_time, miningCoin->mining->state == DONE, miningCoin->mining->deadline }.detach();
 
+			//TODO: why 'if not yet done'? where is it done? why only _32 here? why not all?
 			//prepare for next round if not yet done
 			if (!exit_flag && miningCoin->mining->state != DONE) memcpy(&local_32, &global_32, sizeof(global_32));
 
