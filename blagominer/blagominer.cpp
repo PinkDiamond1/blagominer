@@ -1821,13 +1821,6 @@ int wmain(int argc, wchar_t **argv) {
 			newRound(miningCoin);
 
 			// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
-			// TODO: HELLO MULTIMINING!
-			if (testmodeConfig.isEnabled)
-				if (miningCoin->testround1->assume_POC2.has_value())
-					POC2 = miningCoin->testround1->assume_POC2.value();
-				else
-					POC2 = getHeight(miningCoin) >= miningCoin->mining->POC2StartBlock;
-
 			if (miningCoin->mining->enable && miningCoin->mining->state == INTERRUPTED) {
 				Log(L"------------------------    Continuing %s block: %llu", miningCoin->coinname.c_str(), miningCoin->mining->currentHeight);
 				printToConsole(5, true, true, false, true, L"[#%s|%s|Continue] Base Target %s %c Net Diff %s TiB %c PoC%i",

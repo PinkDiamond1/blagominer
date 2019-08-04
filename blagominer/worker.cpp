@@ -114,6 +114,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		// in testmode, updateCurrentMiningInfo from blagominer.cpp makes sure the `scoop` is properly set up
 		const unsigned int scoop = coinInfo->mining->scoop;
 		bool POC2 = coinInfo->isPoc2Round();
+		if (testmodeConfig.isEnabled && coinInfo->testround1->assume_POC2.has_value())
+			POC2 = coinInfo->testround1->assume_POC2.value();
 		size_t acc = Get_index_acc(key, coinInfo, getTargetDeadlineInfo(coinInfo));
 
 		if (!testmodeIgnoresPlotfiles)
@@ -212,6 +214,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			// since HERE we don't want to switch over CPUIDs, we pick a value that covers LONGEST shabal scratchpad memory supported
 			cache_size_local = 16; // right now AVX512 has the largest input buffer reqs
 			key = coinInfo->testround2->assume_account;
+			acc = Get_index_acc(key, coinInfo, getTargetDeadlineInfo(coinInfo));
 			nonce = coinInfo->testround2->assume_nonce;
 			nonces = 1;
 			stagger = 1;
