@@ -20,7 +20,6 @@ std::vector<std::shared_ptr<t_coin_info>> coins;
 
 std::vector<char> p_minerPath; // TODO: use std::(w)str
 unsigned long long total_size = 0;
-bool POC2 = false;
 volatile bool stopThreads = false;				// only applicable to WORKER threads
 bool use_wakeup = false;						// wakeup HDDs if true
 unsigned int hddWakeUpTimer = 180;              // HDD wakeup timer in seconds
@@ -802,6 +801,7 @@ void handleProxyOnly(std::shared_ptr<t_coin_info> coin) {
 			printToConsole(5, true, true, false, true, L"[#%s|%s|Info    ] New block.",
 				toWStr(coin->mining->height, 7).c_str(), toWStr(coin->coinname, 10).c_str(), 0);
 			
+			// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
 			if (coin->mining->currentBaseTarget != 0) {
 				std::thread{ Csv_Submitted,  coin, coin->mining->currentHeight,
 					coin->mining->currentBaseTarget, 4398046511104 / 240 / coin->mining->currentBaseTarget,
@@ -1485,6 +1485,7 @@ int wmain(int argc, wchar_t **argv) {
 
 			newRound(miningCoin);
 
+			// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
 			if (miningCoin->mining->enable && miningCoin->mining->state == INTERRUPTED) {
 				Log(L"------------------------    Continuing %s block: %llu", miningCoin->coinname.c_str(), miningCoin->mining->currentHeight);
 				printToConsole(5, true, true, false, true, L"[#%s|%s|Continue] Base Target %s %c Net Diff %s TiB %c PoC%i",
@@ -1492,8 +1493,9 @@ int wmain(int argc, wchar_t **argv) {
 					toWStr(miningCoin->coinname, 10).c_str(),
 					toWStr(miningCoin->mining->currentBaseTarget, 7).c_str(), sepChar,
 					toWStr(4398046511104 / 240 / miningCoin->mining->currentBaseTarget, 8).c_str(), sepChar,
-					POC2 ? 2 : 1);
+					miningCoin->isPoc2Round() ? 2 : 1);
 			}
+			// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
 			else if (miningCoin->mining->enable) {
 				Log(L"------------------------    New %s block: %llu", miningCoin->coinname.c_str(), miningCoin->mining->currentHeight);
 				printToConsole(25, true, true, false, true, L"[#%s|%s|Start   ] Base Target %s %c Net Diff %s TiB %c PoC%i",
@@ -1501,7 +1503,7 @@ int wmain(int argc, wchar_t **argv) {
 					toWStr(miningCoin->coinname, 10).c_str(),
 					toWStr(miningCoin->mining->currentBaseTarget, 7).c_str(), sepChar,
 					toWStr(4398046511104 / 240 / miningCoin->mining->currentBaseTarget, 8).c_str(), sepChar,
-					POC2 ? 2 : 1);
+					miningCoin->isPoc2Round() ? 2 : 1);
 			}
 
 			QueryPerformanceCounter((LARGE_INTEGER*)&start_threads_time);
@@ -1701,6 +1703,7 @@ int wmain(int argc, wchar_t **argv) {
 				Log(L"New block, no mining has been interrupted.");
 			}
 
+			// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
 			std::thread{ Csv_Submitted,  miningCoin, miningCoin->mining->currentHeight, miningCoin->mining->currentBaseTarget, 4398046511104 / 240 / miningCoin->mining->currentBaseTarget, thread_time, miningCoin->mining->state == DONE, miningCoin->mining->deadline }.detach();
 
 			//prepare for next round if not yet done

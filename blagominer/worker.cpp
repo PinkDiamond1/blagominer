@@ -79,6 +79,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		}
 
 		const unsigned int scoop = coinInfo->mining->scoop;
+		bool POC2 = coinInfo->isPoc2Round();
+		size_t acc = Get_index_acc(key, coinInfo, getTargetDeadlineInfo(coinInfo));
 
 		// Checking for plot damage
 		if (nonces != (iter->Size) / (4096 * 64))
@@ -211,7 +213,6 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		LARGE_INTEGER MirrorliDistanceToMove = { 0 };
 		bool flip = false;
 
-		size_t acc = Get_index_acc(key, coinInfo, getTargetDeadlineInfo(coinInfo));
 		for (unsigned long long n = 0; n < nonces; n += stagger)
 		{
 			// New block while processing: Stop.
@@ -237,7 +238,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			int count = 0;
 
 			//Initial Reading
-			th_read(ifile, start, MirrorStart, &cont, &bytes, &(*iter), &flip, p2, 0, stagger, &cache_size_local, cache, MirrorCache);
+			th_read(ifile, start, MirrorStart, &cont, &bytes, &(*iter), &flip, p2, POC2, 0, stagger, &cache_size_local, cache, MirrorCache);
 
 			char *cachep;
 			unsigned long long i;
@@ -285,7 +286,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				else {
 					cachep = cache2;
 				}
-				std::thread read = std::thread(th_read, ifile, start, MirrorStart, &cont, &bytes, &(*iter), &flip, p2, i, stagger, &cache_size_local, cachep, MirrorCache);
+				std::thread read = std::thread(th_read, ifile, start, MirrorStart, &cont, &bytes, &(*iter), &flip, p2, POC2, i, stagger, &cache_size_local, cachep, MirrorCache);
 
 				//Join threads
 				hash.join();
@@ -376,7 +377,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 	return;
 }
 
-void th_read(HANDLE ifile, unsigned long long const start, unsigned long long const MirrorStart, bool * const cont, unsigned long long * const bytes, t_files const * const iter, bool * const flip, bool p2, unsigned long long const i, unsigned long long const stagger, size_t * const cache_size_local, char * const cache, char * const MirrorCache) {
+void th_read(HANDLE ifile, unsigned long long const start, unsigned long long const MirrorStart, bool * const cont, unsigned long long * const bytes, t_files const * const iter, bool * const flip, bool p2, bool POC2, unsigned long long const i, unsigned long long const stagger, size_t * const cache_size_local, char * const cache, char * const MirrorCache) {
 	if (i + *cache_size_local > stagger)
 	{
 		*cache_size_local = stagger - i;  // the remainder

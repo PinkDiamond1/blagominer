@@ -17,9 +17,6 @@ extern std::vector<std::string> paths_dir;      // plot paths
 //miner config items
 extern bool use_debug;							// output debug information if true
 
-// PoC2
-extern bool POC2;								// true if PoC2 is activated
-
 #include "worker.h"
 
 //headers
