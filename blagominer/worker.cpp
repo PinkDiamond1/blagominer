@@ -113,6 +113,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 
 		// in testmode, updateCurrentMiningInfo from blagominer.cpp makes sure the `scoop` is properly set up
 		const unsigned int scoop = coinInfo->mining->scoop;
+		bool POC2 = coinInfo->isPoc2Round();
+		size_t acc = Get_index_acc(key, coinInfo, getTargetDeadlineInfo(coinInfo));
 
 		if (!testmodeIgnoresPlotfiles)
 		{
@@ -270,7 +272,6 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		LARGE_INTEGER MirrorliDistanceToMove = { 0 };
 		bool flip = false;
 
-		size_t acc = Get_index_acc(key, coinInfo, getTargetDeadlineInfo(coinInfo));
 		// in offline testmode, we don't need ANY further reading, one step is enough
 		for (unsigned long long n = 0; n < nonces; n += stagger)
 		{
@@ -303,7 +304,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			if (!testmodeIgnoresPlotfiles)
 			{
 			// WARNING: th_read may MUTATE cache_size_local when it hits an EOF/etc
-			th_read(ifile, start, MirrorStart, &cont, &bytes, &(*iter), &flip, p2, 0, stagger, &cache_size_local, cache, MirrorCache);
+			th_read(ifile, start, MirrorStart, &cont, &bytes, &(*iter), &flip, p2, POC2, 0, stagger, &cache_size_local, cache, MirrorCache);
 			// WARNING: if this initial read FAILS and sets CONT and trims cache_size_local - nothing handles this condition!
 			}
 			else
@@ -435,7 +436,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				}
 				// WARNING: th_read may MUTATE cache_size_local when it hits an EOF/etc
 				// WARNING: if `cache_size_local` was already broken, should we revert to `cache_size_local_backup` before reading again?
-				std::thread read = std::thread(th_read, ifile, start, MirrorStart, &cont, &bytes, &(*iter), &flip, p2, i, stagger, &cache_size_local, cachep, MirrorCache);
+				std::thread read = std::thread(th_read, ifile, start, MirrorStart, &cont, &bytes, &(*iter), &flip, p2, POC2, i, stagger, &cache_size_local, cachep, MirrorCache);
 
 				//Join threads
 				hash.join();
@@ -582,7 +583,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 	return;
 }
 
-void th_read(HANDLE ifile, unsigned long long const start, unsigned long long const MirrorStart, bool * const cont, unsigned long long * const bytes, t_files const * const iter, bool * const flip, bool p2, unsigned long long const i, unsigned long long const stagger, size_t * const cache_size_local, char * const cache, char * const MirrorCache) {
+void th_read(HANDLE ifile, unsigned long long const start, unsigned long long const MirrorStart, bool * const cont, unsigned long long * const bytes, t_files const * const iter, bool * const flip, bool p2, bool POC2, unsigned long long const i, unsigned long long const stagger, size_t * const cache_size_local, char * const cache, char * const MirrorCache) {
 	if (i + *cache_size_local > stagger)
 	{
 		*cache_size_local = stagger - i;  // the remainder

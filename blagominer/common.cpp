@@ -31,6 +31,19 @@ volatile bool exit_flag = false;
 HANDLE hHeap;
 heap_allocator<char> theHeap;
 
+static unsigned long long getHeight(t_coin_info& coin) {
+	std::lock_guard<std::mutex> lockGuard(coin.locks->mHeight);
+	return coin.mining->height;
+}
+bool t_coin_info::isPoc2Round()
+{
+	//POC2 determination
+	if (getHeight(*this) >= this->mining->POC2StartBlock) {
+		return true;
+	}
+	return false;
+}
+
 unsigned long long getHeight(std::shared_ptr<t_coin_info> coin) {
 	std::lock_guard<std::mutex> lockGuard(coin->locks->mHeight);
 	return coin->mining->height;

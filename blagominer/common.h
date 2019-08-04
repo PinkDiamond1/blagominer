@@ -113,6 +113,7 @@ struct CoinLogFiles {
 };
 
 
+// TODO: this locking scheme IS SO WRONG.. and even things like 'baseTarget' or 'scoop' are not protected..
 struct t_locks {
 	std::mutex mHeight;
 	std::mutex mTargetDeadlineInfo;
@@ -196,6 +197,8 @@ struct t_coin_info {
 	std::thread proxyThread;
 	std::thread updaterThread;
 	std::thread proxyOnlyThread;
+
+	bool isPoc2Round();
 
 	t_roundreplay_round* testround1;
 	t_roundreplay_round_test* testround2;
