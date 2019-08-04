@@ -2064,8 +2064,22 @@ int wmain(int argc, wchar_t **argv) {
 				if (miningCoin->testround2->check_scoop_high.has_value() && !miningCoin->testround2->passed_scoop_high.has_value()) all = false;
 				if (miningCoin->testround2->check_deadline.has_value() && !miningCoin->testround2->passed_deadline.has_value()) all = false;
 
+				bool passed = true;
+				if (miningCoin->testround2->passed_scoop.has_value() && !miningCoin->testround2->passed_scoop.value()) passed = false;
+				if (miningCoin->testround2->passed_scoop_low.has_value() && !miningCoin->testround2->passed_scoop_low.value()) passed = false;
+				if (miningCoin->testround2->passed_scoop_high.has_value() && !miningCoin->testround2->passed_scoop_high.value()) passed = false;
+				if (miningCoin->testround2->passed_deadline.has_value() && !miningCoin->testround2->passed_deadline.value()) passed = false;
+
 				if (!all)
-					Log(L"TESTMODE: CHECK ERROR: some checks were skipped for this round, height: %llu, gensig: %S, baseTarget: %llu, account: %llu, nonce: %llu",
+					Log(L"TESTMODE: TEST FAILED: some checks were skipped for this round, height: %llu, gensig: %S, baseTarget: %llu, account: %llu, nonce: %llu",
+						miningCoin->testround1->height, miningCoin->testround1->signature.c_str(), miningCoin->testround1->baseTarget,
+						miningCoin->testround2->assume_account, miningCoin->testround2->assume_nonce);
+				else if (!passed)
+					Log(L"TESTMODE: TEST FAILED: some checks have FAILED for this round, height: %llu, gensig: %S, baseTarget: %llu, account: %llu, nonce: %llu",
+						miningCoin->testround1->height, miningCoin->testround1->signature.c_str(), miningCoin->testround1->baseTarget,
+						miningCoin->testround2->assume_account, miningCoin->testround2->assume_nonce);
+				else
+					Log(L"TESTMODE: TEST PASSED: all checks have PASSED for this round, height: %llu, gensig: %S, baseTarget: %llu, account: %llu, nonce: %llu",
 						miningCoin->testround1->height, miningCoin->testround1->signature.c_str(), miningCoin->testround1->baseTarget,
 						miningCoin->testround2->assume_account, miningCoin->testround2->assume_nonce);
 			}
