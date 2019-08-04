@@ -1949,8 +1949,6 @@ int wmain(int argc, wchar_t **argv) {
 					}
 					else if (testmodeConfig.isEnabled) {
 						exit_flag = true;
-						printToConsole(12, false, true, true, false, L"TestMode has finished all tasks, exiting.");
-						system("pause > nul");
 						continue;
 					}
 
@@ -2061,33 +2059,66 @@ int wmain(int argc, wchar_t **argv) {
 
 			if (testmodeConfig.isEnabled)
 			{
-				bool all = true;
-				if (miningCoin->testround2->check_scoop.has_value() && !miningCoin->testround2->passed_scoop.has_value()) all = false;
-				if (miningCoin->testround2->check_scoop_low.has_value() && !miningCoin->testround2->passed_scoop_low.has_value()) all = false;
-				if (miningCoin->testround2->check_scoop_high.has_value() && !miningCoin->testround2->passed_scoop_high.has_value()) all = false;
-				if (miningCoin->testround2->check_deadline.has_value() && !miningCoin->testround2->passed_deadline.has_value()) all = false;
+				bool anyDefined = false;
+				if (miningCoin->testround2->check_scoop.has_value()) anyDefined = true;
+				if (miningCoin->testround2->check_scoop_low.has_value()) anyDefined = true;
+				if (miningCoin->testround2->check_scoop_high.has_value()) anyDefined = true;
+				if (miningCoin->testround2->check_deadline.has_value()) anyDefined = true;
 
-				bool passed = true;
-				if (miningCoin->testround2->passed_scoop.has_value() && !miningCoin->testround2->passed_scoop.value()) passed = false;
-				if (miningCoin->testround2->passed_scoop_low.has_value() && !miningCoin->testround2->passed_scoop_low.value()) passed = false;
-				if (miningCoin->testround2->passed_scoop_high.has_value() && !miningCoin->testround2->passed_scoop_high.value()) passed = false;
-				if (miningCoin->testround2->passed_deadline.has_value() && !miningCoin->testround2->passed_deadline.value()) passed = false;
+				bool anyDefinedAndSkipped = true;
+				if (miningCoin->testround2->check_scoop.has_value() && !miningCoin->testround2->passed_scoop.has_value()) anyDefinedAndSkipped = false;
+				if (miningCoin->testround2->check_scoop_low.has_value() && !miningCoin->testround2->passed_scoop_low.has_value()) anyDefinedAndSkipped = false;
+				if (miningCoin->testround2->check_scoop_high.has_value() && !miningCoin->testround2->passed_scoop_high.has_value()) anyDefinedAndSkipped = false;
+				if (miningCoin->testround2->check_deadline.has_value() && !miningCoin->testround2->passed_deadline.has_value()) anyDefinedAndSkipped = false;
 
-				if (!all)
-					Log(L"TESTMODE: TEST FAILED: some checks were skipped for this round, height: %llu, gensig: %S, baseTarget: %llu, account: %llu, nonce: %llu",
+				bool allDefinedHavePassed = true;
+				if (miningCoin->testround2->passed_scoop.has_value() && !miningCoin->testround2->passed_scoop.value()) allDefinedHavePassed = false;
+				if (miningCoin->testround2->passed_scoop_low.has_value() && !miningCoin->testround2->passed_scoop_low.value()) allDefinedHavePassed = false;
+				if (miningCoin->testround2->passed_scoop_high.has_value() && !miningCoin->testround2->passed_scoop_high.value()) allDefinedHavePassed = false;
+				if (miningCoin->testround2->passed_deadline.has_value() && !miningCoin->testround2->passed_deadline.value()) allDefinedHavePassed = false;
+
+				if (!anyDefined)
+				{
+					printToConsole(2, true, false, true, false, L"EMPTY");
+					Log(L"TESTMODE: TEST EMPTY: no checks for this round, height: %llu, gensig: %S, baseTarget: %llu, account: %llu, nonce: %llu",
 						miningCoin->testround1->height, miningCoin->testround1->signature.c_str(), miningCoin->testround1->baseTarget,
 						miningCoin->testround2->assume_account, miningCoin->testround2->assume_nonce);
-				else if (!passed)
+				}
+				else if (!allDefinedHavePassed)
+				{
+					printToConsole(12, true, false, true, false, L"FAILED");
 					Log(L"TESTMODE: TEST FAILED: some checks have FAILED for this round, height: %llu, gensig: %S, baseTarget: %llu, account: %llu, nonce: %llu",
 						miningCoin->testround1->height, miningCoin->testround1->signature.c_str(), miningCoin->testround1->baseTarget,
 						miningCoin->testround2->assume_account, miningCoin->testround2->assume_nonce);
+				}
+				else if (!anyDefinedAndSkipped)
+				{
+					printToConsole(12, true, false, true, false, L"PARTIAL");
+					Log(L"TESTMODE: TEST PARTIAL: some checks were skipped for this round, height: %llu, gensig: %S, baseTarget: %llu, account: %llu, nonce: %llu",
+						miningCoin->testround1->height, miningCoin->testround1->signature.c_str(), miningCoin->testround1->baseTarget,
+						miningCoin->testround2->assume_account, miningCoin->testround2->assume_nonce);
+				}
 				else
+				{
+					printToConsole(10, true, false, true, false, L"PASSED");
 					Log(L"TESTMODE: TEST PASSED: all checks have PASSED for this round, height: %llu, gensig: %S, baseTarget: %llu, account: %llu, nonce: %llu",
 						miningCoin->testround1->height, miningCoin->testround1->signature.c_str(), miningCoin->testround1->baseTarget,
 						miningCoin->testround2->assume_account, miningCoin->testround2->assume_nonce);
+				}
 			}
 		}
 	}
+
+	// after the last test, last status line is pending in console output writer
+	// and the closeMiner will bm_end() which will interrupt the console writer
+	// causing the last line to never show up.
+	// Sadly, currently there's no better way to flush it other than wait
+	if (testmodeConfig.isEnabled)
+	{
+		printToConsole(2, false, true, true, false, L"TestMode has finished all tasks, press any key.");
+		system("pause > nul");
+	}
+
 	closeMiner();
 	return 0;
 }
