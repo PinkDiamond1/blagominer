@@ -353,7 +353,10 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 					{
 						auto expected = coinInfo->testround2->check_scoop_low.value();
 						auto scooplow = HexString::string(std::vector<uint8_t>(cache + nonceOffsetInCache + 0, cache + nonceOffsetInCache + 32));
-						if (scooplow != expected)
+						auto testresult = scooplow == expected;
+						coinInfo->testround2->passed_scoop_low = testresult && coinInfo->testround2->passed_scoop_low.value_or(true);
+
+						if (!testresult)
 						{
 							Log(L"TESTMODE: CHECK ERROR: scoop high chunk differs, nonce: %llu, scoop: %u, file: %S",
 								coinInfo->testround2->assume_nonce, scoop, filename.c_str());
@@ -365,7 +368,10 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 					{
 						auto expected = coinInfo->testround2->check_scoop_high.value();
 						auto scoophigh = HexString::string(std::vector<uint8_t>(cache + nonceOffsetInCache + 32, cache + nonceOffsetInCache + 64));
-						if (scoophigh != expected)
+						auto testresult = scoophigh == expected;
+						coinInfo->testround2->passed_scoop_high = testresult && coinInfo->testround2->passed_scoop_high.value_or(true);
+
+						if (!testresult)
 						{
 							Log(L"TESTMODE: CHECK ERROR: scoop high chunk differs, nonce: %llu, scoop: %u, file: %S",
 								coinInfo->testround2->assume_nonce, scoop, filename.c_str());
@@ -453,7 +459,10 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 						{
 							auto expected = coinInfo->testround2->check_scoop_low.value();
 							auto scooplow = HexString::string(std::vector<uint8_t>(cache + nonceOffsetInCache + 0, cache + nonceOffsetInCache + 32));
-							if (scooplow != expected)
+							auto testresult = scooplow == expected;
+							coinInfo->testround2->passed_scoop_low = testresult && coinInfo->testround2->passed_scoop_low.value_or(true);
+
+							if (!testresult)
 							{
 								Log(L"TESTMODE: CHECK ERROR: scoop high chunk differs, nonce: %llu, scoop: %u, file: %S",
 									coinInfo->testround2->assume_nonce, scoop, filename.c_str());
@@ -465,7 +474,10 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 						{
 							auto expected = coinInfo->testround2->check_scoop_high.value();
 							auto scoophigh = HexString::string(std::vector<uint8_t>(cache + nonceOffsetInCache + 32, cache + nonceOffsetInCache + 64));
-							if (scoophigh != expected)
+							auto testresult = scoophigh == expected;
+							coinInfo->testround2->passed_scoop_high = testresult && coinInfo->testround2->passed_scoop_high.value_or(true);
+
+							if (!testresult)
 							{
 								Log(L"TESTMODE: CHECK ERROR: scoop high chunk differs, nonce: %llu, scoop: %u, file: %S",
 									coinInfo->testround2->assume_nonce, scoop, filename.c_str());

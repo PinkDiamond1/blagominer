@@ -221,6 +221,11 @@ struct t_roundreplay_round_test {
 	std::optional<std::string> check_scoop_low;
 	std::optional<std::string> check_scoop_high;
 	std::optional<unsigned long long> check_deadline;
+
+	std::optional<bool> passed_scoop;
+	std::optional<bool> passed_scoop_low;
+	std::optional<bool> passed_scoop_high;
+	std::optional<bool> passed_deadline;
 };
 
 struct t_roundreplay_round {

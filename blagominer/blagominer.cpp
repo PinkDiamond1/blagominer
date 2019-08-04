@@ -939,7 +939,10 @@ void updateCurrentMiningInfo(std::shared_ptr<t_coin_info> coin) {
 	if (testmodeConfig.isEnabled)
 		if (coin->testround2->check_scoop.has_value())
 		{
-			if (coin->mining->scoop != coin->testround2->check_scoop.value())
+			auto testresult = coin->mining->scoop == coin->testround2->check_scoop.value();
+			coin->testround2->passed_scoop = testresult && coin->testround2->passed_scoop.value_or(true);
+
+			if (!testresult)
 				Log(L"TESTMODE: CHECK ERROR: Scoop number differs: %u, expected: %u, height: %llu, gensig: %S",
 					coin->mining->scoop, coin->testround2->check_scoop.value(),
 					coin->mining->currentHeight, HexString::string(std::vector<uint8_t>(coin->mining->currentSignature + 0, coin->mining->currentSignature + 32)).c_str());
@@ -2052,6 +2055,20 @@ int wmain(int argc, wchar_t **argv) {
 
 			//prepare for next round if not yet done
 			if (!exit_flag && miningCoin->mining->state != DONE) memcpy(&local_32, &global_32, sizeof(global_32));
+
+			if (testmodeConfig.isEnabled)
+			{
+				bool all = true;
+				if (miningCoin->testround2->check_scoop.has_value() && !miningCoin->testround2->passed_scoop.has_value()) all = false;
+				if (miningCoin->testround2->check_scoop_low.has_value() && !miningCoin->testround2->passed_scoop_low.has_value()) all = false;
+				if (miningCoin->testround2->check_scoop_high.has_value() && !miningCoin->testround2->passed_scoop_high.has_value()) all = false;
+				if (miningCoin->testround2->check_deadline.has_value() && !miningCoin->testround2->passed_deadline.has_value()) all = false;
+
+				if (!all)
+					Log(L"TESTMODE: CHECK ERROR: some checks were skipped for this round, height: %llu, gensig: %S, baseTarget: %llu, account: %llu, nonce: %llu",
+						miningCoin->testround1->height, miningCoin->testround1->signature.c_str(), miningCoin->testround1->baseTarget,
+						miningCoin->testround2->assume_account, miningCoin->testround2->assume_nonce);
+			}
 		}
 	}
 	closeMiner();

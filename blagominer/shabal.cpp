@@ -49,7 +49,10 @@ void procscoop_sph(std::shared_ptr<t_coin_info> coin, const unsigned long long n
 
 						dlForNonce /= coin->mining->currentBaseTarget;
 
-						if (dlForNonce != coin->testround2->check_deadline.value())
+						auto testresult = dlForNonce != coin->testround2->check_deadline.value();
+						coin->testround2->passed_deadline = testresult && coin->testround2->passed_deadline.value_or(true);
+
+						if (!testresult)
 						{
 							Log(L"TESTMODE: CHECK ERROR: SPH: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %S",
 								dlForNonce, coin->testround2->check_deadline.value(),
@@ -187,7 +190,10 @@ void procscoop_sse_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 
 						dlForNonce /= coin->mining->currentBaseTarget;
 
-						if (dlForNonce != coin->testround2->check_deadline.value())
+						auto testresult = dlForNonce != coin->testround2->check_deadline.value();
+						coin->testround2->passed_deadline = testresult && coin->testround2->passed_deadline.value_or(true);
+
+						if (!testresult)
 						{
 							Log(L"TESTMODE: CHECK ERROR: SSE: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %S",
 								dlForNonce, coin->testround2->check_deadline.value(),
@@ -341,7 +347,10 @@ void procscoop_avx_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 
 						dlForNonce /= coin->mining->currentBaseTarget;
 
-						if (dlForNonce != coin->testround2->check_deadline.value())
+						auto testresult = dlForNonce != coin->testround2->check_deadline.value();
+						coin->testround2->passed_deadline = testresult && coin->testround2->passed_deadline.value_or(true);
+
+						if (!testresult)
 						{
 							Log(L"TESTMODE: CHECK ERROR: AVX: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %S",
 								dlForNonce, coin->testround2->check_deadline.value(),
@@ -524,7 +533,10 @@ void procscoop_avx2_fast(std::shared_ptr<t_coin_info> coin, unsigned long long c
 
 						dlForNonce /= coin->mining->currentBaseTarget;
 
-						if (dlForNonce != coin->testround2->check_deadline.value())
+						auto testresult = dlForNonce != coin->testround2->check_deadline.value();
+						coin->testround2->passed_deadline = testresult && coin->testround2->passed_deadline.value_or(true);
+
+						if (!testresult)
 						{
 							Log(L"TESTMODE: CHECK ERROR: AVX2: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %S",
 								dlForNonce, coin->testround2->check_deadline.value(),
@@ -783,7 +795,10 @@ void procscoop_avx512_fast(std::shared_ptr<t_coin_info> coin, unsigned long long
 
 						dlForNonce /= coin->mining->currentBaseTarget;
 
-						if (dlForNonce != coin->testround2->check_deadline.value())
+						auto testresult = dlForNonce != coin->testround2->check_deadline.value();
+						coin->testround2->passed_deadline = testresult && coin->testround2->passed_deadline.value_or(true);
+
+						if (!testresult)
 						{
 							Log(L"TESTMODE: CHECK ERROR: SSE: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %S",
 								dlForNonce, coin->testround2->check_deadline.value(),
