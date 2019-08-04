@@ -1,4 +1,5 @@
 ﻿#include <sstream>
+#include <memory>
 
 #include "../../hexstring.h"
 
@@ -35,7 +36,7 @@ std::vector<uint8_t> diskcoin_generate_gensig_binload(size_t serverHeight, std::
 }
 */
 
-std::vector<uint8_t> diskcoin_generate_gensig_aes128(size_t serverHeight, std::vector<uint8_t> const& serverGenSig)
+std::unique_ptr<std::array<uint8_t, 32>> diskcoin_generate_gensig_aes128(size_t serverHeight, std::array<uint8_t, 32> const & serverGenSig)
 {
 	auto cappedHeight = serverHeight <= 99999999 ? serverHeight : 99999999; // no space for more than 8 digits!
 
@@ -47,10 +48,10 @@ std::vector<uint8_t> diskcoin_generate_gensig_aes128(size_t serverHeight, std::v
 	AES128_ctx ctx;
 	AES128_init(&ctx, (unsigned char*)seed.c_str());
 
-	std::vector<uint8_t> newGenSig(0x20, 'X');
+	auto newGenSig = std::make_unique<std::array<uint8_t, 0x20>>();
 
-	AES128_decrypt(&ctx, 1, newGenSig.data() + 0x00, serverGenSig.data() + 0x00);
-	AES128_decrypt(&ctx, 1, newGenSig.data() + 0x10, serverGenSig.data() + 0x10);
+	AES128_decrypt(&ctx, 1, newGenSig->data() + 0x00, serverGenSig.data() + 0x00);
+	AES128_decrypt(&ctx, 1, newGenSig->data() + 0x10, serverGenSig.data() + 0x10);
 
 	return newGenSig;
 }

@@ -2,9 +2,11 @@
 
 #include "stdafx.h"
 #include <mutex>
+#include <array>
 #include <vector>
 #include <ctime>
 #include <math.h>
+#include <optional>
 
 #include "heapallocator.h"
 #include "logger.h"
@@ -183,6 +185,9 @@ struct t_network_info {
 	std::thread confirmer;
 };
 
+struct t_roundreplay_round;
+struct t_roundreplay_round_test;
+
 struct t_coin_info {
 	std::wstring coinname;
 	CoinLogFiles logging;
@@ -194,12 +199,61 @@ struct t_coin_info {
 	std::thread proxyOnlyThread;
 
 	bool isPoc2Round();
+
+	t_roundreplay_round* testround1;
+	t_roundreplay_round_test* testround2;
 };
 
 
 extern std::vector<std::shared_ptr<t_coin_info>> allcoins;
 extern std::vector<std::shared_ptr<t_coin_info>> coins;
 extern t_logging loggingConfig;
+
+struct t_roundreplay_round_test {
+	enum RoundTestMode { RMT_UNKNOWN = 0, RMT_NORMAL = 1, RMT_OFFLINE = 2 };
+	RoundTestMode mode;
+
+	unsigned long long assume_account;
+	unsigned long long assume_nonce;
+
+	std::optional<unsigned int> assume_scoop;
+	std::optional<std::string> assume_scoop_low;
+	std::optional<std::string> assume_scoop_high;
+
+	std::optional<unsigned int> check_scoop;
+	std::optional<std::string> check_scoop_low;
+	std::optional<std::string> check_scoop_high;
+	std::optional<unsigned long long> check_deadline;
+
+	std::optional<bool> passed_scoop;
+	std::optional<bool> passed_scoop_low;
+	std::optional<bool> passed_scoop_high;
+	std::optional<bool> passed_deadline;
+};
+
+struct t_roundreplay_round {
+	unsigned long long height;
+	std::string signature;
+	unsigned long long baseTarget;
+
+	std::optional<bool> assume_POC2; // TODO: since it's round X test, move that to the TEST // obvious in OFFLINE, and in ONLINE remember the mode is SHORT not FULL!
+
+	std::vector<t_roundreplay_round_test> tests;
+};
+
+struct t_roundreplay {
+	bool isEnabled;
+	std::wstring coinName;
+	std::vector<t_roundreplay_round> rounds;
+};
+
+struct t_testmode_config {
+	bool isEnabled;
+	t_roundreplay roundReplay;
+};
+
+extern t_testmode_config testmodeConfig;
+
 
 unsigned long long getHeight(std::shared_ptr<t_coin_info> coin);
 void setHeight(std::shared_ptr<t_coin_info> coin, const unsigned long long height);

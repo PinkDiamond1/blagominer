@@ -2,4 +2,4 @@
 
 #include <vector>
 
-std::vector<uint8_t> diskcoin_generate_gensig_aes128(size_t serverHeight, std::vector<uint8_t> const& serverGenSig);
+std::unique_ptr<std::array<uint8_t, 32>> diskcoin_generate_gensig_aes128(size_t serverHeight, std::array<uint8_t, 32> const& serverGenSig);

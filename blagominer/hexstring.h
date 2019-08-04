@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -28,6 +30,13 @@ private:
 		}
 	}
 
+	static char nibble2char(uint8_t nibble)
+	{
+		if (nibble >= 0x0 && nibble <= 0x9) return '0' + nibble;
+		if (nibble >= 0xA && nibble <= 0xF) return 'a' + nibble - 0xA;
+		throw std::invalid_argument("Invalid input string");
+	}
+
 public:
 
 	/**
@@ -44,6 +53,41 @@ public:
 		std::vector<uint8_t> tmp;
 		tmp.resize((text.size() + 1) / 2);
 		hex2bin(text, tmp.data());
+		return tmp;
+	}
+
+	template<size_t N>
+	static std::unique_ptr<std::array<uint8_t, N>> arrayfrom(std::string const& text)
+	{
+		auto vector = from(text);
+		if (vector.size() != N) throw std::invalid_argument("Wrong input data size");
+		std::unique_ptr<std::array<uint8_t,N>> tmp = std::make_unique<std::array<uint8_t, N>>();
+		std::copy(vector.begin(), vector.end(), tmp->begin());
+		return tmp;
+	}
+
+	template<size_t N>
+	static std::string string(std::array<uint8_t, N> const& data)
+	{
+		std::string tmp;
+		tmp.reserve(data.size() * 2);
+		for (auto it = data.begin(); it < data.end(); ++it)
+		{
+			tmp.push_back(nibble2char(*it / 0x10));
+			tmp.push_back(nibble2char(*it % 0x10));
+		}
+		return tmp;
+	}
+
+	static std::string string(std::vector<uint8_t> const& data)
+	{
+		std::string tmp;
+		tmp.reserve(data.size() * 2);
+		for (auto it = data.begin(); it < data.end(); ++it)
+		{
+			tmp.push_back(nibble2char(*it / 0x10));
+			tmp.push_back(nibble2char(*it % 0x10));
+		}
 		return tmp;
 	}
 };

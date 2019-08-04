@@ -3,6 +3,7 @@
 #include "blagominer.h"
 
 #include <curl/curl.h>
+#include "hexstring.h"
 
 bool exitHandled = false;
 
@@ -13,10 +14,12 @@ std::thread updateChecker;
 
 const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
 
-t_logging loggingConfig = {};
+t_logging loggingConfig;
 
 std::vector<std::shared_ptr<t_coin_info>> allcoins;
 std::vector<std::shared_ptr<t_coin_info>> coins;
+
+t_testmode_config testmodeConfig;
 
 std::vector<char> p_minerPath; // TODO: use std::(w)str
 unsigned long long total_size = 0;
@@ -408,6 +411,237 @@ int load_config(wchar_t const *const filename)
 	return 1;
 }
 
+bool load_testmode_config(wchar_t const *const filename)
+{
+	FILE * pFile;
+
+	_wfopen_s(&pFile, filename, L"rt");
+	std::unique_ptr<FILE, void(*)(FILE*)> guardPFile(pFile, [](FILE* f) { fclose(f); });
+
+	if (pFile == nullptr)
+	{
+		Log(L"=== TestMode disabled (file not found) ===");
+		return true;
+	}
+
+	_fseeki64(pFile, 0, SEEK_END);
+	__int64 const size = _ftelli64(pFile);
+	_fseeki64(pFile, 0, SEEK_SET);
+
+	// TODO: leaving it on the heap for now to retain zero-memory effect
+	// it's actually somewhat helpful due to the data size mismatch induced by "rt" fopen flags
+	std::vector<char, heap_allocator<char>> json_(size + 1, theHeap);
+	int bytesread = fread_s(json_.data(), size, 1, size, pFile);
+	json_[bytesread] = 0;
+	guardPFile.reset();
+
+	Document document;	// Default template parameter uses UTF8 and MemoryPoolAllocator.
+	if (document.Parse<kParseCommentsFlag>(json_.data()).HasParseError()) {
+		fprintf(stderr, "\nJSON format error (offset %u) check testmode.conf\n%s\n", (unsigned)document.GetErrorOffset(), GetParseError_En(document.GetParseError())); //(offset %s  %s", (unsigned)document.GetErrorOffset(), (char*)document.GetParseError());
+		system("pause > nul");
+		exit(-1);
+	}
+
+	if (document.IsObject())
+	{	// Document is a JSON value represents the root of DOM. Root can be either an object or array.
+
+		if (document.HasMember("enabled") && document["enabled"].IsBool())
+			testmodeConfig.isEnabled = document["enabled"].GetBool();
+
+		if (!testmodeConfig.isEnabled)
+		{
+			Log(L"=== TestMode disabled (disabled by config) ===");
+			return true;
+		}
+
+		if (document.HasMember("RoundReplay") && document["RoundReplay"].IsObject())
+		{
+			Log(L"### Loading configuration for RoundReplay ###");
+
+			const Value& cfg_replay = document["RoundReplay"];
+
+			if (cfg_replay.HasMember("coin") && cfg_replay["coin"].IsString())
+			{
+				std::string tmp = cfg_replay["coin"].GetString();
+				testmodeConfig.roundReplay.coinName = std::wstring(tmp.begin(), tmp.end());
+			}
+			else
+			{
+				Log(L"ERROR: missing or invalid RoundReplay.coin");
+				return false;
+			}
+			Log(L"coin: %s", testmodeConfig.roundReplay.coinName.c_str());
+
+			if (cfg_replay.HasMember("rounds") && cfg_replay["rounds"].IsArray())
+			{
+				Log(L"...loading RoundReplay.rounds");
+
+				const Value& cfg_rounds = cfg_replay["rounds"];
+				for (SizeType idx_round = 0; idx_round < cfg_rounds.Size(); ++idx_round)
+				{
+					const Value& cfg_round = cfg_rounds[idx_round];
+					if (!cfg_round.IsObject())
+					{
+						Log(L"ERROR: invalid RoundReplay.rounds[%zu]", idx_round);
+						return false;
+					}
+
+					Log(L"...loading RoundReplay.rounds[%zu]", idx_round);
+					t_roundreplay_round round;
+					{
+						if (cfg_round.HasMember("height") && cfg_round["height"].IsUint64())
+							round.height = cfg_round["height"].GetUint64();
+						else
+						{
+							Log(L"ERROR: missing or invalid RoundReplay.rounds[%zu].height", idx_round);
+							return false;
+						}
+						Log(L"height: %zu", round.height);
+
+						if (cfg_round.HasMember("gensig") && cfg_round["gensig"].IsString())
+							// TODO: add length assertion and/or parseability assertion and/or parse immediately
+							round.signature = cfg_round["gensig"].GetString();
+						else
+						{
+							Log(L"ERROR: missing or invalid RoundReplay.rounds[%zu].gensig", idx_round);
+							return false;
+						}
+						Log(L"gensig: %S", round.signature.c_str());
+
+						if (cfg_round.HasMember("baseTgt") && cfg_round["baseTgt"].IsUint64())
+							round.baseTarget = cfg_round["baseTgt"].GetUint64();
+						else
+						{
+							Log(L"ERROR: missing or invalid RoundReplay.rounds[%zu].baseTgt", idx_round);
+							return false;
+						}
+						Log(L"baseTgt: %zu", round.baseTarget);
+
+						if (cfg_round.HasMember("assume_POCx") && cfg_round["assume_POCx"].IsBool())
+						{
+							round.assume_POC2 = cfg_round["assume_POCx"].GetBool();
+							Log(L"assume_POCx: %d", round.assume_POC2.value());
+						}
+
+						if (cfg_round.HasMember("tests") && cfg_round["tests"].IsArray())
+						{
+							Log(L"...loading RoundReplay.rounds[%zu].tests", idx_round);
+
+							const Value& cfg_tests = cfg_round["tests"];
+							for (SizeType idx_test = 0; idx_test < cfg_tests.Size(); ++idx_test)
+							{
+								const Value& cfg_test = cfg_tests[idx_test];
+								if (!cfg_test.IsObject())
+								{
+									Log(L"ERROR: invalid RoundReplay.rounds[%zu].tests[%zu]", idx_round, idx_test);
+									return false;
+								}
+
+								Log(L"...loading RoundReplay.rounds[%zu].tests[%zu]", idx_round, idx_test);
+								t_roundreplay_round_test test;
+								{
+									bool hasMode = false;
+									if (cfg_test.HasMember("mode") && cfg_test["mode"].IsString())
+									{
+										std::string tmp = cfg_test["mode"].GetString();
+										if (tmp == "normal") { hasMode = true; test.mode = t_roundreplay_round_test::RoundTestMode::RMT_NORMAL; }
+										if (tmp == "offline") { hasMode = true; test.mode = t_roundreplay_round_test::RoundTestMode::RMT_OFFLINE; }
+									}
+									if (hasMode)
+										Log(L"mode: %S", test.mode == t_roundreplay_round_test::RoundTestMode::RMT_NORMAL ? "normal" : "offline");
+									else
+									{
+										Log(L"ERROR: missing or invalid RoundReplay.rounds[%zu].tests[%zu].mode", idx_round, idx_test);
+										return false;
+									}
+
+									if (cfg_test.HasMember("assume_account") && cfg_test["assume_account"].IsUint64())
+									{
+										test.assume_account = cfg_test["assume_account"].GetUint64();
+										Log(L"assume_account: %zu", test.assume_account);
+									}
+									else
+									{
+										Log(L"ERROR: missing or invalid RoundReplay.rounds[%zu].tests[%zu].assume_account", idx_round, idx_test);
+										return false;
+									}
+
+									if (cfg_test.HasMember("assume_nonce") && cfg_test["assume_nonce"].IsUint64())
+									{
+										test.assume_nonce = cfg_test["assume_nonce"].GetUint64();
+										Log(L"assume_nonce: %zu", test.assume_nonce);
+									}
+									else
+									{
+										Log(L"ERROR: missing or invalid RoundReplay.rounds[%zu].tests[%zu].assume_nonce", idx_round, idx_test);
+										return false;
+									}
+
+									if (cfg_test.HasMember("assume_scoop") && cfg_test["assume_scoop"].IsUint())
+									{
+										test.assume_scoop = cfg_test["assume_scoop"].GetUint();
+										Log(L"assume_scoop: %u", test.assume_scoop.value());
+									}
+
+									if (cfg_test.HasMember("assume_scoop_low") && cfg_test["assume_scoop_low"].IsString())
+									{
+										// TODO: add length assertion and/or parseability assertion and/or parse immediately
+										test.assume_scoop_low = cfg_test["assume_scoop_low"].GetString();
+										Log(L"assume_scoop_low: %S", test.assume_scoop_low.value().c_str());
+									}
+
+									if (cfg_test.HasMember("assume_scoop_high") && cfg_test["assume_scoop_high"].IsString())
+									{
+										// TODO: add length assertion and/or parseability assertion and/or parse immediately
+										test.assume_scoop_high = cfg_test["assume_scoop_high"].GetString();
+										Log(L"assume_scoop_high: %S", test.assume_scoop_high.value().c_str());
+									}
+
+									if (cfg_test.HasMember("check_scoop") && cfg_test["check_scoop"].IsUint())
+									{
+										test.check_scoop = cfg_test["check_scoop"].GetUint();
+										Log(L"check_scoop: %u", test.check_scoop.value());
+									}
+
+									if (cfg_test.HasMember("check_scoop_low") && cfg_test["check_scoop_low"].IsString())
+									{
+										test.check_scoop_low = cfg_test["check_scoop_low"].GetString();
+										Log(L"check_scoop_low: %S", test.check_scoop_low.value().c_str());
+									}
+
+									if (cfg_test.HasMember("check_scoop_high") && cfg_test["check_scoop_high"].IsString())
+									{
+										test.check_scoop_high = cfg_test["check_scoop_high"].GetString();
+										Log(L"check_scoop_high: %S", test.check_scoop_high.value().c_str());
+									}
+
+									if (cfg_test.HasMember("check_deadline") && cfg_test["check_deadline"].IsUint64())
+									{
+										test.check_deadline = cfg_test["check_deadline"].GetUint64();
+										Log(L"check_deadline: %zu", test.check_deadline.value());
+									}
+								}
+
+								Log(L"...loading RoundReplay.rounds[].tests[] - done");
+								round.tests.push_back(test);
+							}
+						}
+					}
+
+					Log(L"...loading RoundReplay.rounds[] - done");
+					testmodeConfig.roundReplay.rounds.push_back(round);
+				}
+			}
+
+			Log(L"...loading configuration for RoundReplay - done");
+			testmodeConfig.roundReplay.isEnabled = true;
+		}
+	}
+
+	Log(L"=== TestMode active ===");
+	return true;
+}
+
 
 void GetCPUInfo(void)
 {
@@ -667,7 +901,7 @@ unsigned int calcScoop(std::shared_ptr<t_coin_info> coin) {
 	Log(L"Calculating scoop for %s", coin->coinname.c_str());
 	char scoopgen[40];
 	memmove(scoopgen, coin->mining->signature, 32);
-	const char *mov = (char*)&coin->mining->currentHeight;
+	const char *mov = (char*)&coin->mining->currentHeight; // TODO: why not CURRENT SIGNATURE?!
 	scoopgen[32] = mov[7];
 	scoopgen[33] = mov[6];
 	scoopgen[34] = mov[5];
@@ -695,9 +929,23 @@ void updateCurrentMiningInfo(std::shared_ptr<t_coin_info> coin) {
 	coin->mining->currentHeight = coin->mining->height;
 	coin->mining->currentBaseTarget = coin->mining->baseTarget;
 
-	if (coin->mining->enable) {
-		coin->mining->scoop = calcScoop(coin);
-	}
+	if (coin->mining->enable)
+		if (!(testmodeConfig.isEnabled && coin->testround2->assume_scoop.has_value()))
+			coin->mining->scoop = calcScoop(coin);
+		else
+			coin->mining->scoop = coin->testround2->assume_scoop.value();
+
+	if (testmodeConfig.isEnabled)
+		if (coin->testround2->check_scoop.has_value())
+		{
+			auto testresult = coin->mining->scoop == coin->testround2->check_scoop.value();
+			coin->testround2->passed_scoop = testresult && coin->testround2->passed_scoop.value_or(true);
+
+			if (!testresult)
+				Log(L"TESTMODE: CHECK ERROR: Scoop number differs: %u, expected: %u, height: %llu, gensig: %S",
+					coin->mining->scoop, coin->testround2->check_scoop.value(),
+					coin->mining->currentHeight, HexString::string(std::vector<uint8_t>(coin->mining->currentSignature + 0, coin->mining->currentSignature + 32)).c_str());
+		}
 }
 
 void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& currentQueue, std::shared_ptr<t_coin_info> newCoin,
@@ -781,12 +1029,12 @@ void newRound(std::shared_ptr<t_coin_info > coinCurrentlyMining) {
 	}
 
 	// if it was inactive, or if we just shut it down to clean up connections - restart it for the new round
-	if (!coinCurrentlyMining->network->sender.joinable()) {
+	if (!coinCurrentlyMining->network->sender.joinable() && !testmodeConfig.isEnabled) {
 		coinCurrentlyMining->network->sender = std::thread(send_i, coinCurrentlyMining);
 	}
 
 	// if it was inactive, or if we just shut it down to clean up connections - restart it for the new round
-	if (!coinCurrentlyMining->network->confirmer.joinable()) {
+	if (!coinCurrentlyMining->network->confirmer.joinable() && !testmodeConfig.isEnabled) {
 		coinCurrentlyMining->network->confirmer = std::thread(confirm_i, coinCurrentlyMining);
 	}
 }
@@ -1166,6 +1414,19 @@ void initMiningOrProxy(std::shared_ptr<t_coin_info> coin)
 	}
 }
 
+std::shared_ptr<t_coin_info> cloneCoinSetup(std::shared_ptr<t_coin_info> const & src)
+{
+	auto result = std::make_shared<t_coin_info>();
+
+	result->coinname = src->coinname;
+	//result->logging - nah, in testmode it is disabled anyways
+	init_mining_info(result, src->coinname, src->mining->priority, src->mining->POC2StartBlock);
+	std::transform(src->mining->dirs.begin(), src->mining->dirs.end(), std::back_inserter(result->mining->dirs), [](auto&& item) { return std::make_shared<t_directory_info>(*item); });
+	result->network = src->network;
+	initMiningOrProxy(result);
+	return result;
+}
+
 int wmain(int argc, wchar_t **argv) {
 	//init
 	SetConsoleCtrlHandler(OnConsoleClose, TRUE);
@@ -1200,6 +1461,8 @@ int wmain(int argc, wchar_t **argv) {
 	// Initialize configuration.
 	init_logging_config();
 
+	// TODO: below: cut that [1][2] argv crap and refactor it to proper position-agnostic param parsing
+
 	//load config
 	{
 		// TODO: make it std::(w)str, use sstream, use better path ops
@@ -1207,6 +1470,11 @@ int wmain(int argc, wchar_t **argv) {
 		std::vector<wchar_t> conf_filename(MAX_PATH);
 
 		//config-file: check -config flag or default to miner.conf
+		if ((argc >= 4) && (wcscmp(argv[3], L"-config") == 0)) {
+			if (wcsstr(argv[4], L":\\")) swprintf_s(conf_filename.data(), conf_filename.size(), L"%s", argv[4]);
+			else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath.data(), argv[4]);
+		}
+		else
 		if ((argc >= 2) && (wcscmp(argv[1], L"-config") == 0)) {
 			if (wcsstr(argv[2], L":\\")) swprintf_s(conf_filename.data(), conf_filename.size(), L"%s", argv[2]);
 			else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath.data(), argv[2]);
@@ -1215,6 +1483,35 @@ int wmain(int argc, wchar_t **argv) {
 
 		load_config(conf_filename.data());
 	}
+
+	// load testmode config
+	{
+		// TODO: make it std::(w)str, use sstream, use better path ops
+		// TODO: get rid of ancient MAX_PATH, test it for long paths afterwards
+		std::vector<wchar_t> conf_filename(MAX_PATH);
+
+		//config-file: check -config flag or default to miner.conf
+		if ((argc >= 4) && (wcscmp(argv[3], L"-testconfig") == 0)) {
+			if (wcsstr(argv[4], L":\\")) swprintf_s(conf_filename.data(), conf_filename.size(), L"%s", argv[4]);
+			else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath.data(), argv[4]);
+		}
+		else
+		if ((argc >= 2) && (wcscmp(argv[1], L"-testconfig") == 0)) {
+			if (wcsstr(argv[2], L":\\")) swprintf_s(conf_filename.data(), conf_filename.size(), L"%s", argv[2]);
+			else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath.data(), argv[2]);
+		}
+		else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath.data(), L"testmode.conf");
+
+		if (!load_testmode_config(conf_filename.data()))
+		{
+			fwprintf(stderr, L"\nError. testmode config file %s is broken\n", conf_filename.data());
+			system("pause > nul");
+			exit(-1);
+		}
+	}
+
+	if (testmodeConfig.isEnabled)
+		loggingConfig.enableCsv = false;
 
 	std::vector<std::shared_ptr<t_coin_info>> proxycoins;
 	std::copy_if(allcoins.begin(), allcoins.end(), std::back_inserter(proxycoins), [](auto&& it) { return it->network->enable_proxy; });
@@ -1246,6 +1543,7 @@ int wmain(int argc, wchar_t **argv) {
 	printToConsole(4, false, false, true, false, L"HTTPS and patches: quetzalcoatl (6/2019)");
 	printToConsole(4, false, false, true, false, L"NTFS optimization: quetzalcoatl (6/2019)");
 	printToConsole(4, false, false, true, false, L"Multi mining mod: quetzalcoatl (7/2019)");
+	printToConsole(4, false, false, true, false, L"Test mode option: quetzalcoatl (8/2019)");
 
 	GetCPUInfo();
 
@@ -1341,20 +1639,21 @@ int wmain(int argc, wchar_t **argv) {
 
 	// Run Proxy
 	for (auto& coin : allcoins)
-		if (coin->network->enable_proxy)
+		// note: theoretically, PROXY mode could work with ROUNDREPLAY as well to test slaves.. but scoop data couldn't be checked
+		if (coin->network->enable_proxy && !testmodeConfig.isEnabled)
 		{
 			coin->proxyThread = std::thread(proxy_i, coin);
 			printToConsole(25, false, false, false, true, L"%s proxy thread started", coin->coinname.c_str());
 		}
 
 	// Run version checker
-	if (checkForUpdateInterval > 0) {
+	if (checkForUpdateInterval > 0 && !testmodeConfig.isEnabled) {
 		updateChecker = std::thread(checkForUpdate);
 	}
 
 	// Run updater
 	for (auto& coin : allcoins)
-		if (coin->mining->enable || coin->network->enable_proxy)
+		if ((coin->mining->enable || coin->network->enable_proxy) && !testmodeConfig.isEnabled)
 		{
 			coin->updaterThread = std::thread(updater_i, coin);
 			printToConsole(25, false, false, false, true, L"%s updater thread started", coin->coinname.c_str());
@@ -1364,7 +1663,8 @@ int wmain(int argc, wchar_t **argv) {
 
 	// Run proxy-only
 	for (auto& coin : allcoins)
-		if (!coin->mining->enable && coin->network->enable_proxy)
+		// note: theoretically, PROXY mode could work with ROUNDREPLAY as well to test slaves.. but scoop data couldn't be checked
+		if (!coin->mining->enable && coin->network->enable_proxy && !testmodeConfig.isEnabled)
 		{
 			coin->proxyOnlyThread = std::thread(handleProxyOnly, coin);
 			printToConsole(25, false, false, false, true, L"%s proxy-only thread started", coin->coinname.c_str());
@@ -1401,7 +1701,7 @@ int wmain(int argc, wchar_t **argv) {
 		Log(L"Update mining info");
 		// Waiting for mining information
 		bool firstDataAvailable = false;
-		while (!firstDataAvailable) {
+		while (!firstDataAvailable && !testmodeConfig.isEnabled) {
 			for (auto& c : coins) {
 				if (c->mining->enable && getHeight(c) != 0) {
 					firstDataAvailable = getNewMiningInfo(coins, nullptr, queue);
@@ -1411,7 +1711,39 @@ int wmain(int argc, wchar_t **argv) {
 			std::this_thread::yield();
 			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		}
+		if (testmodeConfig.isEnabled) {
+			// spoof COINQUEUE with multiple entries for the same coin! I'm pretty sure that only the UPDATER thread reorders entries and the main loop simply POPs!
+			auto const referenceSetup = std::find_if(allcoins.begin(), allcoins.end(), [](auto&& coin) { return coin->coinname == testmodeConfig.roundReplay.coinName; });
 
+			if (referenceSetup == allcoins.end())
+			{
+				printToConsole(12, false, true, true, false, L"TestMode config error: coin %s not found in miner.conf", testmodeConfig.roundReplay.coinName.c_str());
+				system("pause > nul");
+				exit(-1);
+			}
+
+			// each round*test pair is a SEPARATE mining round that the testmode must execute
+			for(auto&& round : testmodeConfig.roundReplay.rounds)
+				for (auto&& test : round.tests)
+				{
+					auto newCoin = cloneCoinSetup(*referenceSetup);
+
+					newCoin->mining->height = round.height;
+
+					std::copy(round.signature.begin(), round.signature.end(), newCoin->mining->str_signature);
+
+					char sig[33];
+					size_t sigLen = xstr2strr(sig, 33, round.signature.c_str());
+					std::copy(sig, sig + 32, newCoin->mining->signature);
+
+					newCoin->mining->baseTarget = round.baseTarget;
+
+					newCoin->testround1 = &round;
+					newCoin->testround2 = &test;
+
+					queue.push_back(newCoin);
+				}
+		}
 
 		for (auto& coin : allcoins)
 			Log(L"%s height: %llu", coin->coinname.c_str(), getHeight(coin));
@@ -1472,6 +1804,9 @@ int wmain(int argc, wchar_t **argv) {
 			int oldThreadsRunning = -1;
 			double thread_time;
 
+			if(testmodeConfig.isEnabled)
+				Log(L"=== TestMode active ===");
+
 			std::wstring out = L"Coin queue: ";
 			for (auto& c : queue) {
 				out += c->coinname + L" (" + std::to_wstring(c->mining->height) + L")";
@@ -1511,7 +1846,9 @@ int wmain(int argc, wchar_t **argv) {
 
 			// Run worker threads
 			std::vector<std::string> roundDirectories;
-			for (size_t i = 0; i < miningCoin->mining->dirs.size(); i++)
+			// in offline test mode, we dont need parallel workers to read many plot files, it's one specific nonce/scoop generated on the fly
+			size_t workersNeeded = miningCoin->testround2->mode == t_roundreplay_round_test::RoundTestMode::RMT_OFFLINE ? 1 : miningCoin->mining->dirs.size();
+			for (size_t i = 0; i < workersNeeded; i++)
 			{
 				if (miningCoin->mining->dirs.at(i)->done) {
 					// This directory has already been processed. Skipping.
@@ -1603,6 +1940,10 @@ int wmain(int argc, wchar_t **argv) {
 					else if (!queue.empty()) {
 						Log(L"Next coin in queue.");
 						break;
+					}
+					else if (testmodeConfig.isEnabled) {
+						exit_flag = true;
+						continue;
 					}
 
 					if (use_wakeup)
@@ -1704,12 +2045,75 @@ int wmain(int argc, wchar_t **argv) {
 			}
 
 			// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
-			std::thread{ Csv_Submitted,  miningCoin, miningCoin->mining->currentHeight, miningCoin->mining->currentBaseTarget, 4398046511104 / 240 / miningCoin->mining->currentBaseTarget, thread_time, miningCoin->mining->state == DONE, miningCoin->mining->deadline }.detach();
+			if (!testmodeConfig.isEnabled)
+				std::thread{ Csv_Submitted,  miningCoin, miningCoin->mining->currentHeight, miningCoin->mining->currentBaseTarget, 4398046511104 / 240 / miningCoin->mining->currentBaseTarget, thread_time, miningCoin->mining->state == DONE, miningCoin->mining->deadline }.detach();
 
+			//TODO: why 'if not yet done'? where is it done? why only _32 here? why not all?
 			//prepare for next round if not yet done
 			if (!exit_flag && miningCoin->mining->state != DONE) memcpy(&local_32, &global_32, sizeof(global_32));
+
+			if (testmodeConfig.isEnabled)
+			{
+				bool anyDefined = false;
+				if (miningCoin->testround2->check_scoop.has_value()) anyDefined = true;
+				if (miningCoin->testround2->check_scoop_low.has_value()) anyDefined = true;
+				if (miningCoin->testround2->check_scoop_high.has_value()) anyDefined = true;
+				if (miningCoin->testround2->check_deadline.has_value()) anyDefined = true;
+
+				bool anyDefinedAndSkipped = true;
+				if (miningCoin->testround2->check_scoop.has_value() && !miningCoin->testround2->passed_scoop.has_value()) anyDefinedAndSkipped = false;
+				if (miningCoin->testround2->check_scoop_low.has_value() && !miningCoin->testround2->passed_scoop_low.has_value()) anyDefinedAndSkipped = false;
+				if (miningCoin->testround2->check_scoop_high.has_value() && !miningCoin->testround2->passed_scoop_high.has_value()) anyDefinedAndSkipped = false;
+				if (miningCoin->testround2->check_deadline.has_value() && !miningCoin->testround2->passed_deadline.has_value()) anyDefinedAndSkipped = false;
+
+				bool allDefinedHavePassed = true;
+				if (miningCoin->testround2->passed_scoop.has_value() && !miningCoin->testround2->passed_scoop.value()) allDefinedHavePassed = false;
+				if (miningCoin->testround2->passed_scoop_low.has_value() && !miningCoin->testround2->passed_scoop_low.value()) allDefinedHavePassed = false;
+				if (miningCoin->testround2->passed_scoop_high.has_value() && !miningCoin->testround2->passed_scoop_high.value()) allDefinedHavePassed = false;
+				if (miningCoin->testround2->passed_deadline.has_value() && !miningCoin->testround2->passed_deadline.value()) allDefinedHavePassed = false;
+
+				if (!anyDefined)
+				{
+					printToConsole(2, true, false, true, false, L"EMPTY");
+					Log(L"TESTMODE: TEST EMPTY: no checks for this round, height: %llu, gensig: %S, baseTarget: %llu, account: %llu, nonce: %llu",
+						miningCoin->testround1->height, miningCoin->testround1->signature.c_str(), miningCoin->testround1->baseTarget,
+						miningCoin->testround2->assume_account, miningCoin->testround2->assume_nonce);
+				}
+				else if (!allDefinedHavePassed)
+				{
+					printToConsole(12, true, false, true, false, L"FAILED");
+					Log(L"TESTMODE: TEST FAILED: some checks have FAILED for this round, height: %llu, gensig: %S, baseTarget: %llu, account: %llu, nonce: %llu",
+						miningCoin->testround1->height, miningCoin->testround1->signature.c_str(), miningCoin->testround1->baseTarget,
+						miningCoin->testround2->assume_account, miningCoin->testround2->assume_nonce);
+				}
+				else if (!anyDefinedAndSkipped)
+				{
+					printToConsole(12, true, false, true, false, L"PARTIAL");
+					Log(L"TESTMODE: TEST PARTIAL: some checks were skipped for this round, height: %llu, gensig: %S, baseTarget: %llu, account: %llu, nonce: %llu",
+						miningCoin->testround1->height, miningCoin->testround1->signature.c_str(), miningCoin->testround1->baseTarget,
+						miningCoin->testround2->assume_account, miningCoin->testround2->assume_nonce);
+				}
+				else
+				{
+					printToConsole(10, true, false, true, false, L"PASSED");
+					Log(L"TESTMODE: TEST PASSED: all checks have PASSED for this round, height: %llu, gensig: %S, baseTarget: %llu, account: %llu, nonce: %llu",
+						miningCoin->testround1->height, miningCoin->testround1->signature.c_str(), miningCoin->testround1->baseTarget,
+						miningCoin->testround2->assume_account, miningCoin->testround2->assume_nonce);
+				}
+			}
 		}
 	}
+
+	// after the last test, last status line is pending in console output writer
+	// and the closeMiner will bm_end() which will interrupt the console writer
+	// causing the last line to never show up.
+	// Sadly, currently there's no better way to flush it other than wait
+	if (testmodeConfig.isEnabled)
+	{
+		printToConsole(2, false, true, true, false, L"TestMode has finished all tasks, press any key.");
+		system("pause > nul");
+	}
+
 	closeMiner();
 	return 0;
 }
