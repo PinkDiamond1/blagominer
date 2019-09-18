@@ -248,7 +248,7 @@ void loadCoinConfig(Document const & document, std::string section, std::shared_
 	}
 }
 
-int load_config(wchar_t const *const filename)
+std::vector<char, heap_allocator<char>> load_config_file(wchar_t const *const filename)
 {
 	FILE * pFile;
 
@@ -273,13 +273,22 @@ int load_config(wchar_t const *const filename)
 	json_[bytesread] = 0;
 	guardPFile.reset();
 
+	return json_;
+}
+
+Document load_config_json(std::vector<char, heap_allocator<char>> const& json_)
+{
 	Document document;	// Default template parameter uses UTF8 and MemoryPoolAllocator.
 	if (document.Parse<kParseCommentsFlag>(json_.data()).HasParseError()) {
 		fprintf(stderr, "\nJSON format error (offset %u) check miner.conf\n%s\n", (unsigned)document.GetErrorOffset(), GetParseError_En(document.GetParseError())); //(offset %s  %s", (unsigned)document.GetErrorOffset(), (char*)document.GetParseError());
 		system("pause > nul");
 		exit(-1);
 	}
+	return document;
+}
 
+int load_config(Document const& document)
+{
 	if (document.IsObject())
 	{	// Document is a JSON value represents the root of DOM. Root can be either an object or array.
 
@@ -1481,7 +1490,9 @@ int wmain(int argc, wchar_t **argv) {
 		}
 		else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath.data(), L"miner.conf");
 
-		load_config(conf_filename.data());
+		auto buff = load_config_file(conf_filename.data());
+		auto doc = load_config_json(buff);
+		load_config(doc);
 	}
 
 	// load testmode config

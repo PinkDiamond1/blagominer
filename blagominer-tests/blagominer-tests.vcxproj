@@ -33,6 +33,7 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <ItemGroup>
+    <ClCompile Include="config.tests.cpp" />
     <ClCompile Include="crash.0000.curl_easy_cleanup-doublecleanup.tests.cpp" />
     <ClCompile Include="crash.0001.curl_easy_recv-badpointer.tests.cpp" />
     <ClCompile Include="deadlines.felix.cpp" />
