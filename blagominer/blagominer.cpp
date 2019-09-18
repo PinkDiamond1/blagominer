@@ -333,7 +333,9 @@ int load_config(Document const& document)
 
 		std::transform(coinConfigNodes.begin(), coinConfigNodes.end(), std::back_inserter(allcoins), [&](auto&& coinNodeName) {
 			std::wstring coinWideName(coinNodeName.begin() + 5, coinNodeName.end()); // +5 to skip "coin:" prefix
-			bool isBurst = coinNodeName.find("burst") || coinNodeName.find("Burst") || coinNodeName.find("BURST");
+			bool isBurst = coinNodeName.find("burst") != std::wstring::npos
+				|| coinNodeName.find("Burst") != std::wstring::npos
+				|| coinNodeName.find("BURST") != std::wstring::npos;
 
 			auto coin = std::make_shared<t_coin_info>();
 			init_mining_info(coin, coinWideName.c_str(), isBurst ? 0 : 1, isBurst ? 502000 : 0);
