@@ -1,6 +1,6 @@
 #pragma once
-
 #include "stdafx.h"
+
 #include <mutex>
 #include <array>
 #include <vector>

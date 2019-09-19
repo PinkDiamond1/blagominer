@@ -1,3 +1,5 @@
+#include "common-pragmas.h"
+
 /* $Id: sph_types.h 260 2011-07-21 01:02:38Z tp $ */
 /**
  * Basic type definitions.

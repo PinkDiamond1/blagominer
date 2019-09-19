@@ -1,3 +1,5 @@
+#include "common-pragmas.h"
+
 /* $Id: sph_shabal.h 175 2010-05-07 16:03:20Z tp $ */
 /**
  * Shabal interface. Shabal is a family of functions which differ by

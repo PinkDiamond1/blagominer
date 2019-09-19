@@ -1,4 +1,6 @@
 #pragma once
+#include "common-pragmas.h"
+
 #include <map>
 #include <string>
 #include <mutex>

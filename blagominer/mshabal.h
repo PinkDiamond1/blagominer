@@ -1,3 +1,5 @@
+#include "common-pragmas.h"
+
 /*
  * A parallel implementation of Shabal, for platforms with SSE2.
  *

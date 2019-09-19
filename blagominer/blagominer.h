@@ -1,9 +1,10 @@
 ﻿#pragma once
+#include "common.h"
+
 #include "InstructionSet.h"
 #include "bfs.h"
 #include "network.h"
 #include "shabal.h"
-#include "common.h"
 #include "filemonitor.h"
 #include "updateChecker.h"
 #include "elevate.h"
