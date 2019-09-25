@@ -1,4 +1,5 @@
 #pragma once
+#include "common-pragmas.h"
 
 #pragma pack(1)
 struct BFSPlotFile

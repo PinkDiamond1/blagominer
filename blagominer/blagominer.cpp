@@ -248,7 +248,7 @@ void loadCoinConfig(Document const & document, std::string section, std::shared_
 	}
 }
 
-int load_config(wchar_t const *const filename)
+std::vector<char, heap_allocator<char>> load_config_file(wchar_t const *const filename)
 {
 	FILE * pFile;
 
@@ -273,13 +273,22 @@ int load_config(wchar_t const *const filename)
 	json_[bytesread] = 0;
 	guardPFile.reset();
 
+	return json_;
+}
+
+Document load_config_json(std::vector<char, heap_allocator<char>> const& json_)
+{
 	Document document;	// Default template parameter uses UTF8 and MemoryPoolAllocator.
 	if (document.Parse<kParseCommentsFlag>(json_.data()).HasParseError()) {
 		fprintf(stderr, "\nJSON format error (offset %u) check miner.conf\n%s\n", (unsigned)document.GetErrorOffset(), GetParseError_En(document.GetParseError())); //(offset %s  %s", (unsigned)document.GetErrorOffset(), (char*)document.GetParseError());
 		system("pause > nul");
 		exit(-1);
 	}
+	return document;
+}
 
+int load_config(Document const& document)
+{
 	if (document.IsObject())
 	{	// Document is a JSON value represents the root of DOM. Root can be either an object or array.
 
@@ -324,7 +333,9 @@ int load_config(wchar_t const *const filename)
 
 		std::transform(coinConfigNodes.begin(), coinConfigNodes.end(), std::back_inserter(allcoins), [&](auto&& coinNodeName) {
 			std::wstring coinWideName(coinNodeName.begin() + 5, coinNodeName.end()); // +5 to skip "coin:" prefix
-			bool isBurst = coinNodeName.find("burst") || coinNodeName.find("Burst") || coinNodeName.find("BURST");
+			bool isBurst = coinNodeName.find("burst") != std::wstring::npos
+				|| coinNodeName.find("Burst") != std::wstring::npos
+				|| coinNodeName.find("BURST") != std::wstring::npos;
 
 			auto coin = std::make_shared<t_coin_info>();
 			init_mining_info(coin, coinWideName.c_str(), isBurst ? 0 : 1, isBurst ? 502000 : 0);
@@ -1481,7 +1492,9 @@ int wmain(int argc, wchar_t **argv) {
 		}
 		else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath.data(), L"miner.conf");
 
-		load_config(conf_filename.data());
+		auto buff = load_config_file(conf_filename.data());
+		auto doc = load_config_json(buff);
+		load_config(doc);
 	}
 
 	// load testmode config
@@ -1671,7 +1684,7 @@ int wmain(int argc, wchar_t **argv) {
 		}
 
 	if (proxyOnly) {
-		const std::wstring trailingSpace = std::wstring(94 - activecoins.size() * 4 - (activecoins.size() - 1), L' ');
+		const std::wstring trailingSpace = make_leftpad_for_networkstats(94, activecoins.size());
 		while (!exit_flag)
 		{
 			
@@ -1973,7 +1986,7 @@ int wmain(int argc, wchar_t **argv) {
 				}
 
 				if (miningCoin->mining->enable && round_size > 0) {
-					const std::wstring trailingSpace = std::wstring(21 - activecoins.size() * 4 - (activecoins.size() - 1), L' ');
+					const std::wstring trailingSpace = make_leftpad_for_networkstats(21, activecoins.size());
 					printToProgress(L"%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c %s%s",
 						(bytesRead * 4096 * 100 / round_size), sepChar,
 						(((double)bytesRead) / (256 * 1024 * 1024)), sepChar,
@@ -1983,7 +1996,7 @@ int wmain(int argc, wchar_t **argv) {
 						trailingSpace.c_str(), connQual.str().c_str());
 				}
 				else {
-					const std::wstring trailingSpace = std::wstring(94 - activecoins.size() * 4 - (activecoins.size() - 1), L' ');
+					const std::wstring trailingSpace = make_leftpad_for_networkstats(94, activecoins.size());
 					printToProgress(L"%s%s",
 						trailingSpace.c_str(), connQual.str().c_str());
 				}

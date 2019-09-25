@@ -1,14 +1,12 @@
 #pragma once
-#include "stdafx.h"
+#include "common.h"
+
 #include "logger.h"
 #include "loggerCsv.h"
 #include "error.h"
 #include "accounts.h"
-#include "common.h"
 #include "filemonitor.h"
 
-
-#pragma comment(lib,"Ws2_32.lib")
 
 #include "picohttpparser.h"
 

@@ -318,3 +318,14 @@ void boxCorrupted() {
 	box(win_corrupted, 0, 0);
 	wattroff(win_corrupted, COLOR_PAIR(4));
 }
+
+std::wstring make_filled_string(int nspaces, wchar_t filler)
+{
+	return std::wstring(max(0, nspaces), filler);
+}
+
+std::wstring make_leftpad_for_networkstats(int availablespace, int nactivecoins)
+{
+	const int remainingspace = availablespace - (nactivecoins * 4) - (nactivecoins - 1);
+	return make_filled_string(remainingspace, L' ');
+}

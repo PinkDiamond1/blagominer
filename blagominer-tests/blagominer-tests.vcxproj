@@ -33,6 +33,7 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <ItemGroup>
+    <ClCompile Include="config.tests.cpp" />
     <ClCompile Include="crash.0000.curl_easy_cleanup-doublecleanup.tests.cpp" />
     <ClCompile Include="crash.0001.curl_easy_recv-badpointer.tests.cpp" />
     <ClCompile Include="deadlines.felix.cpp" />
@@ -40,6 +41,7 @@
     <ClCompile Include="gensig.diskcoin.que.cpp" />
     <ClCompile Include="heapallocator.tests.cpp" />
     <ClCompile Include="hexstring.tests.cpp" />
+    <ClCompile Include="inout.tests.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="reference\burst\BurstMath.tests.cpp" />
     <ClCompile Include="test.cpp" />

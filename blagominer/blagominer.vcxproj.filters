@@ -96,6 +96,9 @@
     <ClInclude Include="reference\diskcoin\DiskcoinMath.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="common-pragmas.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

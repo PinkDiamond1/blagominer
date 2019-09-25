@@ -1,9 +1,10 @@
 ﻿#pragma once
+#include "common.h"
+
 #include "InstructionSet.h"
 #include "bfs.h"
 #include "network.h"
 #include "shabal.h"
-#include "common.h"
 #include "filemonitor.h"
 #include "updateChecker.h"
 #include "elevate.h"
@@ -21,3 +22,14 @@ extern bool use_debug;							// output debug information if true
 
 //headers
 size_t GetFiles(std::string str, std::vector <t_files> *p_files, bool* bfsDetected, bool forActualFileReading);
+
+void init_mining_info(std::shared_ptr<t_coin_info> coin, std::wstring name, size_t priority, unsigned long long poc2start);
+void init_logging_config();
+
+void loadCoinConfig(Document const & document, std::string section, std::shared_ptr<t_coin_info> coin);
+
+std::vector<char, heap_allocator<char>> load_config_file(wchar_t const *const filename);
+Document load_config_json(std::vector<char, heap_allocator<char>> const& json_);
+int load_config(Document const& document);
+
+// load_testmode_config

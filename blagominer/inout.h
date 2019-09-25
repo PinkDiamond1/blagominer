@@ -1,6 +1,6 @@
 #pragma once
-
 #include "common.h"
+
 #include <mutex>
 #include <list>
 #include <ctime>
@@ -127,3 +127,6 @@ void hideCorrupted();
 int bm_wmoveC(int line, int column);
 
 void boxCorrupted();
+
+std::wstring make_filled_string(int n, wchar_t filler);
+std::wstring make_leftpad_for_networkstats(int space, int coins);

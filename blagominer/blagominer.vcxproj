@@ -722,6 +722,7 @@
   <ItemGroup>
     <ClInclude Include="blagominer.h" />
     <ClInclude Include="bfs.h" />
+    <ClInclude Include="common-pragmas.h" />
     <ClInclude Include="elevate.h" />
     <ClInclude Include="error.h" />
     <ClInclude Include="accounts.h" />

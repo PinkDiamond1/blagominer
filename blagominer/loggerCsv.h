@@ -1,5 +1,4 @@
 #pragma once
-
 #include "common.h"
 
 void Csv_Init();

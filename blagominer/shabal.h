@@ -1,9 +1,8 @@
 #pragma once
-
 #include "blagominer.h"
+
 #include "sph_shabal.h"
 #include "mshabal.h"
-#include "common.h"
 
 
 //gobal shabal contexts, just created once
