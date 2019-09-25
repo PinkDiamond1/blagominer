@@ -321,7 +321,7 @@ void boxCorrupted() {
 
 std::wstring make_filled_string(int nspaces, wchar_t filler)
 {
-	return std::wstring(nspaces, filler);
+	return std::wstring(max(0, nspaces), filler);
 }
 
 std::wstring make_leftpad_for_networkstats(int availablespace, int nactivecoins)
