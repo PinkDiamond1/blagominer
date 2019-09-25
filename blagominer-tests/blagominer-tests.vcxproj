@@ -40,6 +40,7 @@
     <ClCompile Include="gensig.diskcoin.que.cpp" />
     <ClCompile Include="heapallocator.tests.cpp" />
     <ClCompile Include="hexstring.tests.cpp" />
+    <ClCompile Include="inout.tests.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="reference\burst\BurstMath.tests.cpp" />
     <ClCompile Include="test.cpp" />

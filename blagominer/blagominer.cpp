@@ -1671,7 +1671,7 @@ int wmain(int argc, wchar_t **argv) {
 		}
 
 	if (proxyOnly) {
-		const std::wstring trailingSpace = std::wstring(94 - activecoins.size() * 4 - (activecoins.size() - 1), L' ');
+		const std::wstring trailingSpace = make_leftpad_for_networkstats(94, activecoins.size());
 		while (!exit_flag)
 		{
 			
@@ -1973,7 +1973,7 @@ int wmain(int argc, wchar_t **argv) {
 				}
 
 				if (miningCoin->mining->enable && round_size > 0) {
-					const std::wstring trailingSpace = std::wstring(21 - activecoins.size() * 4 - (activecoins.size() - 1), L' ');
+					const std::wstring trailingSpace = make_leftpad_for_networkstats(21, activecoins.size());
 					printToProgress(L"%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c %s%s",
 						(bytesRead * 4096 * 100 / round_size), sepChar,
 						(((double)bytesRead) / (256 * 1024 * 1024)), sepChar,
@@ -1983,7 +1983,7 @@ int wmain(int argc, wchar_t **argv) {
 						trailingSpace.c_str(), connQual.str().c_str());
 				}
 				else {
-					const std::wstring trailingSpace = std::wstring(94 - activecoins.size() * 4 - (activecoins.size() - 1), L' ');
+					const std::wstring trailingSpace = make_leftpad_for_networkstats(94, activecoins.size());
 					printToProgress(L"%s%s",
 						trailingSpace.c_str(), connQual.str().c_str());
 				}
