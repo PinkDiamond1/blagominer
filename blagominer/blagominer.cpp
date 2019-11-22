@@ -15,6 +15,7 @@ std::thread updateChecker;
 const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
 
 t_logging loggingConfig;
+t_gui guiConfig;
 
 std::vector<std::shared_ptr<t_coin_info>> allcoins;
 std::vector<std::shared_ptr<t_coin_info>> coins;
@@ -63,6 +64,10 @@ void init_logging_config() {
 	loggingConfig.enableLogging = true;
 	loggingConfig.enableCsv = true;
 	loggingConfig.logAllGetMiningInfos = false;
+}
+
+void init_gui_config() {
+	guiConfig.disableGui = false;
 }
 
 void Gui_init()
@@ -316,6 +321,17 @@ int load_config(Document const& document)
 		Log(L"EnableCsv: %d", loggingConfig.enableCsv);
 
 		Log_init();
+
+
+		if (document.HasMember("GUI") && document["GUI"].IsObject())
+		{
+			Log(L"### Loading configuration for GUI ###");
+
+			const Value& gui = document["GUI"];
+
+			if (gui.HasMember("disable") && (gui["disable"].IsBool())) guiConfig.disableGui = gui["disable"].GetBool();
+		}
+		Log(L"disable: %d", guiConfig.disableGui);
 
 		Gui_init();
 
@@ -1356,6 +1372,7 @@ int wmain(int argc, wchar_t **argv) {
 
 	// Initialize configuration.
 	init_logging_config();
+	init_gui_config();
 
 	// TODO: below: cut that [1][2] argv crap and refactor it to proper position-agnostic param parsing
 

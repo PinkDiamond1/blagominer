@@ -95,6 +95,10 @@ struct t_directory_info {
 	std::vector<t_files> files;
 };
 
+struct t_gui {
+	bool disableGui;
+};
+
 struct t_logging {
 	bool enableLogging;
 	bool enableCsv;

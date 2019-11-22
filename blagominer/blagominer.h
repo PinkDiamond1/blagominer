@@ -25,6 +25,7 @@ size_t GetFiles(std::string str, std::vector <t_files> *p_files, bool* bfsDetect
 
 void init_mining_info(std::shared_ptr<t_coin_info> coin, std::wstring name, size_t priority, unsigned long long poc2start);
 void init_logging_config();
+void init_gui_config();
 
 void loadCoinConfig(Document const & document, std::string section, std::shared_ptr<t_coin_info> coin);
 
