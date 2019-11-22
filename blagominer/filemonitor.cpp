@@ -54,7 +54,7 @@ void increaseReadError(std::string file) {
 }
 
 void resetFileStats() {
-	if (!showCorruptedPlotFiles || !currentlyDisplayingCorruptedPlotFiles()) {
+	if (!showCorruptedPlotFiles || !gui->currentlyDisplayingCorruptedPlotFiles()) {
 		return;
 	}
 	std::lock_guard<std::mutex> lockGuard(mFileStats);
@@ -67,7 +67,7 @@ void printFileStats() {
 		return;
 	}
 	std::lock_guard<std::mutex> lockGuardFileStats(mFileStats);
-	std::lock_guard<std::mutex> lockGuardConsoleWindow(mConsoleWindow);
+	std::lock_guard<std::mutex> lockGuardConsoleWindow(gui->mConsoleWindow);
 	statsChanged = false;
 	int lineCount = 0;
 	for (auto& element : fileStats) {
@@ -76,10 +76,10 @@ void printFileStats() {
 		}
 	}
 	
-	if (lineCount == 0 && currentlyDisplayingCorruptedPlotFiles()) {
-		hideCorrupted();
-		resizeCorrupted(0);
-		refreshCorrupted();
+	if (lineCount == 0 && gui->currentlyDisplayingCorruptedPlotFiles()) {
+		gui->hideCorrupted();
+		gui->resizeCorrupted(0);
+		gui->refreshCorrupted();
 		return;
 	}
 	else if (lineCount == 0) {
@@ -90,40 +90,40 @@ void printFileStats() {
 	lineCount += 4;
 
 	if (lineCount != oldLineCount) {
-		clearCorrupted();
-		resizeCorrupted(lineCount);
+		gui->clearCorrupted();
+		gui->resizeCorrupted(lineCount);
 		oldLineCount = lineCount;
 	}
-	refreshCorrupted();
+	gui->refreshCorrupted();
 
 	lineCount = 1;
-	bm_wmoveC(lineCount++, 1);
-	bm_wprintwC("%s", header.c_str(), 0);
+	gui->bm_wmoveC(lineCount++, 1);
+	gui->bm_wprintwC("%s", header.c_str(), 0);
 	
 	for (auto& element : fileStats) {
 		if (element.second.conflictingDeadlines > 0 || element.second.readErrors > 0) {
-			bm_wattronC(14);
-			bm_wmoveC(lineCount, 1);
-			bm_wprintwC("%s %s", toStr(element.first, 46).c_str(), toStr(element.second.matchingDeadlines, 11).c_str(), 0);
+			gui->bm_wattronC(14);
+			gui->bm_wmoveC(lineCount, 1);
+			gui->bm_wprintwC("%s %s", toStr(element.first, 46).c_str(), toStr(element.second.matchingDeadlines, 11).c_str(), 0);
 			if (element.second.conflictingDeadlines > 0) {
-				bm_wattronC(4);
+				gui->bm_wattronC(4);
 			}
-			bm_wprintwC(" %s", toStr(element.second.conflictingDeadlines, 9).c_str(), 0);
-			bm_wattroffC(4);
-			bm_wattronC(14);
+			gui->bm_wprintwC(" %s", toStr(element.second.conflictingDeadlines, 9).c_str(), 0);
+			gui->bm_wattroffC(4);
+			gui->bm_wattronC(14);
 			if (element.second.readErrors > 0) {
-				bm_wattronC(4);
+				gui->bm_wattronC(4);
 			}
-			bm_wprintwC(" %s\n", toStr(element.second.readErrors, 9).c_str(), 0);
-			bm_wattroffC(4);
+			gui->bm_wprintwC(" %s\n", toStr(element.second.readErrors, 9).c_str(), 0);
+			gui->bm_wattroffC(4);
 			
 			++lineCount;
 		}
 	}
-	bm_wattroffC(14);
+	gui->bm_wattroffC(14);
 	
-	bm_wmoveC(lineCount, 1);
-	bm_wprintwC("Press 'f' to clear data.");
+	gui->bm_wmoveC(lineCount, 1);
+	gui->bm_wprintwC("Press 'f' to clear data.");
 
-	cropCorruptedIfNeeded(lineCount);
+	gui->cropCorruptedIfNeeded(lineCount);
 }

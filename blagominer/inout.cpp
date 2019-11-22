@@ -1,26 +1,7 @@
 ﻿#include "stdafx.h"
 #include "inout.h"
 
-short win_size_x = 96;
-short win_size_y = 60;
-int minimumWinMainHeight = 5;
-const short progress_lines = 3;
-const short new_version_lines = 3;
-WINDOW * win_main;
-WINDOW * win_progress;
-WINDOW * win_corrupted;
-WINDOW * win_new_version;
-
-std::mutex mConsoleQueue;
-std::mutex mProgressQueue;
-std::mutex mConsoleWindow;
-std::list<ConsoleOutput> consoleQueue;
-std::list<std::wstring> progressQueue;
-std::thread consoleWriter;
-std::thread progressWriter;
-bool interruptConsoleWriter = false;
-
-void _progressWriter() {
+void Output_Curses::_progressWriter() {
 	while (!interruptConsoleWriter) {
 		if (!progressQueue.empty()) {
 
@@ -47,7 +28,7 @@ void _progressWriter() {
 	}
 }
 
-void _consoleWriter() {
+void Output_Curses::_consoleWriter() {
 	while (!interruptConsoleWriter) {
 		if (!consoleQueue.empty()) {
 			ConsoleOutput consoleOutput;
@@ -111,37 +92,171 @@ void _consoleWriter() {
 	}
 }
 
-bool currentlyDisplayingCorruptedPlotFiles() {
+bool Output_Curses::currentlyDisplayingCorruptedPlotFiles() {
 	return getbegy(win_corrupted) >= 0;
 }
 
-bool currentlyDisplayingNewVersion() {
+bool Output_Curses::currentlyDisplayingNewVersion() {
 	return getbegy(win_new_version) >= 0;
 }
 
-int bm_wgetchMain() {
+int Output_Curses::bm_wgetchMain() {
 	return wgetch(win_main);
 }
 
 //Turn on color attribute
-int bm_wattronC(int color) {
+int Output_Curses::bm_wattronC(int color) {
 	return wattron(win_corrupted, COLOR_PAIR(color));
 }
 
 //Turn off color attribute
-int bm_wattroffC(int color) {
+int Output_Curses::bm_wattroffC(int color) {
 	return wattroff(win_corrupted, COLOR_PAIR(color));
 }
 
-int bm_wprintwC(const char * output, ...) {
+int Output_Curses::bm_wprintwC(const char * output, ...) {
 	va_list args;
 	va_start(args, output);
 	return vw_printw(win_corrupted, output, args);
 	va_end(args);
 }
 
+void Output_Curses::setupSize(short& x, short& y)
+{
+	if (x < 96) x = 96;
+	if (y < 20) y = 20;
+	win_size_x = x;
+	win_size_y = y;
+}
+
+static void handleReturn(BOOL success) {
+	if (!success) {
+		Log(L"FAILED with error %lu", GetLastError());
+	}
+}
+
+static void resizeConsole(SHORT newColumns, SHORT newRows) {
+	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+	CONSOLE_SCREEN_BUFFER_INFO csbi; // Hold Current Console Buffer Info 
+	BOOL bSuccess;
+	SMALL_RECT newWindowRect;         // Hold the New Console Size 
+	COORD currentWindowSize;
+
+	Log(L"GetConsoleScreenBufferInfo");
+	bSuccess = GetConsoleScreenBufferInfo(hConsole, &csbi);
+	handleReturn(bSuccess);
+	currentWindowSize.X = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+	currentWindowSize.Y = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+
+	Log(L"Current buffer size csbi.dwSize X: %hi, Y: %hi", csbi.dwSize.X, csbi.dwSize.Y);
+	Log(L"csbi.dwMaximumWindowSize X: %hi, Y: %hi", csbi.dwMaximumWindowSize.X, csbi.dwMaximumWindowSize.Y);
+	Log(L"currentWindowSize X: %hi, Y: %hi", currentWindowSize.X, currentWindowSize.Y);
+
+	// Get the Largest Size we can size the Console Window to 
+	COORD largestWindowSize = GetLargestConsoleWindowSize(hConsole);
+	Log(L"largestWindowSize X: %hi, Y: %hi", largestWindowSize.X, largestWindowSize.Y);
+
+	// Define the New Console Window Size and Scroll Position 
+	newWindowRect.Right = min(newColumns, largestWindowSize.X) - 1;
+	newWindowRect.Bottom = min(newRows, largestWindowSize.Y) - 1;
+	newWindowRect.Left = newWindowRect.Top = (SHORT)0;
+
+	Log(L"newWindowRect b: %hi, l: %hi, r: %hi, t: %hi", newWindowRect.Bottom, newWindowRect.Left, newWindowRect.Right, newWindowRect.Top);
+
+	// Define the New Console Buffer Size
+	COORD newBufferSize;
+	newBufferSize.X = min(newColumns, largestWindowSize.X);
+	newBufferSize.Y = min(newRows, largestWindowSize.Y);
+
+	Log(L"Resizing buffer (x: %hi, y: %hi).", newBufferSize.X, newBufferSize.Y);
+	Log(L"Resizing window (x: %hi, y: %hi).", newWindowRect.Right - newWindowRect.Left, newWindowRect.Bottom - newWindowRect.Top);
+
+
+	/*
+		Information from https://docs.microsoft.com/en-us/windows/console/window-and-screen-buffer-size
+
+		To change a screen buffer's size, use the SetConsoleScreenBufferSize function. This function
+		fails if either dimension of the specified size is less than the corresponding dimension of the
+		console's window.
+
+		To change the size or location of a screen buffer's window, use the SetConsoleWindowInfo function.
+		This function fails if the specified window-corner coordinates exceed the limits of the console
+		screen buffer or the screen. Changing the window size of the active screen buffer changes the
+		size of the console window displayed on the screen.
+
+	*/
+	while (true) {
+		if (currentWindowSize.X > newBufferSize.X || currentWindowSize.Y > newBufferSize.Y) {
+			Log(L"Current window size is larger than the new buffer size. Resizing window first.");
+			Log(L"SetConsoleWindowInfo srWindowRect b: %hi, l: %hi, r: %hi, t: %hi", newWindowRect.Bottom, newWindowRect.Left, newWindowRect.Right, newWindowRect.Top);
+			bSuccess = SetConsoleWindowInfo(hConsole, TRUE, &newWindowRect);
+			handleReturn(bSuccess);
+			//std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
+			Log(L"SetConsoleScreenBufferSize coordScreen X: %hi, Y: %hi", newBufferSize.X, newBufferSize.Y);
+			bSuccess = SetConsoleScreenBufferSize(hConsole, newBufferSize);
+			handleReturn(bSuccess);
+		}
+		else {
+			Log(L"SetConsoleScreenBufferSize coordScreen X: %hi, Y: %hi", newBufferSize.X, newBufferSize.Y);
+			bSuccess = SetConsoleScreenBufferSize(hConsole, newBufferSize);
+			handleReturn(bSuccess);
+			//std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
+			Log(L"SetConsoleWindowInfo srWindowRect b: %hi, l: %hi, r: %hi, t: %hi", newWindowRect.Bottom, newWindowRect.Left, newWindowRect.Right, newWindowRect.Top);
+			bSuccess = SetConsoleWindowInfo(hConsole, TRUE, &newWindowRect);
+			handleReturn(bSuccess);
+		}
+
+		HWND consoleWindow = GetConsoleWindow();
+
+		// Get the monitor that is displaying the window
+		HMONITOR monitor = MonitorFromWindow(consoleWindow, MONITOR_DEFAULTTONEAREST);
+
+		// Get the monitor's offset in virtual-screen coordinates
+		MONITORINFO monitorInfo;
+		monitorInfo.cbSize = sizeof(MONITORINFO);
+		GetMonitorInfoA(monitor, &monitorInfo);
+
+		RECT wSize;
+		GetWindowRect(consoleWindow, &wSize);
+		Log(L"Window Rect wSize b: %hi, l: %hi, r: %hi, t: %hi", wSize.bottom, wSize.left, wSize.right, wSize.top);
+		// Move window to top
+		Log(L"MoveWindow X: %ld, Y: %ld, w: %ld, h: %ld", wSize.left, monitorInfo.rcWork.top, wSize.right - wSize.left, wSize.bottom - wSize.top);
+		bSuccess = MoveWindow(consoleWindow, wSize.left, monitorInfo.rcWork.top, wSize.right - wSize.left, wSize.bottom - wSize.top, true);
+		handleReturn(bSuccess);
+
+		if (lockWindowSize) {
+			//Prevent resizing. Source: https://stackoverflow.com/a/47359526
+			SetWindowLong(consoleWindow, GWL_STYLE, GetWindowLong(consoleWindow, GWL_STYLE) & ~WS_MAXIMIZEBOX & ~WS_SIZEBOX);
+		}
+
+		Log(L"GetConsoleScreenBufferInfo");
+		bSuccess = GetConsoleScreenBufferInfo(hConsole, &csbi);
+		handleReturn(bSuccess);
+		currentWindowSize.X = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+		currentWindowSize.Y = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+		Log(L"New buffer size csbi.dwSize X: %hi, Y: %hi", csbi.dwSize.X, csbi.dwSize.Y);
+		Log(L"New window size X: %hi, Y: %hi", currentWindowSize.X, currentWindowSize.Y);
+
+		Log(L"Hiding scroll bars.");
+		bSuccess = ShowScrollBar(consoleWindow, SB_BOTH, FALSE);
+		handleReturn(bSuccess);
+
+		if (currentWindowSize.X != newBufferSize.X || currentWindowSize.Y != newBufferSize.Y) {
+			Log(L"Failed to resize window. Retrying.");
+		}
+		else {
+			break;
+		}
+
+	}
+
+	return;
+}
+
 // init screen
-void bm_init() {
+void Output_Curses::bm_init() {
+	resizeConsole(win_size_x, win_size_y);
+
 	initscr();
 	raw();
 	cbreak();		// don't use buffer for getch()
@@ -175,11 +290,11 @@ void bm_init() {
 	win_new_version = newwin(new_version_lines, COLS, -1, 0);
 	leaveok(win_corrupted, true);
 
-	consoleWriter = std::thread(_consoleWriter);
-	progressWriter = std::thread(_progressWriter);
+	consoleWriter = std::thread(&Output_Curses::_consoleWriter, this);
+	progressWriter = std::thread(&Output_Curses::_progressWriter, this);
 }
 
-void bm_end() {
+void Output_Curses::bm_end() {
 	interruptConsoleWriter = true;
 	if (consoleWriter.joinable())
 	{
@@ -191,13 +306,13 @@ void bm_end() {
 	}
 }
 
-void refreshCorrupted() {
+void Output_Curses::refreshCorrupted() {
 	if (currentlyDisplayingCorruptedPlotFiles()) {
 		wrefresh(win_corrupted);
 	}
 }
 
-void showNewVersion(std::string version) {
+void Output_Curses::showNewVersion(std::string version) {
 	std::lock_guard<std::mutex> lockGuardConsoleWindow(mConsoleWindow);
 	version = "New version available: " + version;
 	if (!currentlyDisplayingNewVersion()) {
@@ -243,7 +358,7 @@ void showNewVersion(std::string version) {
 	wrefresh(win_new_version);
 }
 
-void cropCorruptedIfNeeded(int lineCount) {
+void Output_Curses::cropCorruptedIfNeeded(int lineCount) {
 	int rowsCorrupted = getRowsCorrupted();
 	if (rowsCorrupted < lineCount) {
 		bm_wmoveC(rowsCorrupted - 3, 1);
@@ -257,7 +372,7 @@ void cropCorruptedIfNeeded(int lineCount) {
 	refreshCorrupted();
 }
 
-void resizeCorrupted(int lineCount) {
+void Output_Curses::resizeCorrupted(int lineCount) {
 	int winVerRow = 0;
 	if (currentlyDisplayingNewVersion()) {
 		winVerRow = getmaxy(win_new_version);
@@ -285,35 +400,35 @@ void resizeCorrupted(int lineCount) {
 	}
 }
 
-int getRowsCorrupted() {
+int Output_Curses::getRowsCorrupted() {
 	return getmaxy(win_corrupted);
 }
 
-void clearCorrupted() {
+void Output_Curses::clearCorrupted() {
 	if (currentlyDisplayingCorruptedPlotFiles()) {
 		mvwin(win_corrupted, -1, 0);
 		wclear(win_corrupted);
 	}
 }
-void clearCorruptedLine() {
+void Output_Curses::clearCorruptedLine() {
 	wclrtoeol(win_corrupted);
 }
-void clearNewVersion() {
+void Output_Curses::clearNewVersion() {
 	wclear(win_new_version);
 }
 
-void hideCorrupted() {
+void Output_Curses::hideCorrupted() {
 	if (currentlyDisplayingCorruptedPlotFiles()) {
 		win_corrupted = newwin(1, COLS, -1, 0);
 		leaveok(win_corrupted, true);
 	}
 }
 
-int bm_wmoveC(int line, int column) {
+int Output_Curses::bm_wmoveC(int line, int column) {
 	return wmove(win_corrupted, line, column);
 };
 
-void boxCorrupted() {
+void Output_Curses::boxCorrupted() {
 	wattron(win_corrupted, COLOR_PAIR(4));
 	box(win_corrupted, 0, 0);
 	wattroff(win_corrupted, COLOR_PAIR(4));

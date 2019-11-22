@@ -37,6 +37,8 @@ std::vector<std::string> paths_dir; // paths
 
 sph_shabal_context  local_32;
 
+std::unique_ptr<Output_Curses> gui;
+
 void init_mining_info(std::shared_ptr<t_coin_info> coin, std::wstring name, size_t priority, unsigned long long poc2start)
 {
 	coin->coinname = name;
@@ -61,6 +63,11 @@ void init_logging_config() {
 	loggingConfig.enableLogging = true;
 	loggingConfig.enableCsv = true;
 	loggingConfig.logAllGetMiningInfos = false;
+}
+
+void Gui_init()
+{
+	gui = std::make_unique<Output_Curses>();
 }
 
 void resetDirs(std::shared_ptr<t_coin_info> coinInfo) {
@@ -310,6 +317,9 @@ int load_config(Document const& document)
 
 		Log_init();
 
+		Gui_init();
+
+
 		if (document.HasMember("Paths") && document["Paths"].IsArray()) {
 			const Value& Paths = document["Paths"];			// Using a reference for consecutive access is handy and faster.
 			for (SizeType i = 0; i < Paths.Size(); i++)
@@ -396,13 +406,12 @@ int load_config(Document const& document)
 		if (document.HasMember("UseBoost") && (document["UseBoost"].IsBool())) use_boost = document["UseBoost"].GetBool();
 		Log(L"UseBoost: %d", use_boost);
 
-		if (document.HasMember("WinSizeX") && (document["WinSizeX"].IsUint())) win_size_x = (short)document["WinSizeX"].GetUint();
-		if (win_size_x < 96) win_size_x = 96;
-		Log(L"WinSizeX: %hi", win_size_x);
-
-		if (document.HasMember("WinSizeY") && (document["WinSizeY"].IsUint())) win_size_y = (short)document["WinSizeY"].GetUint();
-		if (win_size_y < 20) win_size_y = 20;
-		Log(L"WinSizeY: %hi", win_size_y);
+		short size_x, size_y;
+		if (document.HasMember("WinSizeX") && (document["WinSizeX"].IsUint())) size_x = (short)document["WinSizeX"].GetUint();
+		if (document.HasMember("WinSizeY") && (document["WinSizeY"].IsUint())) size_y = (short)document["WinSizeY"].GetUint();
+		gui->setupSize(size_x, size_y);
+		Log(L"WinSizeX: %hi", size_x);
+		Log(L"WinSizeY: %hi", size_y);
 
 		if (document.HasMember("LockWindowSize") && (document["LockWindowSize"].IsBool())) lockWindowSize = document["LockWindowSize"].GetBool();
 		Log(L"LockWindowSize: %d", lockWindowSize);
@@ -658,15 +667,15 @@ void GetCPUInfo(void)
 {
 	ULONGLONG  TotalMemoryInKilobytes = 0;
 
-	printToConsole(-1, false, false, false, false, L"CPU support: ");
-	if (InstructionSet::AES())   printToConsole(-1, false, false, false, false, L" AES ");
-	if (InstructionSet::SSE())   printToConsole(-1, false, false, false, false, L" SSE ");
-	if (InstructionSet::SSE2())  printToConsole(-1, false, false, false, false, L" SSE2 ");
-	if (InstructionSet::SSE3())  printToConsole(-1, false, false, false, false, L" SSE3 ");
-	if (InstructionSet::SSE42()) printToConsole(-1, false, false, false, false, L" SSE4.2 ");
-	if (InstructionSet::AVX())   printToConsole(-1, false, false, false, false, L" AVX ");
-	if (InstructionSet::AVX2())  printToConsole(-1, false, false, false, false, L" AVX2 ");
-	if (InstructionSet::AVX512F())  printToConsole(-1, false, false, false, false, L" AVX512F ");
+	gui->printToConsole(-1, false, false, false, false, L"CPU support: ");
+	if (InstructionSet::AES())   gui->printToConsole(-1, false, false, false, false, L" AES ");
+	if (InstructionSet::SSE())   gui->printToConsole(-1, false, false, false, false, L" SSE ");
+	if (InstructionSet::SSE2())  gui->printToConsole(-1, false, false, false, false, L" SSE2 ");
+	if (InstructionSet::SSE3())  gui->printToConsole(-1, false, false, false, false, L" SSE3 ");
+	if (InstructionSet::SSE42()) gui->printToConsole(-1, false, false, false, false, L" SSE4.2 ");
+	if (InstructionSet::AVX())   gui->printToConsole(-1, false, false, false, false, L" AVX ");
+	if (InstructionSet::AVX2())  gui->printToConsole(-1, false, false, false, false, L" AVX2 ");
+	if (InstructionSet::AVX512F())  gui->printToConsole(-1, false, false, false, false, L" AVX512F ");
 
 #ifndef __AVX__
 	// Checking for AVX requires 3 things:
@@ -686,19 +695,19 @@ void GetCPUInfo(void)
 		unsigned long long xcrFeatureMask = _xgetbv(_XCR_XFEATURE_ENABLED_MASK);
 		avxSupported = (xcrFeatureMask & 0x6) == 0x6;
 	}
-	if (avxSupported)	printToConsole(-1, false, false, false, false, L"     [recomend use AVX]", 0);
+	if (avxSupported)	gui->printToConsole(-1, false, false, false, false, L"     [recomend use AVX]", 0);
 #endif
-	if (InstructionSet::AVX2()) printToConsole(-1, false, false, false, false, L"     [recomend use AVX2]", 0);
-	if (InstructionSet::AVX512F()) printToConsole(-1, false, false, false, false, L"     [recomend use AVX512F]", 0);
+	if (InstructionSet::AVX2()) gui->printToConsole(-1, false, false, false, false, L"     [recomend use AVX2]", 0);
+	if (InstructionSet::AVX512F()) gui->printToConsole(-1, false, false, false, false, L"     [recomend use AVX512F]", 0);
 	SYSTEM_INFO sysinfo;
 	GetSystemInfo(&sysinfo);
-	printToConsole(-1, false, true, false, false, L"%S", InstructionSet::Vendor().c_str());
-	printToConsole(-1, false, false, false, false, L" %S [%u cores]", InstructionSet::Brand().c_str(), sysinfo.dwNumberOfProcessors);
+	gui->printToConsole(-1, false, true, false, false, L"%S", InstructionSet::Vendor().c_str());
+	gui->printToConsole(-1, false, false, false, false, L" %S [%u cores]", InstructionSet::Brand().c_str(), sysinfo.dwNumberOfProcessors);
 
 	if (GetPhysicallyInstalledSystemMemory(&TotalMemoryInKilobytes))
-		printToConsole(-1, false, true, false, false, L"RAM: %llu Mb", (unsigned long long)TotalMemoryInKilobytes / 1024, 0);
+		gui->printToConsole(-1, false, true, false, false, L"RAM: %llu Mb", (unsigned long long)TotalMemoryInKilobytes / 1024, 0);
 
-	printToConsole(-1, false, false, true, false, L"");
+	gui->printToConsole(-1, false, false, true, false, L"");
 }
 
 
@@ -717,7 +726,7 @@ void GetPass(std::shared_ptr<t_coin_info> coin, char const *const p_strFolderPat
 
 	if (pFile == nullptr)
 	{
-		printToConsole(12, false, false, true, false, L"Error: %s%s%s not found. File is needed for solo mining.", L"solosecret-", coin->coinname.c_str(), L".txt");
+		gui->printToConsole(12, false, false, true, false, L"Error: %s%s%s not found. File is needed for solo mining.", L"solosecret-", coin->coinname.c_str(), L".txt");
 		system("pause > nul");
 		exit(-1);
 	}
@@ -973,7 +982,7 @@ void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& currentQueue, st
 			Log(L"Coin %s already in queue. No action needed", newCoin->coinname.c_str());
 			inserted = true;
 			if (coinCurrentlyMining && coinCurrentlyMining->mining->state == MINING) {
-				printToConsole(5, true, false, false, true, L"[#%s|%s|Info    ] New block has been added to the queue.",
+				gui->printToConsole(5, true, false, false, true, L"[#%s|%s|Info    ] New block has been added to the queue.",
 					toWStr(newCoin->mining->height, 7).c_str(), toWStr(newCoin->coinname, 10).c_str(), 0);
 			}
 			break;
@@ -984,7 +993,7 @@ void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& currentQueue, st
 		if (coinCurrentlyMining && coinCurrentlyMining->mining->state == MINING &&
 			newCoin != coinCurrentlyMining &&
 			newCoin->mining->priority >= coinCurrentlyMining->mining->priority) {
-			printToConsole(5, true, false, false, true, L"[#%s|%s|Info    ] New block has been added to the end of the queue.",
+			gui->printToConsole(5, true, false, false, true, L"[#%s|%s|Info    ] New block has been added to the end of the queue.",
 				toWStr(newCoin->mining->height, 7).c_str(), toWStr(newCoin->coinname, 10).c_str(), 0);
 		}
 		currentQueue.push_back(newCoin);
@@ -1057,7 +1066,7 @@ void handleProxyOnly(std::shared_ptr<t_coin_info> coin) {
 			Log(L"Signature for %s changed.", coin->coinname.c_str());
 			Log(L"Won't add %s to the queue. Proxy only.", coin->coinname.c_str());
 			updateOldSignature(coin);
-			printToConsole(5, true, true, false, true, L"[#%s|%s|Info    ] New block.",
+			gui->printToConsole(5, true, true, false, true, L"[#%s|%s|Info    ] New block.",
 				toWStr(coin->mining->height, 7).c_str(), toWStr(coin->coinname, 10).c_str(), 0);
 			
 			// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
@@ -1138,7 +1147,7 @@ unsigned long long getPlotFilesSize(std::vector<std::string>& directories, bool 
 			all_files.push_back(*it);
 		}
 		if (log) {
-			printToConsole(-1, false, false, true, false, L"%S\tfiles: %4u\t size: %7llu GiB",
+			gui->printToConsole(-1, false, false, true, false, L"%S\tfiles: %4u\t size: %7llu GiB",
 				(char*)iter->c_str(), (unsigned)files.size(), tot_size / 1024 / 1024 / 1024, 0);
 		}
 		size += tot_size;
@@ -1162,130 +1171,6 @@ unsigned long long getPlotFilesSize(std::vector<std::shared_ptr<t_directory_info
 		}
 	}
 	return size;
-}
-
-void handleReturn(BOOL success) {
-	if (!success) {
-		Log(L"FAILED with error %lu", GetLastError());
-	}
-}
-
-static void resizeConsole(SHORT newColumns, SHORT newRows) {
-	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-	CONSOLE_SCREEN_BUFFER_INFO csbi; // Hold Current Console Buffer Info 
-	BOOL bSuccess;
-	SMALL_RECT newWindowRect;         // Hold the New Console Size 
-	COORD currentWindowSize;
-	
-	Log(L"GetConsoleScreenBufferInfo");
-	bSuccess = GetConsoleScreenBufferInfo(hConsole, &csbi);
-	handleReturn(bSuccess);
-	currentWindowSize.X = csbi.srWindow.Right - csbi.srWindow.Left + 1;
-	currentWindowSize.Y = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
-	
-	Log(L"Current buffer size csbi.dwSize X: %hi, Y: %hi", csbi.dwSize.X, csbi.dwSize.Y);
-	Log(L"csbi.dwMaximumWindowSize X: %hi, Y: %hi", csbi.dwMaximumWindowSize.X, csbi.dwMaximumWindowSize.Y);
-	Log(L"currentWindowSize X: %hi, Y: %hi", currentWindowSize.X, currentWindowSize.Y);
-
-	// Get the Largest Size we can size the Console Window to 
-	COORD largestWindowSize = GetLargestConsoleWindowSize(hConsole);
-	Log(L"largestWindowSize X: %hi, Y: %hi", largestWindowSize.X, largestWindowSize.Y);
-
-	// Define the New Console Window Size and Scroll Position 
-	newWindowRect.Right = min(newColumns, largestWindowSize.X) - 1;
-	newWindowRect.Bottom = min(newRows, largestWindowSize.Y) - 1;
-	newWindowRect.Left = newWindowRect.Top = (SHORT)0;
-
-	Log(L"newWindowRect b: %hi, l: %hi, r: %hi, t: %hi", newWindowRect.Bottom, newWindowRect.Left, newWindowRect.Right, newWindowRect.Top);
-
-	// Define the New Console Buffer Size
-	COORD newBufferSize;
-	newBufferSize.X = min(newColumns, largestWindowSize.X);
-	newBufferSize.Y = min(newRows, largestWindowSize.Y);
-
-	Log(L"Resizing buffer (x: %hi, y: %hi).", newBufferSize.X, newBufferSize.Y);
-	Log(L"Resizing window (x: %hi, y: %hi).", newWindowRect.Right - newWindowRect.Left, newWindowRect.Bottom - newWindowRect.Top);
-
-
-	/*
-		Information from https://docs.microsoft.com/en-us/windows/console/window-and-screen-buffer-size
-
-		To change a screen buffer's size, use the SetConsoleScreenBufferSize function. This function
-		fails if either dimension of the specified size is less than the corresponding dimension of the
-		console's window.
-
-		To change the size or location of a screen buffer's window, use the SetConsoleWindowInfo function.
-		This function fails if the specified window-corner coordinates exceed the limits of the console
-		screen buffer or the screen. Changing the window size of the active screen buffer changes the
-		size of the console window displayed on the screen.	
-	
-	*/
-	while (true) {
-		if (currentWindowSize.X > newBufferSize.X || currentWindowSize.Y > newBufferSize.Y) {
-			Log(L"Current window size is larger than the new buffer size. Resizing window first.");
-			Log(L"SetConsoleWindowInfo srWindowRect b: %hi, l: %hi, r: %hi, t: %hi", newWindowRect.Bottom, newWindowRect.Left, newWindowRect.Right, newWindowRect.Top);
-			bSuccess = SetConsoleWindowInfo(hConsole, TRUE, &newWindowRect);
-			handleReturn(bSuccess);
-			//std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
-			Log(L"SetConsoleScreenBufferSize coordScreen X: %hi, Y: %hi", newBufferSize.X, newBufferSize.Y);
-			bSuccess = SetConsoleScreenBufferSize(hConsole, newBufferSize);
-			handleReturn(bSuccess);
-		}
-		else {
-			Log(L"SetConsoleScreenBufferSize coordScreen X: %hi, Y: %hi", newBufferSize.X, newBufferSize.Y);
-			bSuccess = SetConsoleScreenBufferSize(hConsole, newBufferSize);
-			handleReturn(bSuccess);
-			//std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
-			Log(L"SetConsoleWindowInfo srWindowRect b: %hi, l: %hi, r: %hi, t: %hi", newWindowRect.Bottom, newWindowRect.Left, newWindowRect.Right, newWindowRect.Top);
-			bSuccess = SetConsoleWindowInfo(hConsole, TRUE, &newWindowRect);
-			handleReturn(bSuccess);
-		}
-
-		HWND consoleWindow = GetConsoleWindow();
-
-		// Get the monitor that is displaying the window
-		HMONITOR monitor = MonitorFromWindow(consoleWindow, MONITOR_DEFAULTTONEAREST);
-
-		// Get the monitor's offset in virtual-screen coordinates
-		MONITORINFO monitorInfo;
-		monitorInfo.cbSize = sizeof(MONITORINFO);
-		GetMonitorInfoA(monitor, &monitorInfo);
-
-		RECT wSize;
-		GetWindowRect(consoleWindow, &wSize);
-		Log(L"Window Rect wSize b: %hi, l: %hi, r: %hi, t: %hi", wSize.bottom, wSize.left, wSize.right, wSize.top);
-		// Move window to top
-		Log(L"MoveWindow X: %ld, Y: %ld, w: %ld, h: %ld", wSize.left, monitorInfo.rcWork.top, wSize.right - wSize.left, wSize.bottom - wSize.top);
-		bSuccess = MoveWindow(consoleWindow, wSize.left, monitorInfo.rcWork.top, wSize.right - wSize.left, wSize.bottom - wSize.top, true);
-		handleReturn(bSuccess);
-
-		if (lockWindowSize) {
-			//Prevent resizing. Source: https://stackoverflow.com/a/47359526
-			SetWindowLong(consoleWindow, GWL_STYLE, GetWindowLong(consoleWindow, GWL_STYLE) & ~WS_MAXIMIZEBOX & ~WS_SIZEBOX);
-		}
-
-		Log(L"GetConsoleScreenBufferInfo");
-		bSuccess = GetConsoleScreenBufferInfo(hConsole, &csbi);
-		handleReturn(bSuccess);
-		currentWindowSize.X = csbi.srWindow.Right - csbi.srWindow.Left + 1;
-		currentWindowSize.Y = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
-		Log(L"New buffer size csbi.dwSize X: %hi, Y: %hi", csbi.dwSize.X, csbi.dwSize.Y);
-		Log(L"New window size X: %hi, Y: %hi", currentWindowSize.X, currentWindowSize.Y);
-
-		Log(L"Hiding scroll bars.");
-		bSuccess = ShowScrollBar(consoleWindow, SB_BOTH, FALSE);
-		handleReturn(bSuccess);
-
-		if (currentWindowSize.X != newBufferSize.X || currentWindowSize.Y != newBufferSize.Y) {
-			Log(L"Failed to resize window. Retrying.");
-		}
-		else {
-			break;
-		}
-
-	}
-
-	return;
 }
 
 void closeMiner() {
@@ -1350,7 +1235,7 @@ void closeMiner() {
 	WSACleanup();
 	Log(L"exit");
 	Log_end();
-	bm_end();
+	gui->bm_end();
 
 	worker.~map();
 	worker_progress.~map();
@@ -1405,13 +1290,13 @@ void initMiningOrProxy(std::shared_ptr<t_coin_info> coin)
 			std::vector<char> updaterip(50); // so 50 here is overallocated for no real gain
 
 			hostname_to_ip(coin->network->nodeaddr.c_str(), nodeip.data());
-			printToConsole(-1, false, false, true, false, L"%s pool address    %S (ip %S:%S) %S", coin->coinname.c_str(),
+			gui->printToConsole(-1, false, false, true, false, L"%s pool address    %S (ip %S:%S) %S", coin->coinname.c_str(),
 				coin->network->nodeaddr.c_str(), nodeip.data(), coin->network->nodeport.c_str(), ((coin->network->noderoot.length() ? "on /" : "") + coin->network->noderoot).c_str());
 
 			// TODO: why this special condition is here? why there is none for nodeaddr?
 			if (coin->network->updateraddr.length() > 3)
 				hostname_to_ip(coin->network->updateraddr.c_str(), updaterip.data());
-			printToConsole(-1, false, false, true, false, L"%s updater address %S (ip %S:%S) %S", coin->coinname.c_str(),
+			gui->printToConsole(-1, false, false, true, false, L"%s updater address %S (ip %S:%S) %S", coin->coinname.c_str(),
 				coin->network->updateraddr.c_str(), updaterip.data(), coin->network->updaterport.c_str(), ((coin->network->updaterroot.length() ? "on /" : "") + coin->network->updaterroot).c_str());
 		}
 
@@ -1546,24 +1431,23 @@ int wmain(int argc, wchar_t **argv) {
 	Log(L"Miner path: %S", p_minerPath.data());
 	Log(L"Miner process elevation: %S", IsElevated() ? "active" : "inactive");
 
-	resizeConsole(win_size_x, win_size_y);
-	
-	bm_init();
-	printToConsole(12, false, false, true, false, L"PoC multi miner, %s %s", version.c_str(), IsElevated() ? L"(elevated)" : L"(nonelevated)");
-	printToConsole(4, false, false, true, false, L"Programming: dcct (Linux) & Blago (Windows)");
-	printToConsole(4, false, false, true, false, L"POC2 mod: Quibus & Johnny (5/2018)");
-	printToConsole(4, false, false, true, false, L"Dual mining mod: andz (2/2019)");
-	printToConsole(4, false, false, true, false, L"HTTPS and patches: quetzalcoatl (6/2019)");
-	printToConsole(4, false, false, true, false, L"NTFS optimization: quetzalcoatl (6/2019)");
-	printToConsole(4, false, false, true, false, L"Multi mining mod: quetzalcoatl (7/2019)");
-	printToConsole(4, false, false, true, false, L"Test mode option: quetzalcoatl (8/2019)");
+	gui->bm_init();
+
+	gui->printToConsole(12, false, false, true, false, L"PoC multi miner, %s %s", version.c_str(), IsElevated() ? L"(elevated)" : L"(nonelevated)");
+	gui->printToConsole(4, false, false, true, false, L"Programming: dcct (Linux) & Blago (Windows)");
+	gui->printToConsole(4, false, false, true, false, L"POC2 mod: Quibus & Johnny (5/2018)");
+	gui->printToConsole(4, false, false, true, false, L"Dual mining mod: andz (2/2019)");
+	gui->printToConsole(4, false, false, true, false, L"HTTPS and patches: quetzalcoatl (6/2019)");
+	gui->printToConsole(4, false, false, true, false, L"NTFS optimization: quetzalcoatl (6/2019)");
+	gui->printToConsole(4, false, false, true, false, L"Multi mining mod: quetzalcoatl (7/2019)");
+	gui->printToConsole(4, false, false, true, false, L"Test mode option: quetzalcoatl (8/2019)");
 
 	GetCPUInfo();
 
 	std::vector<std::shared_ptr<t_coin_info>> activecoins;
 	std::copy_if(allcoins.begin(), allcoins.end(), std::back_inserter(activecoins), [](auto&& it) { return it->network->enable_proxy || it->mining->enable; });
 	if (activecoins.size() == 0) {
-		printToConsole(12, false, false, true, false, L"Mining and proxies are disabled for all coins. Please check your configuration.");
+		gui->printToConsole(12, false, false, true, false, L"Mining and proxies are disabled for all coins. Please check your configuration.");
 		system("pause > nul");
 		exit(-1);
 	}
@@ -1579,7 +1463,7 @@ int wmain(int argc, wchar_t **argv) {
 	WSADATA wsaData;
 
 	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-		printToConsole(-1, false, false, true, false, L"WSAStartup failed");
+		gui->printToConsole(-1, false, false, true, false, L"WSAStartup failed");
 		system("pause > nul");
 		exit(-1);
 	}
@@ -1588,7 +1472,7 @@ int wmain(int argc, wchar_t **argv) {
 		initMiningOrProxy(coin);
 	
 	// File info
-	printToConsole(15, false, false, true, false, L"Using plots:");
+	gui->printToConsole(15, false, false, true, false, L"Using plots:");
 	
 	bool bfsDetected = false;
 	std::vector<t_files> all_files;
@@ -1596,28 +1480,28 @@ int wmain(int argc, wchar_t **argv) {
 
 	if (bfsDetected && !IsElevated()) {
 		Log(L"BFS path detected and elevation is missing, attempting to elevate");
-		printToConsole(12, false, true, true, false, L"BFS path detected and elevation is missing, attempting to elevate.");
+		gui->printToConsole(12, false, true, true, false, L"BFS path detected and elevation is missing, attempting to elevate.");
 		if (RestartWithElevation(argc, argv)) {
 			Log(L"Elevation succeeded. New process will takeover. Exiting.");
-			printToConsole(12, false, true, true, false, L"Elevation succeeded. New process will takeover. Exiting.");
+			gui->printToConsole(12, false, true, true, false, L"Elevation succeeded. New process will takeover. Exiting.");
 			exit(0);
 		}
 
 		Log(L"Elevation failed. BFS plots cannot be accessed and will be ignored.");
-		printToConsole(12, false, true, true, false, L"Elevation failed. BFS plots cannot be accessed and will be ignored.");
+		gui->printToConsole(12, false, true, true, false, L"Elevation failed. BFS plots cannot be accessed and will be ignored.");
 	}
 
-	printToConsole(15, false, false, true, false, L"TOTAL: %llu GiB (%llu TiB)",
+	gui->printToConsole(15, false, false, true, false, L"TOTAL: %llu GiB (%llu TiB)",
 		total_size / 1024 / 1024 / 1024, total_size / 1024 / 1024 / 1024 / 1024);
 	
 	if (total_size == 0 && miningcoins.size() > 0) {
-		printToConsole(12, false, true, true, false,
+		gui->printToConsole(12, false, true, true, false,
 			L"Plot files not found...please check the \"PATHS\" parameter in your config file.");
 		system("pause > nul");
 		exit(-1);
 	}
 	else if (total_size == 0) {
-		printToConsole(12, false, true, true, false, L"\nNo plot files found.");
+		gui->printToConsole(12, false, true, true, false, L"\nNo plot files found.");
 	}
 
 	// Check overlapped plots
@@ -1626,13 +1510,13 @@ int wmain(int argc, wchar_t **argv) {
 			if (all_files[cy].Key == all_files[cx].Key)
 				if (all_files[cy].StartNonce >= all_files[cx].StartNonce) {
 					if (all_files[cy].StartNonce < all_files[cx].StartNonce + all_files[cx].Nonces) {
-						printToConsole(12, false, true, true, false, L"WARNING: %S%S and \n%S%S are overlapped",
+						gui->printToConsole(12, false, true, true, false, L"WARNING: %S%S and \n%S%S are overlapped",
 							all_files[cx].Path.c_str(), all_files[cx].Name.c_str(), all_files[cy].Path.c_str(), all_files[cy].Name.c_str());
 					}
 				}
 				else
 					if (all_files[cy].StartNonce + all_files[cy].Nonces > all_files[cx].StartNonce) {
-						printToConsole(12, false, true, true, false, L"WARNING: %S%S and \n%S%S are overlapped",
+						gui->printToConsole(12, false, true, true, false, L"WARNING: %S%S and \n%S%S are overlapped",
 							all_files[cx].Path.c_str(), all_files[cx].Name.c_str(), all_files[cy].Path.c_str(), all_files[cy].Name.c_str());
 					}
 		}
@@ -1641,13 +1525,13 @@ int wmain(int argc, wchar_t **argv) {
 
 	for(auto& coin : allcoins)
 		if (coin->network->submitTimeout < 1000) {
-			printToConsole(8, false, true, false, true, L"Timeout for %s deadline submissions is set to %u ms, which is a low value.", coin->coinname.c_str(), coin->network->submitTimeout);
+			gui->printToConsole(8, false, true, false, true, L"Timeout for %s deadline submissions is set to %u ms, which is a low value.", coin->coinname.c_str(), coin->network->submitTimeout);
 		}
 
 	proxyOnly = miningcoins.size() == 0 && proxycoins.size() > 0;
 	if (proxyOnly) {
 		Log(L"Running as proxy only.");
-		printToConsole(8, false, true, false, true, L"Running as proxy only.");
+		gui->printToConsole(8, false, true, false, true, L"Running as proxy only.");
 	}
 
 	// Run Proxy
@@ -1656,7 +1540,7 @@ int wmain(int argc, wchar_t **argv) {
 		if (coin->network->enable_proxy && !testmodeConfig.isEnabled)
 		{
 			coin->proxyThread = std::thread(proxy_i, coin);
-			printToConsole(25, false, false, false, true, L"%s proxy thread started", coin->coinname.c_str());
+			gui->printToConsole(25, false, false, false, true, L"%s proxy thread started", coin->coinname.c_str());
 		}
 
 	// Run version checker
@@ -1669,7 +1553,7 @@ int wmain(int argc, wchar_t **argv) {
 		if ((coin->mining->enable || coin->network->enable_proxy) && !testmodeConfig.isEnabled)
 		{
 			coin->updaterThread = std::thread(updater_i, coin);
-			printToConsole(25, false, false, false, true, L"%s updater thread started", coin->coinname.c_str());
+			gui->printToConsole(25, false, false, false, true, L"%s updater thread started", coin->coinname.c_str());
 		}
 
 	std::vector<std::shared_ptr<t_coin_info>> queue;
@@ -1680,7 +1564,7 @@ int wmain(int argc, wchar_t **argv) {
 		if (!coin->mining->enable && coin->network->enable_proxy && !testmodeConfig.isEnabled)
 		{
 			coin->proxyOnlyThread = std::thread(handleProxyOnly, coin);
-			printToConsole(25, false, false, false, true, L"%s proxy-only thread started", coin->coinname.c_str());
+			gui->printToConsole(25, false, false, false, true, L"%s proxy-only thread started", coin->coinname.c_str());
 		}
 
 	if (proxyOnly) {
@@ -1688,7 +1572,7 @@ int wmain(int argc, wchar_t **argv) {
 		while (!exit_flag)
 		{
 			
-			switch (bm_wgetchMain())
+			switch (gui->bm_wgetchMain())
 			{
 			case 'q':
 				exit_flag = true;
@@ -1703,7 +1587,7 @@ int wmain(int argc, wchar_t **argv) {
 				connQual << std::setw(3) << getNetworkQuality(coin) << L'%';
 				pastfirst = true;
 			}
-			printToProgress(L"%s%s",
+			gui->printToProgress(L"%s%s",
 				trailingSpace.c_str(), connQual.str().c_str());
 
 			std::this_thread::yield();
@@ -1730,7 +1614,7 @@ int wmain(int argc, wchar_t **argv) {
 
 			if (referenceSetup == allcoins.end())
 			{
-				printToConsole(12, false, true, true, false, L"TestMode config error: coin %s not found in miner.conf", testmodeConfig.roundReplay.coinName.c_str());
+				gui->printToConsole(12, false, true, true, false, L"TestMode config error: coin %s not found in miner.conf", testmodeConfig.roundReplay.coinName.c_str());
 				system("pause > nul");
 				exit(-1);
 			}
@@ -1836,7 +1720,7 @@ int wmain(int argc, wchar_t **argv) {
 			// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
 			if (miningCoin->mining->enable && miningCoin->mining->state == INTERRUPTED) {
 				Log(L"------------------------    Continuing %s block: %llu", miningCoin->coinname.c_str(), miningCoin->mining->currentHeight);
-				printToConsole(5, true, true, false, true, L"[#%s|%s|Continue] Base Target %s %c Net Diff %s TiB %c PoC%i",
+				gui->printToConsole(5, true, true, false, true, L"[#%s|%s|Continue] Base Target %s %c Net Diff %s TiB %c PoC%i",
 					toWStr(miningCoin->mining->currentHeight, 7).c_str(),
 					toWStr(miningCoin->coinname, 10).c_str(),
 					toWStr(miningCoin->mining->currentBaseTarget, 7).c_str(), sepChar,
@@ -1846,7 +1730,7 @@ int wmain(int argc, wchar_t **argv) {
 			// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
 			else if (miningCoin->mining->enable) {
 				Log(L"------------------------    New %s block: %llu", miningCoin->coinname.c_str(), miningCoin->mining->currentHeight);
-				printToConsole(25, true, true, false, true, L"[#%s|%s|Start   ] Base Target %s %c Net Diff %s TiB %c PoC%i",
+				gui->printToConsole(25, true, true, false, true, L"[#%s|%s|Start   ] Base Target %s %c Net Diff %s TiB %c PoC%i",
 					toWStr(miningCoin->mining->currentHeight, 7).c_str(),
 					toWStr(miningCoin->coinname, 10).c_str(),
 					toWStr(miningCoin->mining->currentBaseTarget, 7).c_str(), sepChar,
@@ -1889,7 +1773,7 @@ int wmain(int argc, wchar_t **argv) {
 			// Wait until signature changed or exit
 			while (!exit_flag && (!haveReceivedNewMiningInfo(coins) || !needToInterruptMining(coins, miningCoin, queue)))
 			{
-				switch (bm_wgetchMain())
+				switch (gui->bm_wgetchMain())
 				{
 				case 'q':
 					exit_flag = true;
@@ -1944,7 +1828,7 @@ int wmain(int argc, wchar_t **argv) {
 							Log(L"Total round time: %.1f seconds", thread_time);
 							if (use_debug)
 							{
-								printToConsole(7, true, false, true, false, L"Total round time: %.1f sec", thread_time);
+								gui->printToConsole(7, true, false, true, false, L"Total round time: %.1f sec", thread_time);
 							}
 						}
 						//prepare
@@ -1969,7 +1853,7 @@ int wmain(int argc, wchar_t **argv) {
 							for (size_t i = 0; i < paths_dir.size(); i++)		GetFiles(paths_dir[i], &tmp_files, &dummyvar, false);
 							if (use_debug)
 							{
-								printToConsole(7, true, false, true, false, L"HDD, WAKE UP !");
+								gui->printToConsole(7, true, false, true, false, L"HDD, WAKE UP !");
 							}
 							end_threads_time = curr_time;
 						}
@@ -1987,7 +1871,7 @@ int wmain(int argc, wchar_t **argv) {
 
 				if (miningCoin->mining->enable && round_size > 0) {
 					const std::wstring trailingSpace = make_leftpad_for_networkstats(21, activecoins.size());
-					printToProgress(L"%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c %s%s",
+					gui->printToProgress(L"%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c %s%s",
 						(bytesRead * 4096 * 100 / round_size), sepChar,
 						(((double)bytesRead) / (256 * 1024 * 1024)), sepChar,
 						thread_time, sepChar,
@@ -1997,7 +1881,7 @@ int wmain(int argc, wchar_t **argv) {
 				}
 				else {
 					const std::wstring trailingSpace = make_leftpad_for_networkstats(94, activecoins.size());
-					printToProgress(L"%s%s",
+					gui->printToProgress(L"%s%s",
 						trailingSpace.c_str(), connQual.str().c_str());
 				}
 				
@@ -2038,7 +1922,7 @@ int wmain(int argc, wchar_t **argv) {
 						Log(L"Total round time: %.1f seconds", thread_time);
 						if (use_debug)
 						{
-							printToConsole(7, true, false, true, false, L"Total round time: %.1f sec", thread_time);
+							gui->printToConsole(7, true, false, true, false, L"Total round time: %.1f sec", thread_time);
 						}
 					}
 					//prepare
@@ -2047,7 +1931,7 @@ int wmain(int argc, wchar_t **argv) {
 				else {
 					miningCoin->mining->state = INTERRUPTED;
 					Log(L"Mining %s has been interrupted by a coin with higher priority.", miningCoin->coinname.c_str());
-					printToConsole(8, true, false, false, true, L"[#%s|%s|Info    ] Mining has been interrupted by another coin.",
+					gui->printToConsole(8, true, false, false, true, L"[#%s|%s|Info    ] Mining has been interrupted by another coin.",
 						toWStr(miningCoin->mining->currentHeight, 7).c_str(), toWStr(miningCoin->coinname, 10).c_str());
 					// Queuing the interrupted coin.
 					insertIntoQueue(queue, miningCoin, miningCoin);
@@ -2087,28 +1971,28 @@ int wmain(int argc, wchar_t **argv) {
 
 				if (!anyDefined)
 				{
-					printToConsole(2, true, false, true, false, L"EMPTY");
+					gui->printToConsole(2, true, false, true, false, L"EMPTY");
 					Log(L"TESTMODE: TEST EMPTY: no checks for this round, height: %llu, gensig: %S, baseTarget: %llu, account: %llu, nonce: %llu",
 						miningCoin->testround1->height, miningCoin->testround1->signature.c_str(), miningCoin->testround1->baseTarget,
 						miningCoin->testround2->assume_account, miningCoin->testround2->assume_nonce);
 				}
 				else if (!allDefinedHavePassed)
 				{
-					printToConsole(12, true, false, true, false, L"FAILED");
+					gui->printToConsole(12, true, false, true, false, L"FAILED");
 					Log(L"TESTMODE: TEST FAILED: some checks have FAILED for this round, height: %llu, gensig: %S, baseTarget: %llu, account: %llu, nonce: %llu",
 						miningCoin->testround1->height, miningCoin->testround1->signature.c_str(), miningCoin->testround1->baseTarget,
 						miningCoin->testround2->assume_account, miningCoin->testround2->assume_nonce);
 				}
 				else if (!anyDefinedAndSkipped)
 				{
-					printToConsole(12, true, false, true, false, L"PARTIAL");
+					gui->printToConsole(12, true, false, true, false, L"PARTIAL");
 					Log(L"TESTMODE: TEST PARTIAL: some checks were skipped for this round, height: %llu, gensig: %S, baseTarget: %llu, account: %llu, nonce: %llu",
 						miningCoin->testround1->height, miningCoin->testround1->signature.c_str(), miningCoin->testround1->baseTarget,
 						miningCoin->testround2->assume_account, miningCoin->testround2->assume_nonce);
 				}
 				else
 				{
-					printToConsole(10, true, false, true, false, L"PASSED");
+					gui->printToConsole(10, true, false, true, false, L"PASSED");
 					Log(L"TESTMODE: TEST PASSED: all checks have PASSED for this round, height: %llu, gensig: %S, baseTarget: %llu, account: %llu, nonce: %llu",
 						miningCoin->testround1->height, miningCoin->testround1->signature.c_str(), miningCoin->testround1->baseTarget,
 						miningCoin->testround2->assume_account, miningCoin->testround2->assume_nonce);
@@ -2123,7 +2007,7 @@ int wmain(int argc, wchar_t **argv) {
 	// Sadly, currently there's no better way to flush it other than wait
 	if (testmodeConfig.isEnabled)
 	{
-		printToConsole(2, false, true, true, false, L"TestMode has finished all tasks, press any key.");
+		gui->printToConsole(2, false, true, true, false, L"TestMode has finished all tasks, press any key.");
 		system("pause > nul");
 	}
 

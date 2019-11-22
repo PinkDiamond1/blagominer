@@ -16,8 +16,15 @@
 #endif
 #include <curses.h>
 
-extern short win_size_x;
-extern short win_size_y;
+class Output_Curses;
+
+extern std::unique_ptr<Output_Curses> gui;
+
+
+class Output_Curses
+{
+short win_size_x = 96;
+short win_size_y = 60;
 
 struct ConsoleOutput {
 	int colorPair;
@@ -27,16 +34,18 @@ struct ConsoleOutput {
 };
 
 
-extern std::mutex mConsoleQueue;
-extern std::mutex mProgressQueue;
-extern std::mutex mConsoleWindow;
-extern std::list<ConsoleOutput> consoleQueue;
-extern std::list<std::wstring> progressQueue;
+std::mutex mConsoleQueue;
+std::mutex mProgressQueue;
+public:std::mutex mConsoleWindow;	/*mConsoleWindow made public for filemonitor.cpp*/private:
+std::list<ConsoleOutput> consoleQueue;
+std::list<std::wstring> progressQueue;
 
 
-extern std::mutex mLog;
-extern std::list<std::wstring> loggingQueue;
+std::mutex mLog;
+std::list<std::wstring> loggingQueue;
 
+
+public:
 
 template<typename ... Args>
 void printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
@@ -99,6 +108,7 @@ void printToProgress(const wchar_t * format, Args ... args)
 };
 
 
+void setupSize(short& x, short& y);
 void bm_init();
 void bm_end();
 
@@ -127,6 +137,25 @@ void hideCorrupted();
 int bm_wmoveC(int line, int column);
 
 void boxCorrupted();
+
+
+private:
+
+	int minimumWinMainHeight = 5;
+	const short progress_lines = 3;
+	const short new_version_lines = 3;
+	WINDOW * win_main;
+	WINDOW * win_progress;
+	WINDOW * win_corrupted;
+	WINDOW * win_new_version;
+
+	std::thread consoleWriter;
+	std::thread progressWriter;
+	bool interruptConsoleWriter = false;
+
+	void _progressWriter();
+	void _consoleWriter();
+};
 
 std::wstring make_filled_string(int n, wchar_t filler);
 std::wstring make_leftpad_for_networkstats(int space, int coins);

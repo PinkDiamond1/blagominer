@@ -66,7 +66,7 @@ void checkForUpdate() {
 								std::string releaseVersion =
 									std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(revision);
 								Log(L"UPDATE CHECKER: New version availabe: %S", releaseVersion.c_str());
-								showNewVersion(releaseVersion);
+								gui->showNewVersion(releaseVersion);
 							}
 							else {
 								Log(L"UPDATE CHECKER: The miner is up to date (%i.%i.%i)", versionMajor, versionMinor, versionRevision);

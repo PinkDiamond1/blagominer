@@ -36,7 +36,7 @@ void Log_init(void)
 		std::stringstream ss;
 		if (CreateDirectory(L"Logs", nullptr) == ERROR_PATH_NOT_FOUND)
 		{
-			printToConsole(12, false, false, true, false, L"CreateDirectory failed (%lu)", GetLastError());
+			gui->printToConsole(12, false, false, true, false, L"CreateDirectory failed (%lu)", GetLastError());
 			loggingInitialized = false;
 			loggingConfig.enableLogging = false;
 			return;
@@ -49,7 +49,7 @@ void Log_init(void)
 		std::string filename = ss.str();
 		if ((fp_Log = _fsopen(filename.c_str(), "wt", _SH_DENYNO)) == NULL)
 		{
-			printToConsole(12, false, false, true, false, L"LOG: file openinig error");
+			gui->printToConsole(12, false, false, true, false, L"LOG: file openinig error");
 			loggingInitialized = false;
 			loggingConfig.enableLogging = false;
 		}

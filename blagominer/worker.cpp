@@ -108,7 +108,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
 			Log(L"File %S (%S) wrong stagger?", iter->Name.c_str(), iter->Path.c_str());
-			printToConsole(12, true, false, true, false, L"File %S wrong stagger?", iter->Name.c_str());
+			gui->printToConsole(12, true, false, true, false, L"File %S wrong stagger?", iter->Name.c_str());
 		}
 
 		// in testmode, updateCurrentMiningInfo from blagominer.cpp makes sure the `scoop` is properly set up
@@ -125,13 +125,13 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
 			Log(L"File %S (%S) name/size mismatch.", iter->Name.c_str(), iter->Path.c_str());
-			printToConsole(12, true, false, true, false, L"File \"%S\" name/size mismatch", iter->Name.c_str());
+			gui->printToConsole(12, true, false, true, false, L"File \"%S\" name/size mismatch", iter->Name.c_str());
 			if (nonces != stagger)
 				nonces = (((iter->Size) / (4096 * 64)) / stagger) * stagger; //we cut the plot to size and stagger
 			else {
 				if (scoop > (iter->Size) / (stagger * 64)) //if the number of scoop falls into a damaged, cursed plot, then skip
 				{
-					printToConsole(12, true, false, true, false, L"Skipped");
+					gui->printToConsole(12, true, false, true, false, L"Skipped");
 					continue;
 				}
 			}
@@ -141,7 +141,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		if (!bfs) {
 			if (!GetDiskFreeSpaceA((iter->Path).c_str(), &sectorsPerCluster, &bytesPerSector, &numberOfFreeClusters, &totalNumberOfClusters))
 			{
-				printToConsole(12, true, false, true, false, L"GetDiskFreeSpace failed"); //BFS
+				gui->printToConsole(12, true, false, true, false, L"GetDiskFreeSpace failed"); //BFS
 				continue;
 			}
 		}
@@ -155,7 +155,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
 			Log(L"File %S (%S): Stagger (%llu) must be >= %llu", iter->Name.c_str(), iter->Path.c_str(), stagger, bytesPerSector / 64);
-			printToConsole(12, true, false, true, false, L"Stagger (%llu) must be >= %llu", stagger, bytesPerSector / 64);
+			gui->printToConsole(12, true, false, true, false, L"Stagger (%llu) must be >= %llu", stagger, bytesPerSector / 64);
 			continue;
 		}
 
@@ -164,7 +164,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
 			Log(L"File %S (%S): Nonces(%llu) must be >= %llu", iter->Name.c_str(), iter->Path.c_str(), nonces, bytesPerSector / 64);
-			printToConsole(12, true, false, true, false, L"Nonces (%llu) must be >= %llu", nonces, bytesPerSector / 64);
+			gui->printToConsole(12, true, false, true, false, L"Nonces (%llu) must be >= %llu", nonces, bytesPerSector / 64);
 			continue;
 		}
 
@@ -173,7 +173,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
 			Log(L"File %S (%S): Stagger (%llu) must be a multiple of %llu", iter->Name.c_str(), iter->Path.c_str(), stagger, bytesPerSector / 64);
-			printToConsole(12, true, false, true, false, L"Stagger (%llu) must be a multiple of %llu", stagger, bytesPerSector / 64);
+			gui->printToConsole(12, true, false, true, false, L"Stagger (%llu) must be a multiple of %llu", stagger, bytesPerSector / 64);
 			continue;
 		}
 
@@ -256,7 +256,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
 			Log(L"File %S (%S): Error opening. code = %lu", iter->Name.c_str(), iter->Path.c_str(), GetLastError());
-			printToConsole(12, true, false, true, false, L"File \"%S\\%S\" error opening. code = %lu", iter->Path.c_str(), iter->Name.c_str(), GetLastError());
+			gui->printToConsole(12, true, false, true, false, L"File \"%S\\%S\" error opening. code = %lu", iter->Path.c_str(), iter->Name.c_str(), GetLastError());
 			VirtualFree(cache, 0, MEM_RELEASE);
 			VirtualFree(cache2, 0, MEM_RELEASE); //Cleanup Thread 2
 			if (p2 != POC2) VirtualFree(MirrorCache, 0, MEM_RELEASE); //PoC2 Cleanup
@@ -422,7 +422,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				{
 					std::thread{ increaseReadError, iter->Name.c_str() }.detach();
 					Log(L"File %S (%S): Unexpected end of file.", iter->Name.c_str(), iter->Path.c_str());
-					printToConsole(12, true, false, true, false, L"Unexpected end of file %S", iter->Name.c_str());
+					gui->printToConsole(12, true, false, true, false, L"Unexpected end of file %S", iter->Name.c_str());
 					err = true;
 					break;
 				}
@@ -504,7 +504,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				{
 					std::thread{ increaseReadError, iter->Name.c_str() }.detach();
 					Log(L"Unexpected end of file %S (%S)", iter->Name.c_str(), path_loc_str.c_str());
-					printToConsole(12, true, false, true, false, L"Unexpected end of file %S", iter->Name.c_str());
+					gui->printToConsole(12, true, false, true, false, L"Unexpected end of file %S", iter->Name.c_str());
 					err = true;
 				}
 			}
@@ -528,7 +528,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			{
 				std::thread{ increaseReadError, iter->Name.c_str() }.detach();
 				Log(L"BFS seek optimisation: error SetFilePointerEx. code = %lu. File: %S (%S)", GetLastError(), iter->Name.c_str(), path_loc_str.c_str());
-				printToConsole(12, true, false, true, false, L"BFS seek optimisation: error SetFilePointerEx. code = %lu", GetLastError());
+				gui->printToConsole(12, true, false, true, false, L"BFS seek optimisation: error SetFilePointerEx. code = %lu", GetLastError());
 			}
 		}
 		iter->done = true;
@@ -559,19 +559,19 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		double thread_time = (double)(end_work_time - start_work_time) / pcFreq;
 		if (thread_time != 0) {
 			if (isbfs) {
-				printToConsole(7, true, false, true, false, L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (BFS)",
+				gui->printToConsole(7, true, false, true, false, L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (BFS)",
 					path_loc_str.c_str(), thread_time, (double)(files_size_per_thread) / thread_time / 1024 / 1024 / 4096,
 					sum_time_proc / pcFreq * 100 / thread_time);
 			}
 			else
 			{
 				if (converted) {
-					printToConsole(7, true, false, true, false, L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (POC1<>POC2)",
+					gui->printToConsole(7, true, false, true, false, L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (POC1<>POC2)",
 						path_loc_str.c_str(), thread_time, (double)(files_size_per_thread) / thread_time / 1024 / 1024 / 4096,
 						sum_time_proc / pcFreq * 100 / thread_time);
 				}
 				else {
-					printToConsole(7, true, false, true, false, L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%%",
+					gui->printToConsole(7, true, false, true, false, L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%%",
 						path_loc_str.c_str(), thread_time, (double)(files_size_per_thread) / thread_time / 1024 / 1024 / 4096,
 						sum_time_proc / pcFreq * 100 / thread_time);
 				}
@@ -594,19 +594,19 @@ void th_read(HANDLE ifile, unsigned long long const start, unsigned long long co
 #ifdef __AVX512F__
 		if (*cache_size_local < 16) // these checks are related to shabal-impl's scratchpad memory size = number of 'vectorized' nonces/scoops
 		{
-			printToConsole(12, false, false, true, false, L"WARNING: %llu", *cache_size_local);
+			gui->printToConsole(12, false, false, true, false, L"WARNING: %llu", *cache_size_local);
 		}
 #else
 #ifdef __AVX2__
 		if (*cache_size_local < 8) // these checks are related to shabal-impl's scratchpad memory size = number of 'vectorized' nonces/scoops
 		{
-			printToConsole(12, false, false, true, false, L"WARNING: %llu", *cache_size_local);
+			gui->printToConsole(12, false, false, true, false, L"WARNING: %llu", *cache_size_local);
 		}
 #else
 #ifdef __AVX__
 		if (*cache_size_local < 4) // these checks are related to shabal-impl's scratchpad memory size = number of 'vectorized' nonces/scoops
 		{
-			printToConsole(12, false, false, true, false, L"WARNING: %llu", *cache_size_local);
+			gui->printToConsole(12, false, false, true, false, L"WARNING: %llu", *cache_size_local);
 		}
 #endif
 #endif
@@ -629,14 +629,14 @@ poc1read:
 	liDistanceToMove.QuadPart = start + i * 64;
 	if (!SetFilePointerEx(ifile, liDistanceToMove, nullptr, FILE_BEGIN))
 	{
-		printToConsole(12, false, false, true, false, L"Error SetFilePointerEx. code = %lu", GetLastError());
+		gui->printToConsole(12, false, false, true, false, L"Error SetFilePointerEx. code = %lu", GetLastError());
 		*cont = true;
 		return;
 	}
 	do {
 		if (!ReadFile(ifile, &cache[*bytes], (DWORD)(min(readChunkSize, *cache_size_local - *bytes / 64) * 64), &b, NULL))
 		{
-			printToConsole(12, false, false, true, false, L"Error P1 ReadFile. code = %lu", GetLastError());
+			gui->printToConsole(12, false, false, true, false, L"Error P1 ReadFile. code = %lu", GetLastError());
 			break;
 		}
 		*bytes += b;
@@ -652,14 +652,14 @@ poc2read:
 		MirrorliDistanceToMove.QuadPart = MirrorStart + i * 64;
 		if (!SetFilePointerEx(ifile, MirrorliDistanceToMove, nullptr, FILE_BEGIN))
 		{
-			printToConsole(12, false, false, true, false, L"Error SetFilePointerEx. code = %lu", GetLastError());
+			gui->printToConsole(12, false, false, true, false, L"Error SetFilePointerEx. code = %lu", GetLastError());
 			*cont = true;
 			return;
 		}
 		do {
 			if (!ReadFile(ifile, &MirrorCache[*bytes], (DWORD)(min(readChunkSize, *cache_size_local - *bytes / 64) * 64), &Mirrorb, NULL))
 			{
-				printToConsole(12, false, false, true, false, L"Error P2 ReadFile. code = %lu", GetLastError());
+				gui->printToConsole(12, false, false, true, false, L"Error P2 ReadFile. code = %lu", GetLastError());
 				break;
 			}
 			*bytes += Mirrorb;
