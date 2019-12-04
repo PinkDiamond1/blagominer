@@ -33,9 +33,6 @@ struct IOutput_Curses
 
 	virtual void printToProgress(const wchar_t * format, ...) = 0;
 
-	virtual void setupSize(short& x, short& y, bool& lock) = 0;
-	virtual void bm_init() = 0;
-	virtual void bm_end() = 0;
 
 	virtual bool currentlyDisplayingCorruptedPlotFiles() = 0;
 	virtual bool currentlyDisplayingNewVersion() = 0;
@@ -85,6 +82,8 @@ std::list<std::wstring> loggingQueue;
 
 
 public:
+	~Output_Curses();
+	Output_Curses(short x, short y, bool lock);
 
 std::unique_lock<std::mutex> lock_outputDevice() override;
 
@@ -95,9 +94,11 @@ void printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
 // TODO: add v-overload taking va_list
 void printToProgress(const wchar_t * format, ...) override;
 
+private:
 void setupSize(short& x, short& y, bool& lock);
 void bm_init();
 void bm_end();
+public:
 
 bool currentlyDisplayingCorruptedPlotFiles();
 bool currentlyDisplayingNewVersion();

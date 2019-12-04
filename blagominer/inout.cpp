@@ -3,6 +3,17 @@
 
 IOutput_Curses::~IOutput_Curses() {}
 
+Output_Curses::~Output_Curses()
+{
+	bm_end();
+}
+
+Output_Curses::Output_Curses(short x, short y, bool lock)
+{
+	setupSize(x, y, lock);
+	bm_init();
+}
+
 std::unique_lock<std::mutex> Output_Curses::lock_outputDevice()
 {
 	return std::unique_lock(mConsoleWindow);

@@ -72,8 +72,7 @@ void init_gui_config() {
 
 void Gui_init()
 {
-	gui = std::make_unique<Output_Curses>();
-	gui->setupSize(guiConfig.size_x, guiConfig.size_y, guiConfig.lockWindowSize);
+	gui = std::make_unique<Output_Curses>(guiConfig.size_x, guiConfig.size_y, guiConfig.lockWindowSize);
 }
 
 void resetDirs(std::shared_ptr<t_coin_info> coinInfo) {
@@ -342,7 +341,6 @@ int load_config(Document const& document)
 		if (document.HasMember("LockWindowSize") && (document["LockWindowSize"].IsBool())) guiConfig.lockWindowSize = document["LockWindowSize"].GetBool();
 		Log(L"LockWindowSize: %d", guiConfig.lockWindowSize);
 
-		Gui_init();
 
 
 		if (document.HasMember("Paths") && document["Paths"].IsArray()) {
@@ -1250,7 +1248,7 @@ void closeMiner() {
 	WSACleanup();
 	Log(L"exit");
 	Log_end();
-	gui->bm_end();
+	gui.reset();
 
 	worker.~map();
 	worker_progress.~map();
@@ -1447,7 +1445,7 @@ int wmain(int argc, wchar_t **argv) {
 	Log(L"Miner path: %S", p_minerPath.data());
 	Log(L"Miner process elevation: %S", IsElevated() ? "active" : "inactive");
 
-	gui->bm_init();
+	Gui_init();
 
 	gui->printToConsole(12, false, false, true, false, L"PoC multi miner, %s %s", version.c_str(), IsElevated() ? L"(elevated)" : L"(nonelevated)");
 	gui->printToConsole(4, false, false, true, false, L"Programming: dcct (Linux) & Blago (Windows)");
