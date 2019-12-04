@@ -6,8 +6,6 @@ std::map<std::string, t_file_stats> fileStats = std::map<std::string, t_file_sta
 bool showCorruptedPlotFiles = true;
 
 bool statsChanged = false;
-int oldLineCount = -1;
-const std::string header = "File name                                             +DLs      -DLs       I/O";
 
 void increaseMatchingDeadline(std::string file) {
 	if (!showCorruptedPlotFiles) {
@@ -69,8 +67,7 @@ void printFileStats() {
 
 	std::lock_guard<std::mutex> lockGuardFileStats(mFileStats);
 
-	int newLineCount = gui->printFileStats(oldLineCount, header, fileStats);
+	gui->printFileStats(fileStats);
 
 	statsChanged = false;
-	oldLineCount = newLineCount;
 }

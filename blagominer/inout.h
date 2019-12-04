@@ -37,7 +37,7 @@ struct IOutput_Curses
 
 	virtual void showNewVersion(std::string version) = 0;
 
-	virtual int printFileStats(int oldLineCount, std::string header, std::map<std::string, t_file_stats>const& fileStats) = 0;
+	virtual void printFileStats(std::map<std::string, t_file_stats>const& fileStats) = 0;
 };
 
 class Output_Curses : public IOutput_Curses
@@ -114,7 +114,7 @@ int bm_wmoveC(int line, int column);
 void boxCorrupted();
 
 public:
-int printFileStats(int oldLineCount, std::string header, std::map<std::string, t_file_stats>const& fileStats);
+void printFileStats(std::map<std::string, t_file_stats>const& fileStats);
 
 private:
 
@@ -132,6 +132,8 @@ private:
 
 	void _progressWriter();
 	void _consoleWriter();
+
+	int oldLineCount = -1;
 };
 
 std::wstring make_filled_string(int n, wchar_t filler);

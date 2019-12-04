@@ -1,6 +1,8 @@
 ﻿#include "stdafx.h"
 #include "inout.h"
 
+const std::string header = "File name                                             +DLs      -DLs       I/O";
+
 IOutput_Curses::~IOutput_Curses() {}
 
 Output_Curses::~Output_Curses()
@@ -518,7 +520,7 @@ void Output_Curses::boxCorrupted() {
 	wattroff(win_corrupted, COLOR_PAIR(4));
 }
 
-int Output_Curses::printFileStats(int oldLineCount, std::string header, std::map<std::string, t_file_stats>const& fileStats) {
+void Output_Curses::printFileStats(std::map<std::string, t_file_stats>const& fileStats) {
 	std::lock_guard lockGuardConsoleWindow(mConsoleWindow);
 	int lineCount = 0;
 	for (auto& element : fileStats) {
@@ -531,10 +533,10 @@ int Output_Curses::printFileStats(int oldLineCount, std::string header, std::map
 		hideCorrupted();
 		resizeCorrupted(0);
 		refreshCorrupted();
-		return oldLineCount;
+		return;
 	}
 	else if (lineCount == 0) {
-		return oldLineCount;
+		return;
 	}
 
 	// Increase for header, border and for clear message.
@@ -577,7 +579,7 @@ int Output_Curses::printFileStats(int oldLineCount, std::string header, std::map
 	bm_wprintwC("Press 'f' to clear data.");
 
 	cropCorruptedIfNeeded(lineCount);
-	return oldLineCount;
+	return;
 }
 
 std::wstring make_filled_string(int nspaces, wchar_t filler)
