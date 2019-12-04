@@ -26,33 +26,16 @@ struct IOutput_Curses
 {
 	virtual ~IOutput_Curses() = 0;
 
-	virtual std::unique_lock<std::mutex> lock_outputDevice() = 0;
-
 	virtual void printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
 		bool trailingNewLine, bool fillLine, const wchar_t * format, ...) = 0;
 
 	virtual void printToProgress(const wchar_t * format, ...) = 0;
 
-
 	virtual bool currentlyDisplayingCorruptedPlotFiles() = 0;
-	virtual bool currentlyDisplayingNewVersion() = 0;
 
 	virtual int bm_wgetchMain() = 0; //get input vom main window
 
-	virtual int bm_wattronC(int color) = 0;
-	virtual int bm_wattroffC(int color) = 0;
-	virtual int bm_wprintwC(const char * output, ...) = 0;
-
-	virtual void refreshCorrupted() = 0;
 	virtual void showNewVersion(std::string version) = 0;
-
-	virtual void cropCorruptedIfNeeded(int lineCount) = 0;
-	virtual void resizeCorrupted(int lineCount) = 0;
-
-	virtual void clearCorrupted() = 0;
-
-
-	virtual int bm_wmoveC(int line, int column) = 0;
 
 	virtual int printFileStats(int oldLineCount, std::string header, std::map<std::string, t_file_stats>const& fileStats) = 0;
 };
@@ -86,8 +69,6 @@ public:
 	~Output_Curses();
 	Output_Curses(short x, short y, bool lock);
 
-std::unique_lock<std::mutex> lock_outputDevice() override;
-
 // TODO: add v-overload taking va_list
 void printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
 	bool trailingNewLine, bool fillLine, const wchar_t * format, ...) override;
@@ -99,37 +80,37 @@ private:
 void setupSize(short& x, short& y, bool& lock);
 void bm_init();
 void bm_end();
-public:
 
+public:
 bool currentlyDisplayingCorruptedPlotFiles();
+private:
 bool currentlyDisplayingNewVersion();
 
+public:
 int bm_wgetchMain(); //get input vom main window
 
+private:
 int bm_wattronC(int color);
 int bm_wattroffC(int color);
 int bm_wprintwC(const char * output, ...);
 
 void refreshCorrupted();
+public:
 void showNewVersion(std::string version);
 
+private:
 void cropCorruptedIfNeeded(int lineCount);
 void resizeCorrupted(int lineCount);
-private:
 int getRowsCorrupted();
-public:
 
 void clearCorrupted();
-private: 
 void clearCorruptedLine();
 void clearNewVersion();
-public:
 
 void hideCorrupted();
 
 int bm_wmoveC(int line, int column);
 
-private:
 void boxCorrupted();
 
 public:

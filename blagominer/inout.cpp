@@ -14,11 +14,6 @@ Output_Curses::Output_Curses(short x, short y, bool lock)
 	bm_init();
 }
 
-std::unique_lock<std::mutex> Output_Curses::lock_outputDevice()
-{
-	return std::unique_lock(mConsoleWindow);
-}
-
 void Output_Curses::printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
 	bool trailingNewLine, bool fillLine, const wchar_t * format, ...)
 {
@@ -524,7 +519,7 @@ void Output_Curses::boxCorrupted() {
 }
 
 int Output_Curses::printFileStats(int oldLineCount, std::string header, std::map<std::string, t_file_stats>const& fileStats) {
-	auto lockGuardConsoleWindow(lock_outputDevice());
+	std::lock_guard lockGuardConsoleWindow(mConsoleWindow);
 	int lineCount = 0;
 	for (auto& element : fileStats) {
 		if (element.second.conflictingDeadlines > 0 || element.second.readErrors > 0) {
