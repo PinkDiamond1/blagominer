@@ -67,7 +67,7 @@ void printFileStats() {
 		return;
 	}
 	std::lock_guard<std::mutex> lockGuardFileStats(mFileStats);
-	std::lock_guard<std::mutex> lockGuardConsoleWindow(gui->mConsoleWindow);
+	auto lockGuardConsoleWindow(gui->lock_outputDevice());
 	statsChanged = false;
 	int lineCount = 0;
 	for (auto& element : fileStats) {

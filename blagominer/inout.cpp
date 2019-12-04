@@ -1,6 +1,83 @@
 ﻿#include "stdafx.h"
 #include "inout.h"
 
+IOutput_Curses::~IOutput_Curses() {}
+
+std::unique_lock<std::mutex> Output_Curses::lock_outputDevice()
+{
+	return std::unique_lock(mConsoleWindow);
+}
+
+void Output_Curses::printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
+	bool trailingNewLine, bool fillLine, const wchar_t * format, ...)
+{
+	std::wstring message;
+	SYSTEMTIME cur_time;
+	GetLocalTime(&cur_time);
+	wchar_t timeBuff[9];
+	wchar_t timeBuffMil[13];
+	swprintf(timeBuff, sizeof(timeBuff), L"%02d:%02d:%02d", cur_time.wHour, cur_time.wMinute, cur_time.wSecond);
+	swprintf(timeBuffMil, sizeof(timeBuff), L"%02d:%02d:%02d.%03d", cur_time.wHour, cur_time.wMinute, cur_time.wSecond, cur_time.wMilliseconds);
+	std::wstring time = timeBuff;
+	std::wstring timeMil = timeBuffMil;
+
+	if (printTimestamp) {
+
+		message = timeBuff;
+		message += L" ";
+	}
+
+	va_list args;
+	va_start(args, format);
+	int size = vswprintf(nullptr, 0, format, args) + 1;
+	va_end(args);
+	std::unique_ptr<wchar_t[]> buf(new wchar_t[size]);
+	va_list args2;
+	va_start(args2, format);
+	vswprintf(buf.get(), size, format, args2);
+	va_end(args2);
+	message += std::wstring(buf.get(), buf.get() + size - 1);
+	{
+		std::lock_guard<std::mutex> lockGuard(mConsoleQueue);
+		consoleQueue.push_back({
+			colorPair,
+			leadingNewLine,
+			fillLine,
+			message });
+		if (trailingNewLine) {
+			consoleQueue.push_back({
+			colorPair,
+			false,
+			false,
+			L"\n" });
+		}
+	}
+	{
+		std::lock_guard<std::mutex> lockGuard(mLog);
+		loggingQueue.push_back(timeMil + L" " + std::wstring(buf.get(), buf.get() + size - 1));
+	}
+}
+
+void Output_Curses::printToProgress(const wchar_t * format, ...)
+{
+	std::wstring message;
+
+	va_list args;
+	va_start(args, format);
+	size_t size = vswprintf(nullptr, 0, format, args) + 1;
+	va_end(args);
+	std::unique_ptr<wchar_t[]> buf(new wchar_t[size]);
+	va_list args2;
+	va_start(args2, format);
+	vswprintf(buf.get(), size, format, args2);
+	va_end(args2);
+	message += std::wstring(buf.get(), buf.get() + size - 1);
+	{
+		std::lock_guard<std::mutex> lockGuard(mProgressQueue);
+		progressQueue.push_back(message);
+	}
+}
+
 void Output_Curses::_progressWriter() {
 	while (!interruptConsoleWriter) {
 		if (!progressQueue.empty()) {

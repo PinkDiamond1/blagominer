@@ -16,12 +16,55 @@
 #endif
 #include <curses.h>
 
+struct IOutput_Curses;
 class Output_Curses;
 
-extern std::unique_ptr<Output_Curses> gui;
+extern std::unique_ptr<IOutput_Curses> gui;
 
 
-class Output_Curses
+struct IOutput_Curses
+{
+	virtual ~IOutput_Curses() = 0;
+
+	virtual std::unique_lock<std::mutex> lock_outputDevice() = 0;
+
+	virtual void printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
+		bool trailingNewLine, bool fillLine, const wchar_t * format, ...) = 0;
+
+	virtual void printToProgress(const wchar_t * format, ...) = 0;
+
+	virtual void setupSize(short& x, short& y) = 0;
+	virtual void bm_init() = 0;
+	virtual void bm_end() = 0;
+
+	virtual bool currentlyDisplayingCorruptedPlotFiles() = 0;
+	virtual bool currentlyDisplayingNewVersion() = 0;
+
+	virtual int bm_wgetchMain() = 0; //get input vom main window
+
+	virtual int bm_wattronC(int color) = 0;
+	virtual int bm_wattroffC(int color) = 0;
+	virtual int bm_wprintwC(const char * output, ...) = 0;
+
+	virtual void refreshCorrupted() = 0;
+	virtual void showNewVersion(std::string version) = 0;
+
+	virtual void cropCorruptedIfNeeded(int lineCount) = 0;
+	virtual void resizeCorrupted(int lineCount) = 0;
+	virtual int getRowsCorrupted() = 0;
+
+	virtual void clearCorrupted() = 0;
+	virtual void clearCorruptedLine() = 0;
+	virtual void clearNewVersion() = 0;
+
+	virtual void hideCorrupted() = 0;
+
+	virtual int bm_wmoveC(int line, int column) = 0;
+
+	virtual void boxCorrupted() = 0;
+};
+
+class Output_Curses : public IOutput_Curses
 {
 short win_size_x = 96;
 short win_size_y = 60;
@@ -47,66 +90,14 @@ std::list<std::wstring> loggingQueue;
 
 public:
 
-template<typename ... Args>
+std::unique_lock<std::mutex> lock_outputDevice() override;
+
+// TODO: add v-overload taking va_list
 void printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
-	bool trailingNewLine, bool fillLine, const wchar_t * format, Args ... args)
-{
-	std::wstring message;
-	SYSTEMTIME cur_time;
-	GetLocalTime(&cur_time);
-	wchar_t timeBuff[9];
-	wchar_t timeBuffMil[13];
-	swprintf(timeBuff, sizeof(timeBuff), L"%02d:%02d:%02d", cur_time.wHour, cur_time.wMinute, cur_time.wSecond);
-	swprintf(timeBuffMil, sizeof(timeBuff), L"%02d:%02d:%02d.%03d", cur_time.wHour, cur_time.wMinute, cur_time.wSecond, cur_time.wMilliseconds);
-	std::wstring time = timeBuff;
-	std::wstring timeMil = timeBuffMil;
+	bool trailingNewLine, bool fillLine, const wchar_t * format, ...) override;
 
-	if (printTimestamp) {
-		
-		message = timeBuff;
-		message += L" ";
-	}
-
-	int size = swprintf(nullptr, 0, format, args ...) + 1;
-	std::unique_ptr<wchar_t[]> buf(new wchar_t[size]);
-	swprintf(buf.get(), size, format, args ...);
-	message += std::wstring(buf.get(), buf.get() + size - 1);
-	{
-		std::lock_guard<std::mutex> lockGuard(mConsoleQueue);
-		consoleQueue.push_back({
-			colorPair,
-			leadingNewLine,
-			fillLine,
-			message });
-		if (trailingNewLine) {
-			consoleQueue.push_back({
-			colorPair,
-			false,
-			false,
-			L"\n" });
-		}
-	}
-	{
-		std::lock_guard<std::mutex> lockGuard(mLog);
-		loggingQueue.push_back(timeMil + L" " + std::wstring(buf.get(), buf.get() + size - 1));
-	}
-};
-
-template<typename ... Args>
-void printToProgress(const wchar_t * format, Args ... args)
-{
-	std::wstring message;
-	
-	size_t size = swprintf(nullptr, 0, format, args ...) + 1;
-	std::unique_ptr<wchar_t[]> buf(new wchar_t[size]);
-	swprintf(buf.get(), size, format, args ...);
-	message += std::wstring(buf.get(), buf.get() + size - 1);
-	{
-		std::lock_guard<std::mutex> lockGuard(mProgressQueue);
-		progressQueue.push_back(message);
-	}
-};
-
+// TODO: add v-overload taking va_list
+void printToProgress(const wchar_t * format, ...) override;
 
 void setupSize(short& x, short& y);
 void bm_init();
