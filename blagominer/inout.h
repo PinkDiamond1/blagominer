@@ -54,6 +54,7 @@ struct IOutput_Curses
 
 	virtual int bm_wmoveC(int line, int column) = 0;
 
+	virtual int printFileStats(int oldLineCount, std::string header, std::map<std::string, t_file_stats>const& fileStats) = 0;
 };
 
 class Output_Curses : public IOutput_Curses
@@ -131,6 +132,8 @@ int bm_wmoveC(int line, int column);
 private:
 void boxCorrupted();
 
+public:
+int printFileStats(int oldLineCount, std::string header, std::map<std::string, t_file_stats>const& fileStats);
 
 private:
 

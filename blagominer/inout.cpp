@@ -523,6 +523,68 @@ void Output_Curses::boxCorrupted() {
 	wattroff(win_corrupted, COLOR_PAIR(4));
 }
 
+int Output_Curses::printFileStats(int oldLineCount, std::string header, std::map<std::string, t_file_stats>const& fileStats) {
+	auto lockGuardConsoleWindow(lock_outputDevice());
+	int lineCount = 0;
+	for (auto& element : fileStats) {
+		if (element.second.conflictingDeadlines > 0 || element.second.readErrors > 0) {
+			++lineCount;
+		}
+	}
+
+	if (lineCount == 0 && currentlyDisplayingCorruptedPlotFiles()) {
+		hideCorrupted();
+		resizeCorrupted(0);
+		refreshCorrupted();
+		return oldLineCount;
+	}
+	else if (lineCount == 0) {
+		return oldLineCount;
+	}
+
+	// Increase for header, border and for clear message.
+	lineCount += 4;
+
+	if (lineCount != oldLineCount) {
+		clearCorrupted();
+		resizeCorrupted(lineCount);
+		oldLineCount = lineCount;
+	}
+	refreshCorrupted();
+
+	lineCount = 1;
+	bm_wmoveC(lineCount++, 1);
+	bm_wprintwC("%s", header.c_str(), 0);
+
+	for (auto& element : fileStats) {
+		if (element.second.conflictingDeadlines > 0 || element.second.readErrors > 0) {
+			bm_wattronC(14);
+			bm_wmoveC(lineCount, 1);
+			bm_wprintwC("%s %s", toStr(element.first, 46).c_str(), toStr(element.second.matchingDeadlines, 11).c_str(), 0);
+			if (element.second.conflictingDeadlines > 0) {
+				bm_wattronC(4);
+			}
+			bm_wprintwC(" %s", toStr(element.second.conflictingDeadlines, 9).c_str(), 0);
+			bm_wattroffC(4);
+			bm_wattronC(14);
+			if (element.second.readErrors > 0) {
+				bm_wattronC(4);
+			}
+			bm_wprintwC(" %s\n", toStr(element.second.readErrors, 9).c_str(), 0);
+			bm_wattroffC(4);
+
+			++lineCount;
+		}
+	}
+	bm_wattroffC(14);
+
+	bm_wmoveC(lineCount, 1);
+	bm_wprintwC("Press 'f' to clear data.");
+
+	cropCorruptedIfNeeded(lineCount);
+	return oldLineCount;
+}
+
 std::wstring make_filled_string(int nspaces, wchar_t filler)
 {
 	return std::wstring(max(0, nspaces), filler);

@@ -8,6 +8,8 @@
 #include <math.h>
 #include <optional>
 
+struct t_file_stats; // fwdecl for inout.h
+
 #include "heapallocator.h"
 #include "logger.h"
 
@@ -208,6 +210,12 @@ struct t_coin_info {
 
 	t_roundreplay_round* testround1;
 	t_roundreplay_round_test* testround2;
+};
+
+struct t_file_stats {
+	unsigned long long matchingDeadlines;
+	unsigned long long conflictingDeadlines;
+	unsigned long long readErrors;
 };
 
 
