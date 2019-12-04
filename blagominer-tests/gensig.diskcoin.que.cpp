@@ -1,6 +1,8 @@
 ﻿#include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+#include "stdafx.h"
+
 #include "reference/burst/BurstMath.h"
 #include "reference/diskcoin/DiskcoinMath.h"
 #include "hexstring.h"

@@ -1,5 +1,7 @@
-#include "stdafx.h"
 #include "error.h"
+
+#include "logger.h"
+#include "inout.h"
 
 void ShowMemErrorExit(void)
 {

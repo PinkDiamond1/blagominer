@@ -1,5 +1,4 @@
-﻿#include "stdafx.h"
-#include "inout.h"
+﻿#include "inout.h"
 
 const std::string header = "File name                                             +DLs      -DLs       I/O";
 

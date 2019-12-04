@@ -3,6 +3,13 @@
 #include "reference/burst/BurstMath.h"
 #include "hexstring.h"
 
+#include "blagominer.h" // for GetFiles, stopThreads, ..
+#include "filemonitor.h" // for increaseReadError, ..
+#include "error.h" // for ShowMemErrorExit
+#include "accounts.h" // for Get_index_acc
+#include "shabal.h" // for procscoop_sse_fast
+
+
 bool use_boost = false;				// use optimisations if true
 size_t cache_size1 = 16384;			// Cache in nonces (1 nonce in scoop = 64 bytes) for native POC
 size_t cache_size2 = 262144;		// Cache in nonces (1 nonce in scoop = 64 bytes) for on-the-fly POC conversion
@@ -700,4 +707,3 @@ void th_hash(std::shared_ptr<t_coin_info> coin, std::string const& filename, dou
 	*sum_time_proc += (double)(li.QuadPart - start_time_proc.QuadPart);
 	worker_progress[local_num].Reads_bytes += bytes;
 }
-

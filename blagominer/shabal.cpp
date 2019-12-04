@@ -1,5 +1,5 @@
-#include "stdafx.h"
 #include "shabal.h"
+
 #include "hexstring.h"
 
 // context for 1-dimensional shabal (32bit)

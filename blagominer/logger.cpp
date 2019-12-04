@@ -1,5 +1,7 @@
-﻿#include "stdafx.h"
-#include "logger.h"
+﻿#include "logger.h"
+
+#include "common.h"
+
 FILE * fp_Log = nullptr;
 
 std::mutex mLog;

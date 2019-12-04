@@ -1,5 +1,5 @@
 #pragma once
-#include "stdafx.h"
+#include "common-pragmas.h"
 
 #include <mutex>
 #include <array>
@@ -7,8 +7,8 @@
 #include <ctime>
 #include <math.h>
 #include <optional>
-
-struct t_file_stats; // fwdecl for inout.h
+#include <string>
+#include <map>
 
 #include "heapallocator.h"
 #include "logger.h"
@@ -295,3 +295,25 @@ std::wstring toWStr(std::string str, const unsigned short length);
 
 std::string toStr(unsigned long long number, const unsigned short length);
 std::string toStr(std::string str, const unsigned short length);
+
+struct IUserInterface;
+
+extern std::unique_ptr<IUserInterface> gui;
+
+struct IUserInterface
+{
+	virtual ~IUserInterface() = 0;
+
+	virtual void printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
+		bool trailingNewLine, bool fillLine, const wchar_t * format, ...) = 0;
+
+	virtual void printToProgress(const wchar_t * format, ...) = 0;
+
+	virtual bool currentlyDisplayingCorruptedPlotFiles() = 0;
+
+	virtual int bm_wgetchMain() = 0; //get input vom main window
+
+	virtual void showNewVersion(std::string version) = 0;
+
+	virtual void printFileStats(std::map<std::string, t_file_stats>const& fileStats) = 0;
+};

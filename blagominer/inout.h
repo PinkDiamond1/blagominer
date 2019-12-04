@@ -1,11 +1,7 @@
 #pragma once
-#include "common.h"
+#include "common-pragmas.h"
 
-#include <mutex>
-#include <list>
-#include <ctime>
-#include <time.h>
-#include "logger.h"
+#include "common.h"
 
 #undef  MOUSE_MOVED
 #ifndef PDC_DLL_BUILD
@@ -15,30 +11,6 @@
 # define PDC_WIDE
 #endif
 #include <curses.h>
-
-struct IUserInterface;
-class Output_Curses;
-
-extern std::unique_ptr<IUserInterface> gui;
-
-
-struct IUserInterface
-{
-	virtual ~IUserInterface() = 0;
-
-	virtual void printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
-		bool trailingNewLine, bool fillLine, const wchar_t * format, ...) = 0;
-
-	virtual void printToProgress(const wchar_t * format, ...) = 0;
-
-	virtual bool currentlyDisplayingCorruptedPlotFiles() = 0;
-
-	virtual int bm_wgetchMain() = 0; //get input vom main window
-
-	virtual void showNewVersion(std::string version) = 0;
-
-	virtual void printFileStats(std::map<std::string, t_file_stats>const& fileStats) = 0;
-};
 
 class Output_Curses : public IUserInterface
 {

@@ -1,14 +1,7 @@
 ﻿#pragma once
-#include "common.h"
+#include "common-pragmas.h"
 
-#include "InstructionSet.h"
-#include "bfs.h"
-#include "network.h"
-#include "shabal.h"
-#include "filemonitor.h"
-#include "updateChecker.h"
-#include "elevate.h"
-#include "volume_ntfs.h"
+#include "common.h"
 
 // miner
 extern volatile bool stopThreads;

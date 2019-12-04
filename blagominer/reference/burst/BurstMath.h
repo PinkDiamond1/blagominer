@@ -1,5 +1,7 @@
 #pragma once
-#include "../../common.h"
+#include "../../common-pragmas.h"
+
+#include <memory>
 
 namespace BurstMath
 {

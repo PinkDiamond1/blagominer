@@ -1,6 +1,16 @@
-﻿// blagominer.cpp
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "blagominer.h"
+
+#include "InstructionSet.h"
+#include "bfs.h"
+#include "network.h"
+#include "shabal.h"
+#include "filemonitor.h"
+#include "updateChecker.h"
+#include "elevate.h"
+#include "volume_ntfs.h"
+#include "inout.h"
+#include "loggerCsv.h"
 
 #include <curl/curl.h>
 #include "hexstring.h"

@@ -1,10 +1,7 @@
 #pragma once
 #include "common-pragmas.h"
 
-#include <map>
-#include <string>
-#include <mutex>
-#include "inout.h"
+#include "common.h"
 
 extern bool showCorruptedPlotFiles;
 

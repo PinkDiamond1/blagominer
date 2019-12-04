@@ -1,12 +1,11 @@
 #pragma once
 #include "common-pragmas.h"
 
-#include "logger.h"
-#include "inout.h"
+#include <string>
 
 bool RestartWithElevation(int argc, wchar_t **argv);
 
-BOOL IsElevated();
+bool IsElevated();
 
 void
 ArgvQuote(

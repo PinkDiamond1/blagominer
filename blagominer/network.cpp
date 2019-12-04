@@ -1,9 +1,16 @@
-﻿#include "stdafx.h"
-#include "network.h"
+﻿#include "network.h"
 
 #include <curl/curl.h>
 
+#include "logger.h"
+#include "loggerCsv.h"
+#include "error.h"
+#include "accounts.h"
+#include "filemonitor.h"
+#include "picohttpparser.h"
 #include "reference/diskcoin/DiskcoinMath.h"
+
+#include "blagominer.h" // for use_debug, total_size
 
 static std::map <u_long, unsigned long long> satellite_size; // Structure with volumes of satellite plots
 
