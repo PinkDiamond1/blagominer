@@ -51,17 +51,12 @@ struct IOutput_Curses
 
 	virtual void cropCorruptedIfNeeded(int lineCount) = 0;
 	virtual void resizeCorrupted(int lineCount) = 0;
-	virtual int getRowsCorrupted() = 0;
 
 	virtual void clearCorrupted() = 0;
-	virtual void clearCorruptedLine() = 0;
-	virtual void clearNewVersion() = 0;
 
-	virtual void hideCorrupted() = 0;
 
 	virtual int bm_wmoveC(int line, int column) = 0;
 
-	virtual void boxCorrupted() = 0;
 };
 
 class Output_Curses : public IOutput_Curses
@@ -117,16 +112,21 @@ void showNewVersion(std::string version);
 
 void cropCorruptedIfNeeded(int lineCount);
 void resizeCorrupted(int lineCount);
+private:
 int getRowsCorrupted();
+public:
 
 void clearCorrupted();
+private: 
 void clearCorruptedLine();
 void clearNewVersion();
+public:
 
 void hideCorrupted();
 
 int bm_wmoveC(int line, int column);
 
+private:
 void boxCorrupted();
 
 
