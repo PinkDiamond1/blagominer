@@ -33,7 +33,7 @@ struct IOutput_Curses
 
 	virtual void printToProgress(const wchar_t * format, ...) = 0;
 
-	virtual void setupSize(short& x, short& y) = 0;
+	virtual void setupSize(short& x, short& y, bool& lock) = 0;
 	virtual void bm_init() = 0;
 	virtual void bm_end() = 0;
 
@@ -63,6 +63,7 @@ class Output_Curses : public IOutput_Curses
 {
 short win_size_x = 96;
 short win_size_y = 60;
+bool lockWindowSize = true;
 
 struct ConsoleOutput {
 	int colorPair;
@@ -94,7 +95,7 @@ void printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
 // TODO: add v-overload taking va_list
 void printToProgress(const wchar_t * format, ...) override;
 
-void setupSize(short& x, short& y);
+void setupSize(short& x, short& y, bool& lock);
 void bm_init();
 void bm_end();
 

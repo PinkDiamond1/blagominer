@@ -73,6 +73,7 @@ void init_gui_config() {
 void Gui_init()
 {
 	gui = std::make_unique<Output_Curses>();
+	gui->setupSize(guiConfig.size_x, guiConfig.size_y, guiConfig.lockWindowSize);
 }
 
 void resetDirs(std::shared_ptr<t_coin_info> coinInfo) {
@@ -333,6 +334,14 @@ int load_config(Document const& document)
 		}
 		Log(L"disable: %d", guiConfig.disableGui);
 
+		if (document.HasMember("WinSizeX") && (document["WinSizeX"].IsUint())) guiConfig.size_x = (short)document["WinSizeX"].GetUint();
+		if (document.HasMember("WinSizeY") && (document["WinSizeY"].IsUint())) guiConfig.size_y = (short)document["WinSizeY"].GetUint();
+		Log(L"WinSizeX: %hi", guiConfig.size_x);
+		Log(L"WinSizeY: %hi", guiConfig.size_y);
+
+		if (document.HasMember("LockWindowSize") && (document["LockWindowSize"].IsBool())) guiConfig.lockWindowSize = document["LockWindowSize"].GetBool();
+		Log(L"LockWindowSize: %d", guiConfig.lockWindowSize);
+
 		Gui_init();
 
 
@@ -421,16 +430,6 @@ int load_config(Document const& document)
 				
 		if (document.HasMember("UseBoost") && (document["UseBoost"].IsBool())) use_boost = document["UseBoost"].GetBool();
 		Log(L"UseBoost: %d", use_boost);
-
-		short size_x, size_y;
-		if (document.HasMember("WinSizeX") && (document["WinSizeX"].IsUint())) size_x = (short)document["WinSizeX"].GetUint();
-		if (document.HasMember("WinSizeY") && (document["WinSizeY"].IsUint())) size_y = (short)document["WinSizeY"].GetUint();
-		gui->setupSize(size_x, size_y);
-		Log(L"WinSizeX: %hi", size_x);
-		Log(L"WinSizeY: %hi", size_y);
-
-		if (document.HasMember("LockWindowSize") && (document["LockWindowSize"].IsBool())) lockWindowSize = document["LockWindowSize"].GetBool();
-		Log(L"LockWindowSize: %d", lockWindowSize);
 
 #ifdef GPU_ON_C
 		if (document.HasMember("GPU_Platform") && (document["GPU_Platform"].IsInt())) gpu_devices.use_gpu_platform = (size_t)document["GPU_Platform"].GetUint();

@@ -198,12 +198,13 @@ int Output_Curses::bm_wprintwC(const char * output, ...) {
 	va_end(args);
 }
 
-void Output_Curses::setupSize(short& x, short& y)
+void Output_Curses::setupSize(short& x, short& y, bool& lock)
 {
 	if (x < 96) x = 96;
 	if (y < 20) y = 20;
 	win_size_x = x;
 	win_size_y = y;
+	lockWindowSize = lock;
 }
 
 static void handleReturn(BOOL success) {
@@ -212,7 +213,7 @@ static void handleReturn(BOOL success) {
 	}
 }
 
-static void resizeConsole(SHORT newColumns, SHORT newRows) {
+static void resizeConsole(SHORT newColumns, SHORT newRows, BOOL lockWindowSize) {
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	CONSOLE_SCREEN_BUFFER_INFO csbi; // Hold Current Console Buffer Info 
 	BOOL bSuccess;
@@ -332,7 +333,7 @@ static void resizeConsole(SHORT newColumns, SHORT newRows) {
 
 // init screen
 void Output_Curses::bm_init() {
-	resizeConsole(win_size_x, win_size_y);
+	resizeConsole(win_size_x, win_size_y, lockWindowSize);
 
 	initscr();
 	raw();

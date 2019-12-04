@@ -23,7 +23,6 @@ std::wstring version = std::to_wstring(versionMajor) + L"." + std::to_wstring(ve
 
 const wchar_t sepChar = 0x00B7;
 
-extern bool lockWindowSize = true;
 double checkForUpdateInterval = 1;
 bool ignoreSuspectedFastBlocks = true;
 volatile bool exit_flag = false;

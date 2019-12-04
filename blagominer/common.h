@@ -21,7 +21,6 @@ extern std::wstring version;
 
 extern const wchar_t sepChar;
 
-extern bool lockWindowSize;
 extern double checkForUpdateInterval;
 extern bool ignoreSuspectedFastBlocks;
 extern volatile bool exit_flag;							// true if miner is to be exited
@@ -97,6 +96,9 @@ struct t_directory_info {
 
 struct t_gui {
 	bool disableGui;
+	short size_x;
+	short size_y;
+	bool lockWindowSize;
 };
 
 struct t_logging {
