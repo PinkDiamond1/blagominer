@@ -16,15 +16,15 @@
 #endif
 #include <curses.h>
 
-struct IOutput_Curses;
+struct IUserInterface;
 class Output_Curses;
 
-extern std::unique_ptr<IOutput_Curses> gui;
+extern std::unique_ptr<IUserInterface> gui;
 
 
-struct IOutput_Curses
+struct IUserInterface
 {
-	virtual ~IOutput_Curses() = 0;
+	virtual ~IUserInterface() = 0;
 
 	virtual void printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
 		bool trailingNewLine, bool fillLine, const wchar_t * format, ...) = 0;
@@ -40,7 +40,7 @@ struct IOutput_Curses
 	virtual void printFileStats(std::map<std::string, t_file_stats>const& fileStats) = 0;
 };
 
-class Output_Curses : public IOutput_Curses
+class Output_Curses : public IUserInterface
 {
 short win_size_x = 96;
 short win_size_y = 60;

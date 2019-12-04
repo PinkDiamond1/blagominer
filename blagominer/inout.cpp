@@ -3,7 +3,7 @@
 
 const std::string header = "File name                                             +DLs      -DLs       I/O";
 
-IOutput_Curses::~IOutput_Curses() {}
+IUserInterface::~IUserInterface() {}
 
 Output_Curses::~Output_Curses()
 {

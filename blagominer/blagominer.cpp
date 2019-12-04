@@ -38,7 +38,7 @@ std::vector<std::string> paths_dir; // paths
 
 sph_shabal_context  local_32;
 
-std::unique_ptr<IOutput_Curses> gui;
+std::unique_ptr<IUserInterface> gui;
 
 void init_mining_info(std::shared_ptr<t_coin_info> coin, std::wstring name, size_t priority, unsigned long long poc2start)
 {
