@@ -14,81 +14,48 @@
 
 class Output_Curses : public IUserInterface
 {
-short win_size_x = 96;
-short win_size_y = 60;
-bool lockWindowSize = true;
-
-struct ConsoleOutput {
-	int colorPair;
-	bool leadingNewLine;
-	bool fillLine;
-	std::wstring message;
-};
-
-
-std::mutex mConsoleQueue;
-std::mutex mProgressQueue;
-public:std::mutex mConsoleWindow;	/*mConsoleWindow made public for filemonitor.cpp*/private:
-std::list<ConsoleOutput> consoleQueue;
-std::list<std::wstring> progressQueue;
-
-
-std::mutex mLog;
-std::list<std::wstring> loggingQueue;
-
-
 public:
 	~Output_Curses();
 	Output_Curses(short x, short y, bool lock);
 
-// TODO: add v-overload taking va_list
-void printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
-	bool trailingNewLine, bool fillLine, const wchar_t * format, ...) override;
+	// TODO: add v-overload taking va_list
+	void printToConsole(
+		int colorPair, bool printTimestamp, bool leadingNewLine,
+		bool trailingNewLine, bool fillLine, const wchar_t * format,
+		...
+	) override;
 
-// TODO: add v-overload taking va_list
-void printToProgress(const wchar_t * format, ...) override;
+	// TODO: add v-overload taking va_list
+	void printToProgress(const wchar_t * format, ...) override;
 
-private:
-void setupSize(short& x, short& y, bool& lock);
-void bm_init();
-void bm_end();
+	void printFileStats(std::map<std::string, t_file_stats> const & fileStats);
 
-public:
-bool currentlyDisplayingCorruptedPlotFiles();
-private:
-bool currentlyDisplayingNewVersion();
+	bool currentlyDisplayingCorruptedPlotFiles();
+	void showNewVersion(std::string version);
 
-public:
-int bm_wgetchMain(); //get input vom main window
+	int bm_wgetchMain(); //get input vom main window
 
 private:
-int bm_wattronC(int color);
-int bm_wattroffC(int color);
-int bm_wprintwC(const char * output, ...);
 
-void refreshCorrupted();
-public:
-void showNewVersion(std::string version);
+	struct ConsoleOutput {
+		int colorPair;
+		bool leadingNewLine;
+		bool fillLine;
+		std::wstring message;
+	};
 
-private:
-void cropCorruptedIfNeeded(int lineCount);
-void resizeCorrupted(int lineCount);
-int getRowsCorrupted();
+	short win_size_x = 96;
+	short win_size_y = 60;
+	bool lockWindowSize = true;
 
-void clearCorrupted();
-void clearCorruptedLine();
-void clearNewVersion();
+	std::mutex mConsoleQueue;
+	std::mutex mProgressQueue;
+	std::mutex mConsoleWindow;
+	std::list<ConsoleOutput> consoleQueue;
+	std::list<std::wstring> progressQueue;
 
-void hideCorrupted();
-
-int bm_wmoveC(int line, int column);
-
-void boxCorrupted();
-
-public:
-void printFileStats(std::map<std::string, t_file_stats>const& fileStats);
-
-private:
+	std::mutex mLog;
+	std::list<std::wstring> loggingQueue;
 
 	int minimumWinMainHeight = 5;
 	const short progress_lines = 3;
@@ -102,10 +69,30 @@ private:
 	std::thread progressWriter;
 	bool interruptConsoleWriter = false;
 
+	int oldLineCount = -1;
+
+	void bm_init();
+	void bm_end();
+	int bm_wattronC(int color);
+	int bm_wattroffC(int color);
+	int bm_wprintwC(const char * output, ...);
+	int bm_wmoveC(int line, int column);
+
+	void setupSize(short& x, short& y, bool& lock);
+	bool currentlyDisplayingNewVersion();
+	void clearNewVersion();
+
+	void refreshCorrupted();
+	void cropCorruptedIfNeeded(int lineCount);
+	void resizeCorrupted(int lineCount);
+	int getRowsCorrupted();
+	void clearCorrupted();
+	void clearCorruptedLine();
+	void hideCorrupted();
+	void boxCorrupted();
+
 	void _progressWriter();
 	void _consoleWriter();
-
-	int oldLineCount = -1;
 };
 
 std::wstring make_filled_string(int n, wchar_t filler);
