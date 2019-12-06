@@ -99,6 +99,9 @@
     <ClInclude Include="common-pragmas.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="inout.nogui.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -174,6 +177,9 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="heapallocator.h">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="inout.nogui.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

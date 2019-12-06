@@ -10,6 +10,7 @@
 #include "elevate.h"
 #include "volume_ntfs.h"
 #include "inout.h"
+#include "inout.nogui.h"
 #include "loggerCsv.h"
 
 #include <curl/curl.h>
@@ -82,7 +83,10 @@ void init_gui_config() {
 
 void Gui_init()
 {
-	gui = std::make_unique<Output_Curses>(guiConfig.size_x, guiConfig.size_y, guiConfig.lockWindowSize);
+	if (guiConfig.disableGui)
+		gui = std::make_unique<Output_PlainText>();
+	else
+		gui = std::make_unique<Output_Curses>(guiConfig.size_x, guiConfig.size_y, guiConfig.lockWindowSize);
 }
 
 void resetDirs(std::shared_ptr<t_coin_info> coinInfo) {
