@@ -322,6 +322,12 @@ struct IUserInterface
 		std::wstring const& coinname,
 		unsigned long long deadline
 	) = 0;
+	virtual void printNetworkProxyDeadlineReceived(
+		unsigned long long account_id,
+		std::wstring const& coinName,
+		unsigned long long deadline,
+		char const (& const clientAddr)[22]
+	) = 0;
 	virtual void debugNetworkDeadlineDiscarded(
 		unsigned long long account_id,
 		std::wstring const& coinName,

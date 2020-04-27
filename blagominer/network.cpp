@@ -192,9 +192,9 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 								client_address_str, get_accountId, get_deadline, get_nonce, get_deadline, coinInfo->mining->currentHeight, coinInfo->mining->currentBaseTarget));
 							LeaveCriticalSection(&coinInfo->locks->sharesLock);
 
-							gui->printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Proxy ] DL found     : %s {%S}", get_accountId, proxyName,
-								toWStr(get_deadline / coinInfo->mining->currentBaseTarget, 11).c_str(), client_address_str);
-							Log(L"Proxy %s: received DL %llu from %S", proxyName, get_deadline / coinInfo->mining->currentBaseTarget, client_address_str);
+							auto scaledDL = get_deadline / coinInfo->mining->currentBaseTarget;
+							gui->printNetworkProxyDeadlineReceived(get_accountId, proxyName, scaledDL, client_address_str);
+							Log(L"Proxy %s: received DL %llu from %S", proxyName, scaledDL, client_address_str);
 							
 							// We confirm
 							RtlSecureZeroMemory(buffer.data(), buffer.size());

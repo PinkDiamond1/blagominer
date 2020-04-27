@@ -40,6 +40,12 @@ public:
 		std::wstring const& coinname,
 		unsigned long long deadline
 	) override;
+	void printNetworkProxyDeadlineReceived(
+		unsigned long long account_id,
+		std::wstring const& coinName,
+		unsigned long long deadline,
+		char const (& const clientAddr)[22]
+	) override;
 	void debugNetworkDeadlineDiscarded(
 		unsigned long long account_id,
 		std::wstring const& coinName,

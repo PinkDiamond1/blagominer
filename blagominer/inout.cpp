@@ -93,6 +93,18 @@ void Output_Curses::printWorkerDeadlineFound(
 		account_id, coinName, toWStr(deadline, 11).c_str());
 }
 
+void Output_Curses::printNetworkProxyDeadlineReceived(
+	unsigned long long account_id,
+	std::wstring const& coinName,
+	unsigned long long deadline,
+	char const (& const clientAddr)[22]
+)
+{
+	printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Proxy ] DL found     : %s {%S}",
+		account_id, coinName,
+		toWStr(deadline, 11).c_str(), clientAddr);
+}
+
 void Output_Curses::debugNetworkDeadlineDiscarded(
 	unsigned long long account_id,
 	std::wstring const& coinName,
