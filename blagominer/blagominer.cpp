@@ -724,17 +724,17 @@ void GetCPUInfo(void)
 		unsigned long long xcrFeatureMask = _xgetbv(_XCR_XFEATURE_ENABLED_MASK);
 		avxSupported = (xcrFeatureMask & 0x6) == 0x6;
 	}
-	if (avxSupported)	gui->printToConsole(-1, false, false, false, false, L"     [recomend use AVX]", 0);
+	if (avxSupported)	gui->printToConsole(-1, false, false, false, false, L"     [recomend use AVX]");
 #endif
-	if (InstructionSet::AVX2()) gui->printToConsole(-1, false, false, false, false, L"     [recomend use AVX2]", 0);
-	if (InstructionSet::AVX512F()) gui->printToConsole(-1, false, false, false, false, L"     [recomend use AVX512F]", 0);
+	if (InstructionSet::AVX2()) gui->printToConsole(-1, false, false, false, false, L"     [recomend use AVX2]");
+	if (InstructionSet::AVX512F()) gui->printToConsole(-1, false, false, false, false, L"     [recomend use AVX512F]");
 	SYSTEM_INFO sysinfo;
 	GetSystemInfo(&sysinfo);
 	gui->printToConsole(-1, false, true, false, false, L"%S", InstructionSet::Vendor().c_str());
 	gui->printToConsole(-1, false, false, false, false, L" %S [%u cores]", InstructionSet::Brand().c_str(), sysinfo.dwNumberOfProcessors);
 
 	if (GetPhysicallyInstalledSystemMemory(&TotalMemoryInKilobytes))
-		gui->printToConsole(-1, false, true, false, false, L"RAM: %llu Mb", (unsigned long long)TotalMemoryInKilobytes / 1024, 0);
+		gui->printToConsole(-1, false, true, false, false, L"RAM: %llu Mb", (unsigned long long)TotalMemoryInKilobytes / 1024);
 
 	gui->printToConsole(-1, false, false, true, false, L"");
 }
@@ -1012,7 +1012,7 @@ void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& currentQueue, st
 			inserted = true;
 			if (coinCurrentlyMining && coinCurrentlyMining->mining->state == MINING) {
 				gui->printToConsole(5, true, false, false, true, L"[#%s|%s|Info    ] New block has been added to the queue.",
-					toWStr(newCoin->mining->height, 7).c_str(), toWStr(newCoin->coinname, 10).c_str(), 0);
+					toWStr(newCoin->mining->height, 7).c_str(), toWStr(newCoin->coinname, 10).c_str());
 			}
 			break;
 		}
@@ -1023,7 +1023,7 @@ void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& currentQueue, st
 			newCoin != coinCurrentlyMining &&
 			newCoin->mining->priority >= coinCurrentlyMining->mining->priority) {
 			gui->printToConsole(5, true, false, false, true, L"[#%s|%s|Info    ] New block has been added to the end of the queue.",
-				toWStr(newCoin->mining->height, 7).c_str(), toWStr(newCoin->coinname, 10).c_str(), 0);
+				toWStr(newCoin->mining->height, 7).c_str(), toWStr(newCoin->coinname, 10).c_str());
 		}
 		currentQueue.push_back(newCoin);
 	}
@@ -1096,7 +1096,7 @@ void handleProxyOnly(std::shared_ptr<t_coin_info> coin) {
 			Log(L"Won't add %s to the queue. Proxy only.", coin->coinname.c_str());
 			updateOldSignature(coin);
 			gui->printToConsole(5, true, true, false, true, L"[#%s|%s|Info    ] New block.",
-				toWStr(coin->mining->height, 7).c_str(), toWStr(coin->coinname, 10).c_str(), 0);
+				toWStr(coin->mining->height, 7).c_str(), toWStr(coin->coinname, 10).c_str());
 			
 			// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
 			if (coin->mining->currentBaseTarget != 0) {

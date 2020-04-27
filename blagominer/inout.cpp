@@ -85,7 +85,7 @@ void Output_Curses::printPlotsStart()
 void Output_Curses::printPlotsInfo(char const* const directory, unsigned nfiles, unsigned long long size)
 {
 	printToConsole(-1, false, false, true, false, L"%S\tfiles: %4u\t size: %7llu GiB",
-		directory, nfiles, size / 1024 / 1024 / 1024, 0);
+		directory, nfiles, size / 1024 / 1024 / 1024);
 }
 
 void Output_Curses::printPlotsEnd(unsigned long long total_size)
