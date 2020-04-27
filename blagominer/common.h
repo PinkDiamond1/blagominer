@@ -311,6 +311,13 @@ struct IUserInterface
 		std::wstring const& threadKind,
 		std::wstring const& threadAction
 	) = 0;
+	virtual void printWorkerStats(
+		std::wstring const& specialReadMode,
+		std::string const& directory,
+		long long start_work_time, long long end_work_time,
+		unsigned long long files_size_per_thread,
+		double sum_time_proc, double pcFreq
+	) = 0;
 	virtual void printRoundChangeInfo(bool isResumingInterrupted,
 		unsigned long long currentHeight,
 		std::wstring const& coinname,
