@@ -100,6 +100,13 @@ void Output_PlainText::printWorkerDeadline(
 		account_id, coinname, toWStr(deadline, 11).c_str());
 }
 
+void Output_PlainText::debugRoundTime(
+	double threads_time
+)
+{
+	printToConsole(7, true, false, true, false, L"Total round time: %.1f sec", threads_time);
+}
+
 void Output_PlainText::printRoundInterrupt(
 	unsigned long long currentHeight,
 	std::wstring const& coinname

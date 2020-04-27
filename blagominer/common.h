@@ -323,6 +323,9 @@ struct IUserInterface
 		std::wstring const& coinname,
 		unsigned long long deadline
 	) = 0;
+	virtual void debugRoundTime(
+		double theads_time
+	) = 0;
 	virtual void printRoundInterrupt(
 		unsigned long long currentHeight,
 		std::wstring const& coinname

@@ -1847,7 +1847,7 @@ int wmain(int argc, wchar_t **argv) {
 							Log(L"Total round time: %.1f seconds", thread_time);
 							if (use_debug)
 							{
-								gui->printToConsole(7, true, false, true, false, L"Total round time: %.1f sec", thread_time);
+								gui->debugRoundTime(thread_time);
 							}
 						}
 						//prepare
@@ -1935,7 +1935,7 @@ int wmain(int argc, wchar_t **argv) {
 						Log(L"Total round time: %.1f seconds", thread_time);
 						if (use_debug)
 						{
-							gui->printToConsole(7, true, false, true, false, L"Total round time: %.1f sec", thread_time);
+							gui->debugRoundTime(thread_time);
 						}
 					}
 					//prepare

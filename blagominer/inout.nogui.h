@@ -32,6 +32,9 @@ public:
 		std::wstring const& coinname,
 		unsigned long long deadline
 	) override;
+	void debugRoundTime(
+		double theads_time
+	) override;
 	void printRoundInterrupt(
 		unsigned long long currentHeight,
 		std::wstring const& coinname
