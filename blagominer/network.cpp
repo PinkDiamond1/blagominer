@@ -210,10 +210,9 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 							{
 								if (use_debug)
 								{
-									gui->printToConsole(9, true, false, true, false, L"[%20llu|%-10s|Proxy ] DL confirmed to             %S",
-										get_accountId, proxyName, client_address_str);
+									gui->debugNetworkProxyDeadlineAcked(get_accountId, proxyName, scaledDL, client_address_str);
 								}
-								Log(L"Proxy %s: sent confirmation to %S", proxyName, client_address_str);
+								Log(L"Proxy %s: sent acknowledgement of %llu to %S", proxyName, scaledDL, client_address_str);
 							}
 						}
 					}

@@ -328,6 +328,12 @@ struct IUserInterface
 		unsigned long long deadline,
 		char const (& const clientAddr)[22]
 	) = 0;
+	virtual void debugNetworkProxyDeadlineAcked(
+		unsigned long long account_id,
+		std::wstring const& coinName,
+		unsigned long long deadline,
+		char const (& const clientAddr)[22]
+	) = 0;
 	virtual void debugNetworkDeadlineDiscarded(
 		unsigned long long account_id,
 		std::wstring const& coinName,
