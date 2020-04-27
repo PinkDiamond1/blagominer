@@ -735,6 +735,7 @@
     <ClInclude Include="loggerCsv.h" />
     <ClInclude Include="mshabal.h" />
     <ClInclude Include="picohttpparser.h" />
+    <ClInclude Include="blagominer_meta.h" />
     <ClInclude Include="reference\burst\BurstMath.h" />
     <ClInclude Include="reference\diskcoin\ctaes.h" />
     <ClInclude Include="reference\diskcoin\DiskcoinMath.h" />
@@ -768,6 +769,7 @@
     <ClCompile Include="bfs.cpp" />
     <ClCompile Include="network.cpp" />
     <ClCompile Include="error.cpp" />
+    <ClCompile Include="blagominer_meta.cpp" />
     <ClCompile Include="reference\burst\BurstMath.cpp" />
     <ClCompile Include="reference\diskcoin\ctaes.c" />
     <ClCompile Include="reference\diskcoin\DiskcoinMath.cpp" />

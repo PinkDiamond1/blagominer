@@ -2,6 +2,7 @@
 #include "updateChecker.h"
 
 #include "common.h"
+#include "blagominer_meta.h"
 
 
 LPCWSTR versionUrl = L"https://raw.githubusercontent.com/quetzalcoatl/blagominer/master/.version";

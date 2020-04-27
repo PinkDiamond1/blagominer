@@ -1,6 +1,7 @@
 ﻿#include "logger.h"
 
 #include "common.h"
+#include "blagominer_meta.h"
 
 FILE * fp_Log = nullptr;
 

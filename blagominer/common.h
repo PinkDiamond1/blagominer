@@ -15,12 +15,6 @@
 
 #include <curl/curl.h>
 
-// blago version
-extern const unsigned int versionMajor;
-extern const unsigned int versionMinor;
-extern const unsigned int versionRevision;
-extern std::wstring version;
-
 extern const wchar_t sepChar;
 
 extern double checkForUpdateInterval;

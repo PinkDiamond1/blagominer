@@ -2,6 +2,7 @@
 
 #include <curl/curl.h>
 
+#include "blagominer_meta.h"
 #include "logger.h"
 #include "loggerCsv.h"
 #include "error.h"

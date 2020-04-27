@@ -102,6 +102,9 @@
     <ClInclude Include="inout.nogui.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="blagominer_meta.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -180,6 +183,9 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="inout.nogui.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="blagominer_meta.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

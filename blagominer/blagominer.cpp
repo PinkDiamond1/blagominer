@@ -1,6 +1,7 @@
 ﻿#include "stdafx.h"
 #include "blagominer.h"
 
+#include "blagominer_meta.h"
 #include "InstructionSet.h"
 #include "bfs.h"
 #include "network.h"
