@@ -15,6 +15,13 @@ public:
 		bool trailingNewLine, bool fillLine, const wchar_t * format,
 		...
 	) override;
+	virtual void printRoundChangeInfo(bool isResumingInterrupted,
+		unsigned long long currentHeight,
+		std::wstring const& coinname,
+		unsigned long long currentBaseTarget,
+		unsigned long long currentNetDiff,
+		bool isPoc2Round
+	) override;
 
 	void printConnQuality(int ncoins, std::wstring const& connQualInfo) override;
 	void printScanProgress(int ncoins, std::wstring const& connQualInfo,

@@ -62,6 +62,30 @@ void Output_PlainText::printToConsole(
 	}
 }
 
+void Output_PlainText::printRoundChangeInfo(bool isResumingInterrupted,
+	unsigned long long currentHeight,
+	std::wstring const& coinname,
+	unsigned long long currentBaseTarget,
+	unsigned long long currentNetDiff,
+	bool isPoc2Round
+)
+{
+	auto msgFormat = isResumingInterrupted
+		? L"[#%s|%s|Continue] Base Target %s %c Net Diff %s TiB %c PoC%i"
+		: L"[#%s|%s|Start   ] Base Target %s %c Net Diff %s TiB %c PoC%i";
+
+	auto colorPair = isResumingInterrupted
+		? 5
+		: 25;
+
+	printToConsole(colorPair, true, false, true, false, msgFormat,
+		toWStr(currentHeight, 7).c_str(),
+		toWStr(coinname, 10).c_str(),
+		toWStr(currentBaseTarget, 7).c_str(), sepChar,
+		toWStr(currentNetDiff, 8).c_str(), sepChar,
+		isPoc2Round);
+}
+
 // TODO: this proc is called VERY often; for now, we want to skip that
 // in future it should emit messages via printToConsole, but it should be
 // throttled in some way

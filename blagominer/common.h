@@ -306,6 +306,13 @@ struct IUserInterface
 
 	virtual void printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
 		bool trailingNewLine, bool fillLine, const wchar_t * format, ...) = 0;
+	virtual void printRoundChangeInfo(bool isResumingInterrupted,
+		unsigned long long currentHeight,
+		std::wstring const& coinname,
+		unsigned long long currentBaseTarget,
+		unsigned long long currentNetDiff,
+		bool isPoc2Round
+	) = 0;
 
 	virtual void printConnQuality(int ncoins, std::wstring const& connQualInfo) = 0;
 	virtual void printScanProgress(int ncoins, std::wstring const& connQualInfo,

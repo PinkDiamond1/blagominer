@@ -58,6 +58,30 @@ void Output_Curses::printToConsole(int colorPair, bool printTimestamp, bool lead
 	}
 }
 
+void Output_Curses::printRoundChangeInfo(bool isResumingInterrupted,
+	unsigned long long currentHeight,
+	std::wstring const& coinname,
+	unsigned long long currentBaseTarget,
+	unsigned long long currentNetDiff,
+	bool isPoc2Round
+)
+{
+	auto msgFormat = isResumingInterrupted
+		? L"[#%s|%s|Continue] Base Target %s %c Net Diff %s TiB %c PoC%i"
+		: L"[#%s|%s|Start   ] Base Target %s %c Net Diff %s TiB %c PoC%i";
+
+	auto colorPair = isResumingInterrupted
+		? 5
+		: 25;
+
+	printToConsole(colorPair, true, true, false, true, msgFormat,
+		toWStr(currentHeight, 7).c_str(),
+		toWStr(coinname, 10).c_str(),
+		toWStr(currentBaseTarget, 7).c_str(), sepChar,
+		toWStr(currentNetDiff, 8).c_str(), sepChar,
+		isPoc2Round);
+}
+
 void Output_Curses::printConnQuality(int ncoins, std::wstring const& connQualInfo)
 {
 	if (ncoins != prevNCoins94)

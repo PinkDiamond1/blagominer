@@ -1744,25 +1744,17 @@ int wmain(int argc, wchar_t **argv) {
 
 			newRound(miningCoin);
 
-			// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
-			if (miningCoin->mining->enable && miningCoin->mining->state == INTERRUPTED) {
-				Log(L"------------------------    Continuing %s block: %llu", miningCoin->coinname.c_str(), miningCoin->mining->currentHeight);
-				gui->printToConsole(5, true, true, false, true, L"[#%s|%s|Continue] Base Target %s %c Net Diff %s TiB %c PoC%i",
-					toWStr(miningCoin->mining->currentHeight, 7).c_str(),
-					toWStr(miningCoin->coinname, 10).c_str(),
-					toWStr(miningCoin->mining->currentBaseTarget, 7).c_str(), sepChar,
-					toWStr(4398046511104 / 240 / miningCoin->mining->currentBaseTarget, 8).c_str(), sepChar,
-					miningCoin->isPoc2Round() ? 2 : 1);
-			}
-			// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
-			else if (miningCoin->mining->enable) {
-				Log(L"------------------------    New %s block: %llu", miningCoin->coinname.c_str(), miningCoin->mining->currentHeight);
-				gui->printToConsole(25, true, true, false, true, L"[#%s|%s|Start   ] Base Target %s %c Net Diff %s TiB %c PoC%i",
-					toWStr(miningCoin->mining->currentHeight, 7).c_str(),
-					toWStr(miningCoin->coinname, 10).c_str(),
-					toWStr(miningCoin->mining->currentBaseTarget, 7).c_str(), sepChar,
-					toWStr(4398046511104 / 240 / miningCoin->mining->currentBaseTarget, 8).c_str(), sepChar,
-					miningCoin->isPoc2Round() ? 2 : 1);
+			if (miningCoin->mining->enable) {
+				auto verb = (miningCoin->mining->state == INTERRUPTED) ? L"Continuing" : L"New";
+				Log(L"------------------------    %s %s block: %llu", verb, miningCoin->coinname.c_str(), miningCoin->mining->currentHeight);
+
+				// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
+				gui->printRoundChangeInfo(miningCoin->mining->state == INTERRUPTED,
+					miningCoin->mining->currentHeight,
+					miningCoin->coinname,
+					miningCoin->mining->currentBaseTarget,
+					4398046511104 / 240 / miningCoin->mining->currentBaseTarget,
+					miningCoin->isPoc2Round());
 			}
 
 			QueryPerformanceCounter((LARGE_INTEGER*)&start_threads_time);
