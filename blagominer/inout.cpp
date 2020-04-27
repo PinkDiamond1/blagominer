@@ -58,6 +58,15 @@ void Output_Curses::printToConsole(int colorPair, bool printTimestamp, bool lead
 	}
 }
 
+void Output_Curses::printThreadActivity(
+	std::wstring const& coinName,
+	std::wstring const& threadKind,
+	std::wstring const& threadAction
+)
+{
+	printToConsole(25, false, false, false, true, L"%s %s thread %s", coinName.c_str(), threadKind.c_str(), threadAction.c_str());
+}
+
 void Output_Curses::printRoundChangeInfo(bool isResumingInterrupted,
 	unsigned long long currentHeight,
 	std::wstring const& coinname,

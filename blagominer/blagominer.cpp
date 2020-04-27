@@ -1569,7 +1569,7 @@ int wmain(int argc, wchar_t **argv) {
 		if (coin->network->enable_proxy && !testmodeConfig.isEnabled)
 		{
 			coin->proxyThread = std::thread(proxy_i, coin);
-			gui->printToConsole(25, false, false, false, true, L"%s proxy thread started", coin->coinname.c_str());
+			gui->printThreadActivity(coin->coinname, L"proxy", L"started");
 		}
 
 	// Run version checker
@@ -1582,7 +1582,7 @@ int wmain(int argc, wchar_t **argv) {
 		if ((coin->mining->enable || coin->network->enable_proxy) && !testmodeConfig.isEnabled)
 		{
 			coin->updaterThread = std::thread(updater_i, coin);
-			gui->printToConsole(25, false, false, false, true, L"%s updater thread started", coin->coinname.c_str());
+			gui->printThreadActivity(coin->coinname, L"updater", L"started");
 		}
 
 	std::vector<std::shared_ptr<t_coin_info>> queue;
@@ -1593,7 +1593,7 @@ int wmain(int argc, wchar_t **argv) {
 		if (!coin->mining->enable && coin->network->enable_proxy && !testmodeConfig.isEnabled)
 		{
 			coin->proxyOnlyThread = std::thread(handleProxyOnly, coin);
-			gui->printToConsole(25, false, false, false, true, L"%s proxy-only thread started", coin->coinname.c_str());
+			gui->printThreadActivity(coin->coinname, L"proxy-only", L"started");
 		}
 
 	if (proxyOnly) {

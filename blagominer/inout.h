@@ -24,6 +24,11 @@ public:
 		bool trailingNewLine, bool fillLine, const wchar_t * format,
 		...
 	) override;
+	void printThreadActivity(
+		std::wstring const& coinName,
+		std::wstring const& threadKind,
+		std::wstring const& threadAction
+	) override;
 	void printRoundChangeInfo(bool isResumingInterrupted,
 		unsigned long long currentHeight,
 		std::wstring const& coinname,

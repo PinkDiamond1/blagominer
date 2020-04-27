@@ -62,6 +62,15 @@ void Output_PlainText::printToConsole(
 	}
 }
 
+void Output_PlainText::printThreadActivity(
+	std::wstring const& coinName,
+	std::wstring const& threadKind,
+	std::wstring const& threadAction
+)
+{
+	printToConsole(25, false, false, true, true, L"%s %s thread %s", coinName.c_str(), threadKind.c_str(), threadAction.c_str());
+}
+
 void Output_PlainText::printRoundChangeInfo(bool isResumingInterrupted,
 	unsigned long long currentHeight,
 	std::wstring const& coinname,
