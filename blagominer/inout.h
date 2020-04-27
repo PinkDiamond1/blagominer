@@ -36,6 +36,11 @@ public:
 		unsigned long long files_size_per_thread,
 		double sum_time_proc, double pcFreq
 	) override;
+	void printWorkerDeadline(
+		unsigned long long account_id,
+		std::wstring const& coinname,
+		unsigned long long deadline
+	) override;
 	void printRoundChangeInfo(bool isResumingInterrupted,
 		unsigned long long currentHeight,
 		std::wstring const& coinname,

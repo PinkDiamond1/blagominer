@@ -86,6 +86,16 @@ void Output_Curses::printWorkerStats(
 		sum_time_proc / pcFreq * 100 / thread_time);
 }
 
+void Output_Curses::printWorkerDeadline(
+	unsigned long long account_id,
+	std::wstring const& coinname,
+	unsigned long long deadline
+)
+{
+	printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Worker] DL found     : %s",
+		account_id, coinname, toWStr(deadline, 11).c_str());
+}
+
 void Output_Curses::printRoundChangeInfo(bool isResumingInterrupted,
 	unsigned long long currentHeight,
 	std::wstring const& coinname,

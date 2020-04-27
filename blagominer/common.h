@@ -318,6 +318,11 @@ struct IUserInterface
 		unsigned long long files_size_per_thread,
 		double sum_time_proc, double pcFreq
 	) = 0;
+	virtual void printWorkerDeadline(
+		unsigned long long account_id,
+		std::wstring const& coinname,
+		unsigned long long deadline
+	) = 0;
 	virtual void printRoundChangeInfo(bool isResumingInterrupted,
 		unsigned long long currentHeight,
 		std::wstring const& coinname,
