@@ -173,6 +173,8 @@ bool Output_PlainText::currentlyDisplayingCorruptedPlotFiles() {
 }
 
 int Output_PlainText::bm_wgetchMain() {
+	// TODO: maybe somehow read nonblocking lines from CIN?
+	// are we even interested in receiving any control commands other than KILL?
 	return -1;
 }
 

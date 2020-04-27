@@ -334,6 +334,7 @@ int load_config(Document const& document)
 		Log(L"UseLog: %d", loggingConfig.enableLogging);
 		Log(L"EnableCsv: %d", loggingConfig.enableCsv);
 
+		// TODO: what does the Log() do before Log_init() is executed?
 		Log_init();
 
 
