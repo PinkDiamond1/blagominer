@@ -97,6 +97,34 @@ void Output_PlainText::printWorkerDeadline(
 		account_id, coinname, toWStr(deadline, 11).c_str());
 }
 
+void Output_PlainText::printNetworkDeadlineConfirmed(
+	bool with_timespan,
+	unsigned long long account_id,
+	std::wstring const& coinName,
+	unsigned long long deadline
+)
+{
+	if (!with_timespan)
+	{
+		printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL confirmed : %s",
+			account_id, coinName,
+			deadline
+		);
+	}
+	else
+	{
+		unsigned long long days = (deadline) / (24 * 60 * 60);
+		unsigned hours = (deadline % (24 * 60 * 60)) / (60 * 60);
+		unsigned min = (deadline % (60 * 60)) / 60;
+		unsigned sec = deadline % 60;
+
+		printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL confirmed : %s %sd %02u:%02u:%02u",
+			account_id, coinName,
+			toWStr(deadline, 11).c_str(),
+			toWStr(days, 7).c_str(), hours, min, sec);
+	}
+}
+
 void Output_PlainText::debugRoundTime(
 	double threads_time
 )

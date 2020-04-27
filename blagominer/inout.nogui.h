@@ -31,6 +31,12 @@ public:
 		std::wstring const& coinname,
 		unsigned long long deadline
 	) override;
+	void printNetworkDeadlineConfirmed(
+		bool with_timespan,
+		unsigned long long account_id,
+		std::wstring const& coinName,
+		unsigned long long deadline
+	) override;
 	void debugRoundTime(
 		double theads_time
 	) override;

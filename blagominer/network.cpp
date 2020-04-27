@@ -1041,19 +1041,22 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 							if (answ["accountId"].IsInt64()) naccountId = answ["accountId"].GetInt64();
 					}
 
-					unsigned long long days = (ndeadline) / (24 * 60 * 60);
-					unsigned hours = (ndeadline % (24 * 60 * 60)) / (60 * 60);
-					unsigned min = (ndeadline % (60 * 60)) / 60;
-					unsigned sec = ndeadline % 60;
 					if ((naccountId != 0) && (ntargetDeadline != 0))
 					{
 						EnterCriticalSection(&coinInfo->locks->bestsLock);
 						coinInfo->mining->bests[Get_index_acc(naccountId, coinInfo, targetDeadlineInfo)].targetDeadline = ntargetDeadline;
 						LeaveCriticalSection(&coinInfo->locks->bestsLock);
 
-						gui->printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL confirmed : %s %sd %02u:%02u:%02u",
-							naccountId, confirmerName, toWStr(ndeadline, 11).c_str(), toWStr(days, 7).c_str(), hours, min, sec);
+						gui->printNetworkDeadlineConfirmed(true, naccountId, confirmerName, ndeadline);
+
+						// TODO: somehow deduplicate log math
+						// and yes, I've CONSIDERED putting the logging it into printNetworkDeadlineConfirmed, and I'm still hesitant
+						unsigned long long days = (ndeadline) / (24 * 60 * 60);
+						unsigned hours = (ndeadline % (24 * 60 * 60)) / (60 * 60);
+						unsigned min = (ndeadline % (60 * 60)) / 60;
+						unsigned sec = ndeadline % 60;
 						Log(L"[%20llu] %s confirmed DL: %10llu %5llud %02u:%02u:%02u", naccountId, confirmerName, ndeadline, days, hours, min, sec);
+
 						Log(L"[%20llu] %s set targetDL: %10llu", naccountId, confirmerName, ntargetDeadline);
 						if (use_debug) {
 							gui->printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] Set target DL: %s",
@@ -1061,8 +1064,14 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 						}
 					}
 					else {
-						gui->printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL confirmed : %s %sd %02u:%02u:%02u",
-							sessionX->body.account_id, confirmerName, toWStr(ndeadline, 11).c_str(), toWStr(days, 7).c_str(), hours, min, sec);
+						gui->printNetworkDeadlineConfirmed(true, sessionX->body.account_id, confirmerName, ndeadline);
+
+						// TODO: somehow deduplicate log math
+						// and yes, I've CONSIDERED putting the logging it into printNetworkDeadlineConfirmed, and I'm still hesitant
+						unsigned long long days = (ndeadline) / (24 * 60 * 60);
+						unsigned hours = (ndeadline % (24 * 60 * 60)) / (60 * 60);
+						unsigned min = (ndeadline % (60 * 60)) / 60;
+						unsigned sec = ndeadline % 60;
 						Log(L"[%20llu] %s confirmed DL: %10llu %5llud %02u:%02u:%02u", sessionX->body.account_id, confirmerName, ndeadline, days, hours, min, sec);
 					}
 					if (ndeadline < coinInfo->mining->deadline || coinInfo->mining->deadline == 0)  coinInfo->mining->deadline = ndeadline;
@@ -1119,8 +1128,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 				coinInfo->mining->deadline = coinInfo->mining->bests[Get_index_acc(sessionX->body.account_id, coinInfo, targetDeadlineInfo)].DL; //maybe better iter-> deadline?
 																			// if(deadline > iter->deadline) deadline = iter->deadline;
 				std::thread{ increaseMatchingDeadline, sessionX->body.file_name }.detach();
-				gui->printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL confirmed : %s",
-					sessionX->body.account_id, confirmerName, toWStr(sessionX->deadline, 11).c_str());
+				gui->printNetworkDeadlineConfirmed(false, sessionX->body.account_id, confirmerName, sessionX->deadline); // TODO: why pretty-time is disabled here?
 		}
 
 		std::this_thread::yield();

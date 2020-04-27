@@ -322,6 +322,12 @@ struct IUserInterface
 		std::wstring const& coinname,
 		unsigned long long deadline
 	) = 0;
+	virtual void printNetworkDeadlineConfirmed(
+		bool with_timespan,
+		unsigned long long account_id,
+		std::wstring const& coinName,
+		unsigned long long deadline
+	) = 0;
 	virtual void debugRoundTime(
 		double theads_time
 	) = 0;
