@@ -133,6 +133,19 @@ void Output_PlainText::printWorkerDeadlineFound(
 		account_id, coinname, toWStr(deadline, 11).c_str());
 }
 
+void Output_PlainText::printNetworkHostResolution(
+	std::wstring const& lookupWhat,
+	std::wstring const& coinName,
+	std::string const& remoteName,
+	std::vector<char> const& resolvedIP,
+	std::string const& remotePost,
+	std::string const& remotePath
+)
+{
+	printToConsole(-1, false, false, true, false, L"%s %15s %S (ip %S:%S) %S", coinName.c_str(), lookupWhat.c_str(),
+		remoteName.c_str(), resolvedIP.data(), remotePost.c_str(), ((remotePath.length() ? "on /" : "") + remotePath).c_str());
+}
+
 void Output_PlainText::printNetworkProxyDeadlineReceived(
 	unsigned long long account_id,
 	std::wstring const& coinName,

@@ -338,6 +338,14 @@ struct IUserInterface
 		unsigned long long deadline
 	) = 0;
 
+	virtual void printNetworkHostResolution(
+		std::wstring const& lookupWhat,
+		std::wstring const& coinName,
+		std::string const& remoteName,
+		std::vector<char> const& resolvedIP,
+		std::string const& remotePost,
+		std::string const& remotePath
+	) = 0;
 	virtual void printNetworkProxyDeadlineReceived(
 		unsigned long long account_id,
 		std::wstring const& coinName,

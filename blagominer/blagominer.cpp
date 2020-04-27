@@ -1318,14 +1318,14 @@ void initMiningOrProxy(std::shared_ptr<t_coin_info> coin)
 			std::vector<char> updaterip(50); // so 50 here is overallocated for no real gain
 
 			hostname_to_ip(coin->network->nodeaddr.c_str(), nodeip.data());
-			gui->printToConsole(-1, false, false, true, false, L"%s pool address    %S (ip %S:%S) %S", coin->coinname.c_str(),
-				coin->network->nodeaddr.c_str(), nodeip.data(), coin->network->nodeport.c_str(), ((coin->network->noderoot.length() ? "on /" : "") + coin->network->noderoot).c_str());
+			gui->printNetworkHostResolution(L"pool address", coin->coinname.c_str(),
+				coin->network->nodeaddr, nodeip, coin->network->nodeport, coin->network->noderoot);
 
 			// TODO: why this special condition is here? why there is none for nodeaddr?
 			if (coin->network->updateraddr.length() > 3)
 				hostname_to_ip(coin->network->updateraddr.c_str(), updaterip.data());
-			gui->printToConsole(-1, false, false, true, false, L"%s updater address %S (ip %S:%S) %S", coin->coinname.c_str(),
-				coin->network->updateraddr.c_str(), updaterip.data(), coin->network->updaterport.c_str(), ((coin->network->updaterroot.length() ? "on /" : "") + coin->network->updaterroot).c_str());
+			gui->printNetworkHostResolution(L"updater address", coin->coinname.c_str(),
+				coin->network->updateraddr, updaterip, coin->network->updaterport, coin->network->updaterroot);
 		}
 
 		// TODO: vectorize/etc

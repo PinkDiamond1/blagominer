@@ -53,6 +53,14 @@ public:
 		unsigned long long deadline
 	) override;
 
+	void printNetworkHostResolution(
+		std::wstring const& lookupWhat,
+		std::wstring const& coinName,
+		std::string const& remoteName,
+		std::vector<char> const& resolvedIP,
+		std::string const& remotePost,
+		std::string const& remotePath
+	) override;
 	void printNetworkProxyDeadlineReceived(
 		unsigned long long account_id,
 		std::wstring const& coinName,
