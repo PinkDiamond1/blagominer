@@ -692,26 +692,24 @@ bool load_testmode_config(wchar_t const *const filename)
 }
 
 
-void GetCPUInfo(void)
+hwinfo GetCPUInfo(void)
 {
-	ULONGLONG  TotalMemoryInKilobytes = 0;
+	hwinfo result;
+	result.AES = InstructionSet::AES();
+	result.SSE = InstructionSet::SSE();
+	result.SSE2 = InstructionSet::SSE2();
+	result.SSE3 = InstructionSet::SSE3();
+	result.SSE42 = InstructionSet::SSE42();
+	result.AVX = InstructionSet::AVX();
+	result.AVX2 = InstructionSet::AVX2();
+	result.AVX512F = InstructionSet::AVX512F();
 
-	gui->printToConsole(-1, false, false, false, false, L"CPU support: ");
-	if (InstructionSet::AES())   gui->printToConsole(-1, false, false, false, false, L" AES ");
-	if (InstructionSet::SSE())   gui->printToConsole(-1, false, false, false, false, L" SSE ");
-	if (InstructionSet::SSE2())  gui->printToConsole(-1, false, false, false, false, L" SSE2 ");
-	if (InstructionSet::SSE3())  gui->printToConsole(-1, false, false, false, false, L" SSE3 ");
-	if (InstructionSet::SSE42()) gui->printToConsole(-1, false, false, false, false, L" SSE4.2 ");
-	if (InstructionSet::AVX())   gui->printToConsole(-1, false, false, false, false, L" AVX ");
-	if (InstructionSet::AVX2())  gui->printToConsole(-1, false, false, false, false, L" AVX2 ");
-	if (InstructionSet::AVX512F())  gui->printToConsole(-1, false, false, false, false, L" AVX512F ");
-
+	result.avxsupported = false;
 #ifndef __AVX__
 	// Checking for AVX requires 3 things:
 	// 1) CPUID indicates that the OS uses XSAVE and XRSTORE instructions (allowing saving YMM registers on context switch)
 	// 2) CPUID indicates support for AVX
 	// 3) XGETBV indicates the AVX registers will be saved and restored on context switch
-	bool avxSupported = false;
 	int cpuInfo[4];
 	__cpuid(cpuInfo, 1);
 
@@ -722,21 +720,21 @@ void GetCPUInfo(void)
 	{
 		// Check if the OS will save the YMM registers
 		unsigned long long xcrFeatureMask = _xgetbv(_XCR_XFEATURE_ENABLED_MASK);
-		avxSupported = (xcrFeatureMask & 0x6) == 0x6;
+		result.avxSupported = (xcrFeatureMask & 0x6) == 0x6;
 	}
-	if (avxSupported)	gui->printToConsole(-1, false, false, false, false, L"     [recomend use AVX]");
 #endif
-	if (InstructionSet::AVX2()) gui->printToConsole(-1, false, false, false, false, L"     [recomend use AVX2]");
-	if (InstructionSet::AVX512F()) gui->printToConsole(-1, false, false, false, false, L"     [recomend use AVX512F]");
+
 	SYSTEM_INFO sysinfo;
 	GetSystemInfo(&sysinfo);
-	gui->printToConsole(-1, false, true, false, false, L"%S", InstructionSet::Vendor().c_str());
-	gui->printToConsole(-1, false, false, false, false, L" %S [%u cores]", InstructionSet::Brand().c_str(), sysinfo.dwNumberOfProcessors);
+	result.vendor = InstructionSet::Vendor();
+	result.brand = InstructionSet::Brand();
+	result.cores = sysinfo.dwNumberOfProcessors;
 
+	ULONGLONG  TotalMemoryInKilobytes = 0;
 	if (GetPhysicallyInstalledSystemMemory(&TotalMemoryInKilobytes))
-		gui->printToConsole(-1, false, true, false, false, L"RAM: %llu Mb", (unsigned long long)TotalMemoryInKilobytes / 1024);
+		result.memory = (unsigned long long)TotalMemoryInKilobytes / 1024;
 
-	gui->printToConsole(-1, false, false, true, false, L"");
+	return result;
 }
 
 
@@ -1464,8 +1462,7 @@ int wmain(int argc, wchar_t **argv) {
 
 	gui->printHeadlineTitle(appname, version, IsElevated());
 	gui->printWallOfCredits(history);
-
-	GetCPUInfo();
+	gui->printHWInfo(GetCPUInfo());
 
 	std::vector<std::shared_ptr<t_coin_info>> activecoins;
 	std::copy_if(allcoins.begin(), allcoins.end(), std::back_inserter(activecoins), [](auto&& it) { return it->network->enable_proxy || it->mining->enable; });

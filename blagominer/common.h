@@ -294,6 +294,16 @@ struct IUserInterface;
 
 extern std::unique_ptr<IUserInterface> gui;
 
+struct hwinfo
+{
+	bool AES;
+	bool SSE, SSE2, SSE3, SSE42;
+	bool AVX, AVX2, AVX512F, avxsupported;
+	std::string vendor, brand;
+	unsigned long cores;
+	unsigned long long memory; // in megabytes
+};
+
 struct IUserInterface
 {
 	virtual ~IUserInterface() = 0;
@@ -308,6 +318,9 @@ struct IUserInterface
 	) = 0;
 	virtual void printWallOfCredits(
 		std::vector<std::wstring> const& history
+	) = 0;
+	virtual void printHWInfo(
+		hwinfo const& info
 	) = 0;
 
 	virtual void printPlotsStart() = 0;

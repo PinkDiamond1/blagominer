@@ -24,6 +24,9 @@ public:
 	void printWallOfCredits(
 		std::vector<std::wstring> const& history
 	) override;
+	void printHWInfo(
+		hwinfo const& info
+	) override;
 
 	void printPlotsStart() override;
 	void printPlotsInfo(char const* const directory, unsigned nfiles, unsigned long long size) override;

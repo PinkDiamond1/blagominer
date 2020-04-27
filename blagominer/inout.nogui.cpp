@@ -81,6 +81,28 @@ void Output_PlainText::printWallOfCredits(
 		printToConsole(4, false, false, true, false, item.c_str());
 }
 
+void Output_PlainText::printHWInfo(
+	hwinfo const& info
+)
+{
+	printToConsole(-1, false, true, false, false, L"CPU support: ");
+	if (info.AES)		printToConsole(-1, false, false, false, false, L" AES ");
+	if (info.SSE)		printToConsole(-1, false, false, false, false, L" SSE ");
+	if (info.SSE2)		printToConsole(-1, false, false, false, false, L" SSE2 ");
+	if (info.SSE3)		printToConsole(-1, false, false, false, false, L" SSE3 ");
+	if (info.SSE42)		printToConsole(-1, false, false, false, false, L" SSE4.2 ");
+	if (info.AVX)		printToConsole(-1, false, false, false, false, L" AVX ");
+	if (info.AVX2)		printToConsole(-1, false, false, false, false, L" AVX2 ");
+	if (info.AVX512F)	printToConsole(-1, false, false, false, false, L" AVX512F ");
+
+	if (info.avxsupported)	printToConsole(-1, false, false, false, false, L"     [recomend use AVX]");
+	if (info.AVX2)			printToConsole(-1, false, false, false, false, L"     [recomend use AVX2]");
+	if (info.AVX512F)		printToConsole(-1, false, false, false, false, L"     [recomend use AVX512F]");
+
+	printToConsole(-1, false, true, false, false, L"%S %S [%u cores]", info.vendor.c_str(), info.brand.c_str(), info.cores);
+	printToConsole(-1, false, true, true, false, L"RAM: %llu Mb", info.memory);
+}
+
 void Output_PlainText::printPlotsStart()
 {
 	printToConsole(15, false, false, true, false, L"Using plots:");
