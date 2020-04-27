@@ -31,6 +31,12 @@ public:
 		std::wstring const& coinname,
 		unsigned long long deadline
 	) override;
+	void debugNetworkDeadlineDiscarded(
+		unsigned long long account_id,
+		std::wstring const& coinName,
+		unsigned long long deadline,
+		unsigned long long targetDeadline
+	) override;
 	void printNetworkDeadlineSent(
 		unsigned long long account_id,
 		std::wstring const& coinName,

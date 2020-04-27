@@ -93,6 +93,19 @@ void Output_Curses::printWorkerDeadlineFound(
 		account_id, coinName, toWStr(deadline, 11).c_str());
 }
 
+void Output_Curses::debugNetworkDeadlineDiscarded(
+	unsigned long long account_id,
+	std::wstring const& coinName,
+	unsigned long long deadline,
+	unsigned long long targetDeadline
+)
+{
+	printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Sender] DL discarded : %s > %s",
+		account_id, coinName,
+		toWStr(deadline, 11).c_str(),
+		toWStr(targetDeadline, 11).c_str());
+}
+
 void Output_Curses::printNetworkDeadlineSent(
 	unsigned long long account_id,
 	std::wstring const& coinName,

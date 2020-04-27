@@ -554,9 +554,9 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 				coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline);
 			if (use_debug)
 			{
-				gui->printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Sender] DL discarded : %s > %s",
-					share->account_id, senderName, toWStr(share->deadline, 11).c_str(),
-					toWStr(coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline, 11).c_str());
+				gui->debugNetworkDeadlineDiscarded(
+					share->account_id, senderName, share->deadline,
+					coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline);
 			}
 			EnterCriticalSection(&coinInfo->locks->sharesLock);
 			if (!coinInfo->mining->shares.empty()) {
