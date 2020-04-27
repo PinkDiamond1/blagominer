@@ -52,16 +52,9 @@ void Output_PlainText::printToConsole(
 		std::lock_guard<std::mutex> lockGuard(mConsoleQueue);
 		consoleQueue.push_back({
 			//colorPair,
-			leadingNewLine,
+			leadingNewLine, trailingNewLine,
 			fillLine,
 			message });
-		if (trailingNewLine) {
-			consoleQueue.push_back({
-			//colorPair,
-			false,
-			false,
-			L"\n" });
-		}
 	}
 	{
 		std::lock_guard<std::mutex> lockGuard(mLog);
@@ -122,6 +115,9 @@ void Output_PlainText::_consoleWriter() {
 				wprintf(L"\n");
 			}
 			wprintf(consoleOutput.message.c_str());
+			if (consoleOutput.trailingNewLine) {
+				wprintf(L"\n");
+			}
 		}
 		else {
 			std::this_thread::yield();

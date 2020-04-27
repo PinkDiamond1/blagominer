@@ -39,7 +39,7 @@ private:
 
 	struct ConsoleOutput {
 		int colorPair;
-		bool leadingNewLine;
+		bool leadingNewLine, trailingNewLine;
 		bool fillLine;
 		std::wstring message;
 	};

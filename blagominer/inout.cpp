@@ -48,16 +48,9 @@ void Output_Curses::printToConsole(int colorPair, bool printTimestamp, bool lead
 		std::lock_guard<std::mutex> lockGuard(mConsoleQueue);
 		consoleQueue.push_back({
 			colorPair,
-			leadingNewLine,
+			leadingNewLine, trailingNewLine,
 			fillLine,
 			message });
-		if (trailingNewLine) {
-			consoleQueue.push_back({
-			colorPair,
-			false,
-			false,
-			L"\n" });
-		}
 	}
 	{
 		std::lock_guard<std::mutex> lockGuard(mLog);
@@ -161,6 +154,9 @@ void Output_Curses::_consoleWriter() {
 							waddwstr(win_main, std::wstring(L"\n").c_str());
 						}
 					}
+				}
+				if (consoleOutput.trailingNewLine) {
+					waddwstr(win_main, L"\n");
 				}
 				if (consoleOutput.colorPair >= 0) {
 					wattroff(win_main, COLOR_PAIR(consoleOutput.colorPair));

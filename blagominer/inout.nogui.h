@@ -29,7 +29,7 @@ public:
 private:
 
 	struct ConsoleOutput {
-		bool leadingNewLine;
+		bool leadingNewLine, trailingNewLine;
 		bool fillLine;
 		std::wstring message;
 	};
