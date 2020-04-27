@@ -300,7 +300,7 @@ struct IUserInterface
 
 	virtual void printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
 		bool trailingNewLine, bool fillLine, const wchar_t * format, ...) = 0;
-	
+
 	virtual void printHeadlineTitle(
 		std::wstring const& appname,
 		std::wstring const& version,
@@ -315,6 +315,7 @@ struct IUserInterface
 		std::wstring const& threadKind,
 		std::wstring const& threadAction
 	) = 0;
+
 	virtual void debugWorkerStats(
 		std::wstring const& specialReadMode,
 		std::string const& directory,
@@ -326,6 +327,13 @@ struct IUserInterface
 		std::wstring const& coinname,
 		unsigned long long deadline
 	) = 0;
+	virtual void printScanProgress(
+		int ncoins, std::wstring const& connQualInfo,
+		unsigned long long bytesRead, unsigned long long round_size,
+		double thread_time, double threads_speed,
+		unsigned long long deadline
+	) = 0;
+
 	virtual void printNetworkProxyDeadlineReceived(
 		unsigned long long account_id,
 		std::wstring const& coinName,
@@ -360,6 +368,10 @@ struct IUserInterface
 		std::wstring const& coinName,
 		unsigned long long targetDeadline
 	) = 0;
+	virtual void printConnQuality(
+		int ncoins, std::wstring const& connQualInfo
+	) = 0;
+
 	virtual void debugRoundTime(
 		double theads_time
 	) = 0;
@@ -375,11 +387,6 @@ struct IUserInterface
 		bool isPoc2Round
 	) = 0;
 
-	virtual void printConnQuality(int ncoins, std::wstring const& connQualInfo) = 0;
-	virtual void printScanProgress(int ncoins, std::wstring const& connQualInfo,
-		unsigned long long bytesRead, unsigned long long round_size,
-		double thread_time, double threads_speed,
-		unsigned long long deadline) = 0;
 
 	virtual bool currentlyDisplayingCorruptedPlotFiles() = 0;
 

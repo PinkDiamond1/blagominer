@@ -30,6 +30,7 @@ public:
 		std::wstring const& threadKind,
 		std::wstring const& threadAction
 	) override;
+
 	void debugWorkerStats(
 		std::wstring const& specialReadMode,
 		std::string const& directory,
@@ -41,6 +42,13 @@ public:
 		std::wstring const& coinname,
 		unsigned long long deadline
 	) override;
+	void printScanProgress(
+		int ncoins, std::wstring const& connQualInfo,
+		unsigned long long bytesRead, unsigned long long round_size,
+		double thread_time, double threads_speed,
+		unsigned long long deadline
+	) override;
+
 	void printNetworkProxyDeadlineReceived(
 		unsigned long long account_id,
 		std::wstring const& coinName,
@@ -75,6 +83,10 @@ public:
 		std::wstring const& coinName,
 		unsigned long long targetDeadline
 	) override;
+	void printConnQuality(
+		int ncoins, std::wstring const& connQualInfo
+	) override;
+
 	void debugRoundTime(
 		double theads_time
 	) override;
@@ -89,12 +101,6 @@ public:
 		unsigned long long currentNetDiff,
 		bool isPoc2Round
 	) override;
-
-	void printConnQuality(int ncoins, std::wstring const& connQualInfo) override;
-	void printScanProgress(int ncoins, std::wstring const& connQualInfo,
-		unsigned long long bytesRead, unsigned long long round_size,
-		double thread_time, double threads_speed,
-		unsigned long long deadline) override;
 
 	void printFileStats(std::map<std::string, t_file_stats> const & fileStats);
 
