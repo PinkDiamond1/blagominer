@@ -1463,14 +1463,8 @@ int wmain(int argc, wchar_t **argv) {
 
 	Gui_init();
 
-	gui->printToConsole(12, false, false, true, false, L"PoC multi miner, %s %s", version.c_str(), IsElevated() ? L"(elevated)" : L"(nonelevated)");
-	gui->printToConsole(4, false, false, true, false, L"Programming: dcct (Linux) & Blago (Windows)");
-	gui->printToConsole(4, false, false, true, false, L"POC2 mod: Quibus & Johnny (5/2018)");
-	gui->printToConsole(4, false, false, true, false, L"Dual mining mod: andz (2/2019)");
-	gui->printToConsole(4, false, false, true, false, L"HTTPS and patches: quetzalcoatl (6/2019)");
-	gui->printToConsole(4, false, false, true, false, L"NTFS optimization: quetzalcoatl (6/2019)");
-	gui->printToConsole(4, false, false, true, false, L"Multi mining mod: quetzalcoatl (7/2019)");
-	gui->printToConsole(4, false, false, true, false, L"Test mode option: quetzalcoatl (8/2019)");
+	gui->printHeadlineTitle(appname, version, IsElevated());
+	gui->printWallOfCredits(history);
 
 	GetCPUInfo();
 

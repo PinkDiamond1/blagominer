@@ -58,6 +58,25 @@ void Output_Curses::printToConsole(int colorPair, bool printTimestamp, bool lead
 	}
 }
 
+void Output_Curses::printHeadlineTitle(
+	std::wstring const& appname,
+	std::wstring const& version,
+	bool elevated
+)
+{
+	printToConsole(12, false, false, true, false, L"%s, %s %s",
+		appname.c_str(), version.c_str(),
+		elevated ? L"(elevated)" : L"(nonelevated)");
+}
+
+void Output_Curses::printWallOfCredits(
+	std::vector<std::wstring> const& history
+)
+{
+	for (auto&& item : history)
+		printToConsole(4, false, false, true, false, item.c_str());
+}
+
 void Output_Curses::printThreadActivity(
 	std::wstring const& coinName,
 	std::wstring const& threadKind,

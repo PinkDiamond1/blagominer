@@ -62,6 +62,25 @@ void Output_PlainText::printToConsole(
 	}
 }
 
+void Output_PlainText::printHeadlineTitle(
+	std::wstring const& appname,
+	std::wstring const& version,
+	bool elevated
+)
+{
+	printToConsole(12, false, false, true, false, L"%s, %s %s",
+		appname.c_str(), version.c_str(),
+		elevated ? L"(elevated)" : L"(nonelevated)");
+}
+
+void Output_PlainText::printWallOfCredits(
+	std::vector<std::wstring> const& history
+)
+{
+	for (auto&& item : history)
+		printToConsole(4, false, false, true, false, item.c_str());
+}
+
 void Output_PlainText::printThreadActivity(
 	std::wstring const& coinName,
 	std::wstring const& threadKind,

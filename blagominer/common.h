@@ -300,6 +300,16 @@ struct IUserInterface
 
 	virtual void printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
 		bool trailingNewLine, bool fillLine, const wchar_t * format, ...) = 0;
+	
+	virtual void printHeadlineTitle(
+		std::wstring const& appname,
+		std::wstring const& version,
+		bool elevated
+	) = 0;
+	virtual void printWallOfCredits(
+		std::vector<std::wstring> const& history
+	) = 0;
+
 	virtual void printThreadActivity(
 		std::wstring const& coinName,
 		std::wstring const& threadKind,

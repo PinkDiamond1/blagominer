@@ -15,6 +15,16 @@ public:
 		bool trailingNewLine, bool fillLine, const wchar_t * format,
 		...
 	) override;
+
+	void printHeadlineTitle(
+		std::wstring const& appname,
+		std::wstring const& version,
+		bool elevated
+	) override;
+	void printWallOfCredits(
+		std::vector<std::wstring> const& history
+	) override;
+
 	void printThreadActivity(
 		std::wstring const& coinName,
 		std::wstring const& threadKind,
