@@ -25,8 +25,11 @@ public:
 		...
 	) override;
 
-	// TODO: add v-overload taking va_list
-	void printToProgress(const wchar_t * format, ...) override;
+	void printConnQuality(int ncoins, std::wstring const& connQualInfo) override;
+	void printScanProgress(int ncoins, std::wstring const& connQualInfo,
+		unsigned long long bytesRead, unsigned long long round_size,
+		double thread_time, double threads_speed,
+		unsigned long long deadline) override;
 
 	void printFileStats(std::map<std::string, t_file_stats> const & fileStats);
 
@@ -53,6 +56,12 @@ private:
 	std::mutex mConsoleWindow;
 	std::list<ConsoleOutput> consoleQueue;
 	std::list<std::wstring> progressQueue;
+
+	int prevNCoins21 = 0;
+	std::wstring leadingSpace21 = IUserInterface::make_leftpad_for_networkstats(21, 0);
+
+	int prevNCoins94 = 0;
+	std::wstring leadingSpace94 = IUserInterface::make_leftpad_for_networkstats(94, 0);
 
 	std::mutex mLog;
 	std::list<std::wstring> loggingQueue;

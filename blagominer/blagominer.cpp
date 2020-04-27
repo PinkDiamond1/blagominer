@@ -1596,7 +1596,6 @@ int wmain(int argc, wchar_t **argv) {
 		}
 
 	if (proxyOnly) {
-		const std::wstring trailingSpace = IUserInterface::make_leftpad_for_networkstats(94, activecoins.size());
 		while (!exit_flag)
 		{
 			
@@ -1615,8 +1614,7 @@ int wmain(int argc, wchar_t **argv) {
 				connQual << std::setw(3) << getNetworkQuality(coin) << L'%';
 				pastfirst = true;
 			}
-			gui->printToProgress(L"%s%s",
-				trailingSpace.c_str(), connQual.str().c_str());
+			gui->printConnQuality(activecoins.size(), connQual.str());
 
 			std::this_thread::yield();
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -1898,19 +1896,13 @@ int wmain(int argc, wchar_t **argv) {
 				}
 
 				if (miningCoin->mining->enable && round_size > 0) {
-					const std::wstring trailingSpace = IUserInterface::make_leftpad_for_networkstats(21, activecoins.size());
-					gui->printToProgress(L"%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c %s%s",
-						(bytesRead * 4096 * 100 / round_size), sepChar,
-						(((double)bytesRead) / (256 * 1024 * 1024)), sepChar,
-						thread_time, sepChar,
-						threads_speed, sepChar,
-						(miningCoin->mining->deadline == 0) ? L"          -" : toWStr(miningCoin->mining->deadline, 11).c_str(), sepChar,
-						trailingSpace.c_str(), connQual.str().c_str());
+					gui->printScanProgress(activecoins.size(), connQual.str(),
+						bytesRead, round_size,
+						thread_time, threads_speed,
+						miningCoin->mining->deadline);
 				}
 				else {
-					const std::wstring trailingSpace = IUserInterface::make_leftpad_for_networkstats(94, activecoins.size());
-					gui->printToProgress(L"%s%s",
-						trailingSpace.c_str(), connQual.str().c_str());
+					gui->printConnQuality(activecoins.size(), connQual.str());
 				}
 				
 				printFileStats();

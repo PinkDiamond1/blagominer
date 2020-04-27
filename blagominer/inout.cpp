@@ -58,20 +58,56 @@ void Output_Curses::printToConsole(int colorPair, bool printTimestamp, bool lead
 	}
 }
 
-void Output_Curses::printToProgress(const wchar_t * format, ...)
+void Output_Curses::printConnQuality(int ncoins, std::wstring const& connQualInfo)
 {
-	std::wstring message;
+	if (ncoins != prevNCoins94)
+	{
+		std::lock_guard<std::mutex> lockGuard(mProgressQueue);
+		if (ncoins != prevNCoins94)
+			leadingSpace94 = IUserInterface::make_leftpad_for_networkstats(94, ncoins);
+	}
 
-	va_list args;
-	va_start(args, format);
-	size_t size = vswprintf(nullptr, 0, format, args) + 1;
-	va_end(args);
+	size_t size = swprintf(nullptr, 0, L"%s%s", leadingSpace94.c_str(), connQualInfo.c_str()) + 1;
 	std::unique_ptr<wchar_t[]> buf(new wchar_t[size]);
-	va_list args2;
-	va_start(args2, format);
-	vswprintf(buf.get(), size, format, args2);
-	va_end(args2);
-	message += std::wstring(buf.get(), buf.get() + size - 1);
+	swprintf(buf.get(), size, L"%s%s", leadingSpace94.c_str(), connQualInfo.c_str());
+
+	auto message = std::wstring(buf.get(), buf.get() + size - 1);
+	{
+		std::lock_guard<std::mutex> lockGuard(mProgressQueue);
+		progressQueue.push_back(message);
+	}
+}
+
+void Output_Curses::printScanProgress(int ncoins, std::wstring const& connQualInfo,
+	unsigned long long bytesRead, unsigned long long round_size,
+	double thread_time, double threads_speed,
+	unsigned long long deadline
+)
+{
+	if (ncoins != prevNCoins21)
+	{
+		std::lock_guard<std::mutex> lockGuard(mProgressQueue);
+		if (ncoins != prevNCoins21)
+			leadingSpace21 = IUserInterface::make_leftpad_for_networkstats(21, ncoins);
+	}
+
+	size_t size = swprintf(nullptr, 0, L"%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c %s%s",
+		(bytesRead * 4096 * 100 / round_size), sepChar,
+		(((double)bytesRead) / (256 * 1024 * 1024)), sepChar,
+		thread_time, sepChar,
+		threads_speed, sepChar,
+		(deadline == 0) ? L"          -" : toWStr(deadline, 11).c_str(), sepChar,
+		leadingSpace94.c_str(), connQualInfo.c_str()) + 1;
+	std::unique_ptr<wchar_t[]> buf(new wchar_t[size]);
+	swprintf(buf.get(), size, L"%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c %s%s",
+		(bytesRead * 4096 * 100 / round_size), sepChar,
+		(((double)bytesRead) / (256 * 1024 * 1024)), sepChar,
+		thread_time, sepChar,
+		threads_speed, sepChar,
+		(deadline == 0) ? L"          -" : toWStr(deadline, 11).c_str(), sepChar,
+		leadingSpace21.c_str(), connQualInfo.c_str());
+
+	auto message = std::wstring(buf.get(), buf.get() + size - 1);
 	{
 		std::lock_guard<std::mutex> lockGuard(mProgressQueue);
 		progressQueue.push_back(message);

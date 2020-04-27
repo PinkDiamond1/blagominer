@@ -307,7 +307,11 @@ struct IUserInterface
 	virtual void printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
 		bool trailingNewLine, bool fillLine, const wchar_t * format, ...) = 0;
 
-	virtual void printToProgress(const wchar_t * format, ...) = 0;
+	virtual void printConnQuality(int ncoins, std::wstring const& connQualInfo) = 0;
+	virtual void printScanProgress(int ncoins, std::wstring const& connQualInfo,
+		unsigned long long bytesRead, unsigned long long round_size,
+		double thread_time, double threads_speed,
+		unsigned long long deadline) = 0;
 
 	virtual bool currentlyDisplayingCorruptedPlotFiles() = 0;
 
