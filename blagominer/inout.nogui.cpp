@@ -100,6 +100,16 @@ void Output_PlainText::printWorkerDeadline(
 		account_id, coinname, toWStr(deadline, 11).c_str());
 }
 
+void Output_PlainText::printRoundInterrupt(
+	unsigned long long currentHeight,
+	std::wstring const& coinname
+)
+{
+	printToConsole(8, true, false, true, true, L"[#%s|%s|Info    ] Mining has been interrupted by another coin.",
+		toWStr(currentHeight, 7).c_str(),
+		toWStr(coinname, 10).c_str());
+}
+
 void Output_PlainText::printRoundChangeInfo(bool isResumingInterrupted,
 	unsigned long long currentHeight,
 	std::wstring const& coinname,

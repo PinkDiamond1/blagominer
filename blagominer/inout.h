@@ -41,6 +41,10 @@ public:
 		std::wstring const& coinname,
 		unsigned long long deadline
 	) override;
+	void printRoundInterrupt(
+		unsigned long long currentHeight,
+		std::wstring const& coinname
+	) override;
 	void printRoundChangeInfo(bool isResumingInterrupted,
 		unsigned long long currentHeight,
 		std::wstring const& coinname,

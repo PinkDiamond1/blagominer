@@ -20,7 +20,7 @@ public:
 		std::wstring const& threadKind,
 		std::wstring const& threadAction
 	) override;
-	virtual void printWorkerStats(
+	void printWorkerStats(
 		std::wstring const& specialReadMode,
 		std::string const& directory,
 		long long start_work_time, long long end_work_time,
@@ -32,7 +32,11 @@ public:
 		std::wstring const& coinname,
 		unsigned long long deadline
 	) override;
-	virtual void printRoundChangeInfo(bool isResumingInterrupted,
+	void printRoundInterrupt(
+		unsigned long long currentHeight,
+		std::wstring const& coinname
+	) override;
+	void printRoundChangeInfo(bool isResumingInterrupted,
 		unsigned long long currentHeight,
 		std::wstring const& coinname,
 		unsigned long long currentBaseTarget,

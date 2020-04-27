@@ -1944,8 +1944,7 @@ int wmain(int argc, wchar_t **argv) {
 				else {
 					miningCoin->mining->state = INTERRUPTED;
 					Log(L"Mining %s has been interrupted by a coin with higher priority.", miningCoin->coinname.c_str());
-					gui->printToConsole(8, true, false, false, true, L"[#%s|%s|Info    ] Mining has been interrupted by another coin.",
-						toWStr(miningCoin->mining->currentHeight, 7).c_str(), toWStr(miningCoin->coinname, 10).c_str());
+					gui->printRoundInterrupt(miningCoin->mining->currentHeight, miningCoin->coinname);
 					// Queuing the interrupted coin.
 					insertIntoQueue(queue, miningCoin, miningCoin);
 				}
