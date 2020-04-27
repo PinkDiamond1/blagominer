@@ -101,7 +101,7 @@ void procscoop_sph(std::shared_ptr<t_coin_info> coin, const unsigned long long n
 					coin->mining->currentBaseTarget));
 				LeaveCriticalSection(&coin->locks->sharesLock);
 
-				gui->printWorkerDeadline(coin->mining->bests[acc].account_id, coin->coinname, coin->mining->bests[acc].DL);
+				gui->printWorkerDeadlineFound(coin->mining->bests[acc].account_id, coin->coinname, coin->mining->bests[acc].DL);
 			}
 		}
 	}
@@ -258,7 +258,7 @@ void procscoop_sse_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 					coin->mining->currentBaseTarget));
 				LeaveCriticalSection(&coin->locks->sharesLock);
 
-				gui->printWorkerDeadline(coin->mining->bests[acc].account_id, coin->coinname, coin->mining->bests[acc].DL);
+				gui->printWorkerDeadlineFound(coin->mining->bests[acc].account_id, coin->coinname, coin->mining->bests[acc].DL);
 			}
 		}
 	}
@@ -415,7 +415,7 @@ void procscoop_avx_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 					coin->mining->currentBaseTarget));
 				LeaveCriticalSection(&coin->locks->sharesLock);
 
-				gui->printWorkerDeadline(coin->mining->bests[acc].account_id, coin->coinname, coin->mining->bests[acc].DL);
+				gui->printWorkerDeadlineFound(coin->mining->bests[acc].account_id, coin->coinname, coin->mining->bests[acc].DL);
 			}
 		}
 	}
@@ -621,7 +621,7 @@ void procscoop_avx2_fast(std::shared_ptr<t_coin_info> coin, unsigned long long c
 					coin->mining->currentBaseTarget));
 				LeaveCriticalSection(&coin->locks->sharesLock);
 
-				gui->printWorkerDeadline(coin->mining->bests[acc].account_id, coin->coinname, coin->mining->bests[acc].DL);
+				gui->printWorkerDeadlineFound(coin->mining->bests[acc].account_id, coin->coinname, coin->mining->bests[acc].DL);
 			}
 		}
 	}
@@ -923,7 +923,7 @@ void procscoop_avx512_fast(std::shared_ptr<t_coin_info> coin, unsigned long long
 					coin->mining->currentBaseTarget));
 				LeaveCriticalSection(&coin->locks->sharesLock);
 
-				gui->printWorkerDeadline(coin->mining->bests[acc].account_id, coin->coinname, coin->mining->bests[acc].DL);
+				gui->printWorkerDeadlineFound(coin->mining->bests[acc].account_id, coin->coinname, coin->mining->bests[acc].DL);
 			}
 		}
 	}

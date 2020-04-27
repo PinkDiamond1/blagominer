@@ -26,7 +26,7 @@ public:
 		double proc_time, double work_time,
 		unsigned long long files_size_per_thread
 	) override;
-	void printWorkerDeadline(
+	void printWorkerDeadlineFound(
 		unsigned long long account_id,
 		std::wstring const& coinname,
 		unsigned long long deadline

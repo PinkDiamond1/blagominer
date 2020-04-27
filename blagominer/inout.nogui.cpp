@@ -87,7 +87,7 @@ void Output_PlainText::debugWorkerStats(
 		proc_time / work_time * 100);
 }
 
-void Output_PlainText::printWorkerDeadline(
+void Output_PlainText::printWorkerDeadlineFound(
 	unsigned long long account_id,
 	std::wstring const& coinname,
 	unsigned long long deadline

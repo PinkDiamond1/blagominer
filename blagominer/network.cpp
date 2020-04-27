@@ -977,8 +977,8 @@ bool __impl__confirm_i__curl(std::vector<char, heap_allocator<char>>& buffer, st
 }
 
 void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
-	const wchar_t* confirmerName = coinInfo->coinname.c_str();
-	Log(L"Confirmer %s: started thread", confirmerName);
+	const wchar_t* coinName = coinInfo->coinname.c_str();
+	Log(L"Confirmer %s: started thread", coinName);
 
 	SOCKET ConnectSocket;
 	int iResult = 0;
@@ -1028,7 +1028,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 					if (answ["deadline"].IsString())	ndeadline = _strtoui64(answ["deadline"].GetString(), 0, 10);
 					else
 						if (answ["deadline"].IsInt64()) ndeadline = answ["deadline"].GetInt64();
-					Log(L"Confirmer %s: confirmed deadline: %llu", confirmerName, ndeadline);
+					Log(L"Confirmer %s: confirmed deadline: %llu", coinName, ndeadline);
 
 					if (answ.HasMember("targetDeadline")) {
 						if (answ["targetDeadline"].IsString())	ntargetDeadline = _strtoui64(answ["targetDeadline"].GetString(), 0, 10);
@@ -1047,7 +1047,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 						coinInfo->mining->bests[Get_index_acc(naccountId, coinInfo, targetDeadlineInfo)].targetDeadline = ntargetDeadline;
 						LeaveCriticalSection(&coinInfo->locks->bestsLock);
 
-						gui->printNetworkDeadlineConfirmed(true, naccountId, confirmerName, ndeadline);
+						gui->printNetworkDeadlineConfirmed(true, naccountId, coinName, ndeadline);
 
 						// TODO: somehow deduplicate log math
 						// and yes, I've CONSIDERED putting the logging it into printNetworkDeadlineConfirmed, and I'm still hesitant
@@ -1055,16 +1055,16 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 						unsigned hours = (ndeadline % (24 * 60 * 60)) / (60 * 60);
 						unsigned min = (ndeadline % (60 * 60)) / 60;
 						unsigned sec = ndeadline % 60;
-						Log(L"[%20llu] %s confirmed DL: %10llu %5llud %02u:%02u:%02u", naccountId, confirmerName, ndeadline, days, hours, min, sec);
+						Log(L"[%20llu] %s confirmed DL: %10llu %5llud %02u:%02u:%02u", naccountId, coinName, ndeadline, days, hours, min, sec);
 
-						Log(L"[%20llu] %s set targetDL: %10llu", naccountId, confirmerName, ntargetDeadline);
+						Log(L"[%20llu] %s set targetDL: %10llu", naccountId, coinName, ntargetDeadline);
 						if (use_debug) {
 							gui->printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] Set target DL: %s",
 								naccountId, toWStr(ntargetDeadline, 11).c_str());
 						}
 					}
 					else {
-						gui->printNetworkDeadlineConfirmed(true, sessionX->body.account_id, confirmerName, ndeadline);
+						gui->printNetworkDeadlineConfirmed(true, sessionX->body.account_id, coinName, ndeadline);
 
 						// TODO: somehow deduplicate log math
 						// and yes, I've CONSIDERED putting the logging it into printNetworkDeadlineConfirmed, and I'm still hesitant
@@ -1072,53 +1072,53 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 						unsigned hours = (ndeadline % (24 * 60 * 60)) / (60 * 60);
 						unsigned min = (ndeadline % (60 * 60)) / 60;
 						unsigned sec = ndeadline % 60;
-						Log(L"[%20llu] %s confirmed DL: %10llu %5llud %02u:%02u:%02u", sessionX->body.account_id, confirmerName, ndeadline, days, hours, min, sec);
+						Log(L"[%20llu] %s confirmed DL: %10llu %5llud %02u:%02u:%02u", sessionX->body.account_id, coinName, ndeadline, days, hours, min, sec);
 					}
 					if (ndeadline < coinInfo->mining->deadline || coinInfo->mining->deadline == 0)  coinInfo->mining->deadline = ndeadline;
 
 					if (ndeadline != sessionX->deadline)
 					{
 						// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
-						Log(L"Confirmer %s: Calculated and confirmed deadlines don't match. Fast block or corrupted file? Response: %S", confirmerName, find);
+						Log(L"Confirmer %s: Calculated and confirmed deadlines don't match. Fast block or corrupted file? Response: %S", coinName, find);
 						std::thread{ Csv_Fail, coinInfo, sessionX->body.height, sessionX->body.file_name, sessionX->body.baseTarget,
 							4398046511104 / 240 / sessionX->body.baseTarget, sessionX->body.nonce, sessionX->deadline, ndeadline, find }.detach();
 						std::thread{ increaseConflictingDeadline, coinInfo, sessionX->body.height, sessionX->body.file_name }.detach();
 						gui->printToConsole(6, false, false, true, false,
 							L"----Fast block or corrupted file?----\n%s sent deadline:\t%llu\nServer's deadline:\t%llu \n----",
-							confirmerName, sessionX->deadline, ndeadline);
+							coinName, sessionX->deadline, ndeadline);
 					}
 				}
 				else {
 					if (answ.HasMember("errorDescription")) {
 						// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
-						Log(L"Confirmer %s: Deadline %llu sent with error: %S", confirmerName, sessionX->deadline, find);
+						Log(L"Confirmer %s: Deadline %llu sent with error: %S", coinName, sessionX->deadline, find);
 						std::thread{ Csv_Fail, coinInfo, sessionX->body.height, sessionX->body.file_name, sessionX->body.baseTarget,
 								4398046511104 / 240 / sessionX->body.baseTarget, sessionX->body.nonce, sessionX->deadline, 0, find }.detach();
 						std::thread{ increaseConflictingDeadline, coinInfo, sessionX->body.height, sessionX->body.file_name }.detach();
 						if (sessionX->deadline <= targetDeadlineInfo) {
-							Log(L"Confirmer %s: Deadline should have been accepted (%llu <= %llu). Fast block or corrupted file?", confirmerName, sessionX->deadline, targetDeadlineInfo);
+							Log(L"Confirmer %s: Deadline should have been accepted (%llu <= %llu). Fast block or corrupted file?", coinName, sessionX->deadline, targetDeadlineInfo);
 							gui->printToConsole(6, false, false, true, false,
 								L"----Fast block or corrupted file?----\n%s sent deadline:\t%llu\nTarget deadline:\t%llu \n----",
-								confirmerName, sessionX->deadline, targetDeadlineInfo);
+								coinName, sessionX->deadline, targetDeadlineInfo);
 						}
 						if (answ["errorCode"].IsInt()) {
-							gui->printToConsole(15, true, false, true, false, L"[ERROR %i] %s: %S", answ["errorCode"].GetInt(), confirmerName, answ["errorDescription"].GetString());
+							gui->printToConsole(15, true, false, true, false, L"[ERROR %i] %s: %S", answ["errorCode"].GetInt(), coinName, answ["errorDescription"].GetString());
 							if (answ["errorCode"].GetInt() == 1004) {
-								gui->printToConsole(12, true, false, true, false, L"%s: You need change reward assignment and wait 4 blocks (~16 minutes)", confirmerName); //error 1004
+								gui->printToConsole(12, true, false, true, false, L"%s: You need change reward assignment and wait 4 blocks (~16 minutes)", coinName); //error 1004
 							}
 						}
 						else if (answ["errorCode"].IsString()) {
-							gui->printToConsole(15, true, false, true, false, L"[ERROR %S] %s: %S", answ["errorCode"].GetString(), confirmerName, answ["errorDescription"].GetString());
+							gui->printToConsole(15, true, false, true, false, L"[ERROR %S] %s: %S", answ["errorCode"].GetString(), coinName, answ["errorDescription"].GetString());
 							if (answ["errorCode"].GetString() == "1004") {
-								gui->printToConsole(12, true, false, true, false, L"%s: You need change reward assignment and wait 4 blocks (~16 minutes)", confirmerName); //error 1004
+								gui->printToConsole(12, true, false, true, false, L"%s: You need change reward assignment and wait 4 blocks (~16 minutes)", coinName); //error 1004
 							}
 						}
 						else {
-							gui->printToConsole(15, true, false, true, false, L"[ERROR] %s: %S", confirmerName, answ["errorDescription"].GetString());
+							gui->printToConsole(15, true, false, true, false, L"[ERROR] %s: %S", coinName, answ["errorDescription"].GetString());
 						}
 					}
 					else {
-						gui->printToConsole(15, true, false, true, false, L"%s: %S", confirmerName, find);
+						gui->printToConsole(15, true, false, true, false, L"%s: %S", coinName, find);
 					}
 				}
 			}
@@ -1128,14 +1128,14 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 				coinInfo->mining->deadline = coinInfo->mining->bests[Get_index_acc(sessionX->body.account_id, coinInfo, targetDeadlineInfo)].DL; //maybe better iter-> deadline?
 																			// if(deadline > iter->deadline) deadline = iter->deadline;
 				std::thread{ increaseMatchingDeadline, sessionX->body.file_name }.detach();
-				gui->printNetworkDeadlineConfirmed(false, sessionX->body.account_id, confirmerName, sessionX->deadline); // TODO: why pretty-time is disabled here?
+				gui->printNetworkDeadlineConfirmed(false, sessionX->body.account_id, coinName, sessionX->deadline); // TODO: why pretty-time is disabled here?
 		}
 
 		std::this_thread::yield();
 		std::this_thread::sleep_for(std::chrono::milliseconds(coinInfo->network->send_interval));
 	}
 
-	Log(L"Confirmer %s: All work done, shutting down.", confirmerName);
+	Log(L"Confirmer %s: All work done, shutting down.", coinName);
 }
 
 

@@ -317,7 +317,7 @@ struct IUserInterface
 		double proc_time, double work_time,
 		unsigned long long files_size_per_thread
 	) = 0;
-	virtual void printWorkerDeadline(
+	virtual void printWorkerDeadlineFound(
 		unsigned long long account_id,
 		std::wstring const& coinname,
 		unsigned long long deadline
