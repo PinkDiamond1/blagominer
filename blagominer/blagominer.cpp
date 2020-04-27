@@ -1009,8 +1009,7 @@ void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& currentQueue, st
 			Log(L"Coin %s already in queue. No action needed", newCoin->coinname.c_str());
 			inserted = true;
 			if (coinCurrentlyMining && coinCurrentlyMining->mining->state == MINING) {
-				gui->printToConsole(5, true, false, false, true, L"[#%s|%s|Info    ] New block has been added to the queue.",
-					toWStr(newCoin->mining->height, 7).c_str(), toWStr(newCoin->coinname, 10).c_str());
+				gui->printBlockEnqueued(newCoin->mining->height, newCoin->coinname, false, false);
 			}
 			break;
 		}
@@ -1020,8 +1019,7 @@ void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& currentQueue, st
 		if (coinCurrentlyMining && coinCurrentlyMining->mining->state == MINING &&
 			newCoin != coinCurrentlyMining &&
 			newCoin->mining->priority >= coinCurrentlyMining->mining->priority) {
-			gui->printToConsole(5, true, false, false, true, L"[#%s|%s|Info    ] New block has been added to the end of the queue.",
-				toWStr(newCoin->mining->height, 7).c_str(), toWStr(newCoin->coinname, 10).c_str());
+			gui->printBlockEnqueued(newCoin->mining->height, newCoin->coinname, true, false);
 		}
 		currentQueue.push_back(newCoin);
 	}
@@ -1093,8 +1091,7 @@ void handleProxyOnly(std::shared_ptr<t_coin_info> coin) {
 			Log(L"Signature for %s changed.", coin->coinname.c_str());
 			Log(L"Won't add %s to the queue. Proxy only.", coin->coinname.c_str());
 			updateOldSignature(coin);
-			gui->printToConsole(5, true, true, false, true, L"[#%s|%s|Info    ] New block.",
-				toWStr(coin->mining->height, 7).c_str(), toWStr(coin->coinname, 10).c_str());
+			gui->printBlockEnqueued(coin->mining->height, coin->coinname, false, true);
 			
 			// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
 			if (coin->mining->currentBaseTarget != 0) {

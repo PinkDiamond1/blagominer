@@ -264,6 +264,20 @@ void Output_Curses::debugRoundTime(
 	printToConsole(7, true, false, true, false, L"Total round time: %.1f sec", threads_time);
 }
 
+void Output_Curses::printBlockEnqueued(
+	unsigned long long currentHeight,
+	std::wstring const& coinName,
+	bool atEnd, bool noQueue
+)
+{
+	if (noQueue)
+		printToConsole(5, true, false, false, true, L"[#%s|%s|Info    ] New block.",
+			toWStr(currentHeight, 7).c_str(), toWStr(coinName, 10).c_str());
+	else
+		printToConsole(5, true, false, false, true, L"[#%s|%s|Info    ] New block has been added to the%s queue.",
+			toWStr(currentHeight, 7).c_str(), toWStr(coinName, 10).c_str(), atEnd ? L" end of the" : L"");
+}
+
 void Output_Curses::printRoundInterrupt(
 	unsigned long long currentHeight,
 	std::wstring const& coinname

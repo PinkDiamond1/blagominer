@@ -105,6 +105,11 @@ public:
 	void debugRoundTime(
 		double theads_time
 	) override;
+	void printBlockEnqueued(
+		unsigned long long currentHeight,
+		std::wstring const& coinname,
+		bool atEnd, bool noQueue
+	) override;
 	void printRoundInterrupt(
 		unsigned long long currentHeight,
 		std::wstring const& coinname

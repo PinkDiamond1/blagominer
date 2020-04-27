@@ -400,6 +400,11 @@ struct IUserInterface
 	virtual void debugRoundTime(
 		double theads_time
 	) = 0;
+	virtual void printBlockEnqueued(
+		unsigned long long currentHeight,
+		std::wstring const& coinname,
+		bool atEnd, bool noQueue
+	) = 0;
 	virtual void printRoundInterrupt(
 		unsigned long long currentHeight,
 		std::wstring const& coinname
