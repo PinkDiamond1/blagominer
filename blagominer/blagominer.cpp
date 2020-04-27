@@ -1176,8 +1176,7 @@ unsigned long long getPlotFilesSize(std::vector<std::string>& directories, bool 
 			all_files.push_back(*it);
 		}
 		if (log) {
-			gui->printToConsole(-1, false, false, true, false, L"%S\tfiles: %4u\t size: %7llu GiB",
-				(char*)iter->c_str(), (unsigned)files.size(), tot_size / 1024 / 1024 / 1024, 0);
+			gui->printPlotsInfo(iter->c_str(), files.size(), tot_size / 1024 / 1024 / 1024);
 		}
 		size += tot_size;
 	}
@@ -1496,7 +1495,7 @@ int wmain(int argc, wchar_t **argv) {
 		initMiningOrProxy(coin);
 	
 	// File info
-	gui->printToConsole(15, false, false, true, false, L"Using plots:");
+	gui->printPlotsStart();
 	
 	bool bfsDetected = false;
 	std::vector<t_files> all_files;
@@ -1515,8 +1514,7 @@ int wmain(int argc, wchar_t **argv) {
 		gui->printToConsole(12, false, true, true, false, L"Elevation failed. BFS plots cannot be accessed and will be ignored.");
 	}
 
-	gui->printToConsole(15, false, false, true, false, L"TOTAL: %llu GiB (%llu TiB)",
-		total_size / 1024 / 1024 / 1024, total_size / 1024 / 1024 / 1024 / 1024);
+	gui->printPlotsEnd(total_size);
 	
 	if (total_size == 0 && miningcoins.size() > 0) {
 		gui->printToConsole(12, false, true, true, false,

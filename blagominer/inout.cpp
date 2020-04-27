@@ -77,6 +77,23 @@ void Output_Curses::printWallOfCredits(
 		printToConsole(4, false, false, true, false, item.c_str());
 }
 
+void Output_Curses::printPlotsStart()
+{
+	printToConsole(15, false, false, true, false, L"Using plots:");
+}
+
+void Output_Curses::printPlotsInfo(char const* const directory, unsigned nfiles, unsigned long long size)
+{
+	printToConsole(-1, false, false, true, false, L"%S\tfiles: %4u\t size: %7llu GiB",
+		directory, nfiles, size / 1024 / 1024 / 1024, 0);
+}
+
+void Output_Curses::printPlotsEnd(unsigned long long total_size)
+{
+	printToConsole(15, false, false, true, false, L"TOTAL: %llu GiB (%llu TiB)",
+		total_size / 1024 / 1024 / 1024, total_size / 1024 / 1024 / 1024 / 1024);
+}
+
 void Output_Curses::printThreadActivity(
 	std::wstring const& coinName,
 	std::wstring const& threadKind,

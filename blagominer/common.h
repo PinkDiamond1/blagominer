@@ -310,6 +310,10 @@ struct IUserInterface
 		std::vector<std::wstring> const& history
 	) = 0;
 
+	virtual void printPlotsStart() = 0;
+	virtual void printPlotsInfo(char const* const directory, unsigned nfiles, unsigned long long size) = 0;
+	virtual void printPlotsEnd(unsigned long long total_size) = 0;
+
 	virtual void printThreadActivity(
 		std::wstring const& coinName,
 		std::wstring const& threadKind,

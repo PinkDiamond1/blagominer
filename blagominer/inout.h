@@ -34,6 +34,10 @@ public:
 		std::vector<std::wstring> const& history
 	) override;
 
+	void printPlotsStart() override;
+	void printPlotsInfo(char const* const directory, unsigned nfiles, unsigned long long size) override;
+	void printPlotsEnd(unsigned long long total_size) override;
+
 	void printThreadActivity(
 		std::wstring const& coinName,
 		std::wstring const& threadKind,
