@@ -387,6 +387,28 @@ struct IUserInterface
 		bool isPoc2Round
 	) = 0;
 
+	void testmodeWarning(wchar_t const* const message)
+	{
+		printToConsole(2, true, false, true, false, message);
+	}
+	void testmodeError(wchar_t const* const message)
+	{
+		printToConsole(12, true, false, true, false, message);
+	}
+	void testmodeSuccess(wchar_t const* const const message)
+	{
+		printToConsole(10, true, false, true, false, message);
+	}
+	void testmodeFinished()
+	{
+		printToConsole(2, false, true, true, false, L"TestMode has finished all tasks, press any key.");
+
+		// after the last test, last status line is pending in console output writer
+		// and the closeMiner will bm_end() which will interrupt the console writer
+		// causing the last line to never show up.
+		// Sadly, currently there's no better way to flush it other than wait
+		system("pause > nul");
+	}
 
 	virtual bool currentlyDisplayingCorruptedPlotFiles() = 0;
 

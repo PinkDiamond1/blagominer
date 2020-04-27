@@ -1978,28 +1978,28 @@ int wmain(int argc, wchar_t **argv) {
 
 				if (!anyDefined)
 				{
-					gui->printToConsole(2, true, false, true, false, L"EMPTY");
+					gui->testmodeWarning(L"EMPTY");
 					Log(L"TESTMODE: TEST EMPTY: no checks for this round, height: %llu, gensig: %S, baseTarget: %llu, account: %llu, nonce: %llu",
 						miningCoin->testround1->height, miningCoin->testround1->signature.c_str(), miningCoin->testround1->baseTarget,
 						miningCoin->testround2->assume_account, miningCoin->testround2->assume_nonce);
 				}
 				else if (!allDefinedHavePassed)
 				{
-					gui->printToConsole(12, true, false, true, false, L"FAILED");
+					gui->testmodeError(L"FAILED");
 					Log(L"TESTMODE: TEST FAILED: some checks have FAILED for this round, height: %llu, gensig: %S, baseTarget: %llu, account: %llu, nonce: %llu",
 						miningCoin->testround1->height, miningCoin->testround1->signature.c_str(), miningCoin->testround1->baseTarget,
 						miningCoin->testround2->assume_account, miningCoin->testround2->assume_nonce);
 				}
 				else if (!anyDefinedAndSkipped)
 				{
-					gui->printToConsole(12, true, false, true, false, L"PARTIAL");
+					gui->testmodeError(L"PARTIAL");
 					Log(L"TESTMODE: TEST PARTIAL: some checks were skipped for this round, height: %llu, gensig: %S, baseTarget: %llu, account: %llu, nonce: %llu",
 						miningCoin->testround1->height, miningCoin->testround1->signature.c_str(), miningCoin->testround1->baseTarget,
 						miningCoin->testround2->assume_account, miningCoin->testround2->assume_nonce);
 				}
 				else
 				{
-					gui->printToConsole(10, true, false, true, false, L"PASSED");
+					gui->testmodeSuccess(L"PASSED");
 					Log(L"TESTMODE: TEST PASSED: all checks have PASSED for this round, height: %llu, gensig: %S, baseTarget: %llu, account: %llu, nonce: %llu",
 						miningCoin->testround1->height, miningCoin->testround1->signature.c_str(), miningCoin->testround1->baseTarget,
 						miningCoin->testround2->assume_account, miningCoin->testround2->assume_nonce);
@@ -2008,14 +2008,9 @@ int wmain(int argc, wchar_t **argv) {
 		}
 	}
 
-	// after the last test, last status line is pending in console output writer
-	// and the closeMiner will bm_end() which will interrupt the console writer
-	// causing the last line to never show up.
-	// Sadly, currently there's no better way to flush it other than wait
 	if (testmodeConfig.isEnabled)
 	{
-		gui->printToConsole(2, false, true, true, false, L"TestMode has finished all tasks, press any key.");
-		system("pause > nul");
+		gui->testmodeFinished();
 	}
 
 	closeMiner();
