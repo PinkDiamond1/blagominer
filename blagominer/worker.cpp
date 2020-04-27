@@ -562,7 +562,10 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 
 	// in offline testmode I turn it off just to not have to analyze&patch it
 	if (use_debug && pcFreq != 0 && !testmodeIgnoresPlotfiles)
-		if (end_work_time - start_work_time > pcFreq) // hide stats for idle workers
+	{
+		double cpuTime = sum_time_proc / pcFreq;
+		double workTime = (double)(end_work_time - start_work_time) / pcFreq;
+		if (workTime > 0) // hide stats for idle workers
 		{
 			auto tag = isbfs ? L"BFS" :
 				converted ? L"POC1<>POC2" :
@@ -571,10 +574,11 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			gui->debugWorkerStats(
 				tag,
 				path_loc_str,
-				start_work_time, end_work_time,
-				files_size_per_thread,
-				sum_time_proc, pcFreq);
+				cpuTime, workTime,
+				files_size_per_thread
+			);
 		}
+	}
 	directory->done = true;
 	if (!testmodeIgnoresPlotfiles)
 	Log(L"[%zu] Finished directory %S.", local_num, path_loc_str.c_str());

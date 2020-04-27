@@ -23,9 +23,8 @@ public:
 	void debugWorkerStats(
 		std::wstring const& specialReadMode,
 		std::string const& directory,
-		long long start_work_time, long long end_work_time,
-		unsigned long long files_size_per_thread,
-		double sum_time_proc, double pcFreq
+		double proc_time, double work_time,
+		unsigned long long files_size_per_thread
 	) override;
 	void printWorkerDeadline(
 		unsigned long long account_id,

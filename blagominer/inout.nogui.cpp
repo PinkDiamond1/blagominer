@@ -74,20 +74,17 @@ void Output_PlainText::printThreadActivity(
 void Output_PlainText::debugWorkerStats(
 	std::wstring const& specialReadMode,
 	std::string const& directory,
-	long long start_work_time, long long end_work_time,
-	unsigned long long files_size_per_thread,
-	double sum_time_proc, double pcFreq
+	double proc_time, double work_time,
+	unsigned long long files_size_per_thread
 )
 {
 	auto msgFormat = !specialReadMode.empty()
 		? L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (%s)"
 		: L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%%%s"; // note that the last %s is always empty, it is there just to keep the same number of placeholders
 
-	double thread_time = (double)(end_work_time - start_work_time) / pcFreq;
-
 	printToConsole(7, true, false, true, false, msgFormat,
-		directory.c_str(), thread_time, (double)(files_size_per_thread) / thread_time / 1024 / 1024 / 4096,
-		sum_time_proc / pcFreq * 100 / thread_time);
+		directory.c_str(), work_time, (double)(files_size_per_thread) / work_time / 1024 / 1024 / 4096,
+		proc_time / work_time * 100);
 }
 
 void Output_PlainText::printWorkerDeadline(
