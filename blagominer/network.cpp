@@ -353,14 +353,10 @@ void __impl__send_i__sockets(std::vector<char, heap_allocator<char>>& buffer, st
 		else
 		{
 			increaseNetworkQuality(coinInfo);
-			gui->printToConsole(9, true, false, true, false, L"[%20llu|%-10s|Sender] DL sent      : %s %sd %02llu:%02llu:%02llu",
+			gui->printNetworkDeadlineSent(
 				share->account_id,
 				senderName,
-				toWStr(share->deadline, 11).c_str(),
-				toWStr(share->deadline / (24 * 60 * 60), 7).c_str(),
-				(share->deadline % (24 * 60 * 60)) / (60 * 60),
-				(share->deadline % (60 * 60)) / 60,
-				share->deadline % 60);
+				share->deadline);
 
 			tmpSessions.push_back(std::make_shared<t_session>(ConnectSocket, share->deadline, *share));
 			guardConnectSocket.release();
@@ -487,14 +483,10 @@ void __impl__send_i__curl(std::vector<char, heap_allocator<char>>& buffer, std::
 		}
 		else {
 			increaseNetworkQuality(coinInfo);
-			gui->printToConsole(9, true, false, true, false, L"[%20llu|%-10s|Sender] DL sent      : %s %sd %02llu:%02llu:%02llu",
+			gui->printNetworkDeadlineSent(
 				share->account_id,
 				senderName,
-				toWStr(share->deadline, 11).c_str(),
-				toWStr(share->deadline / (24 * 60 * 60), 7).c_str(),
-				(share->deadline % (24 * 60 * 60)) / (60 * 60),
-				(share->deadline % (60 * 60)) / 60,
-				share->deadline % 60);
+				share->deadline);
 
 			tmpSessions.push_back(std::make_shared<t_session2>(curl.get(), share->deadline, *share));
 			curl.release();
