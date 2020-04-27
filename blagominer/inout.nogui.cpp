@@ -71,7 +71,7 @@ void Output_PlainText::printThreadActivity(
 	printToConsole(25, false, false, true, true, L"%s %s thread %s", coinName.c_str(), threadKind.c_str(), threadAction.c_str());
 }
 
-void Output_PlainText::printWorkerStats(
+void Output_PlainText::debugWorkerStats(
 	std::wstring const& specialReadMode,
 	std::string const& directory,
 	long long start_work_time, long long end_work_time,

@@ -20,7 +20,7 @@ public:
 		std::wstring const& threadKind,
 		std::wstring const& threadAction
 	) override;
-	void printWorkerStats(
+	void debugWorkerStats(
 		std::wstring const& specialReadMode,
 		std::string const& directory,
 		long long start_work_time, long long end_work_time,

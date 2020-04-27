@@ -311,7 +311,7 @@ struct IUserInterface
 		std::wstring const& threadKind,
 		std::wstring const& threadAction
 	) = 0;
-	virtual void printWorkerStats(
+	virtual void debugWorkerStats(
 		std::wstring const& specialReadMode,
 		std::string const& directory,
 		long long start_work_time, long long end_work_time,

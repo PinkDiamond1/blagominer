@@ -568,7 +568,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				converted ? L"POC1<>POC2" :
 				L"";
 
-			gui->printWorkerStats(
+			gui->debugWorkerStats(
 				tag,
 				path_loc_str,
 				start_work_time, end_work_time,

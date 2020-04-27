@@ -67,7 +67,7 @@ void Output_Curses::printThreadActivity(
 	printToConsole(25, false, false, false, true, L"%s %s thread %s", coinName.c_str(), threadKind.c_str(), threadAction.c_str());
 }
 
-void Output_Curses::printWorkerStats(
+void Output_Curses::debugWorkerStats(
 	std::wstring const& specialReadMode,
 	std::string const& directory,
 	long long start_work_time, long long end_work_time,
