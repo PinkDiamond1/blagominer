@@ -94,6 +94,3 @@ private:
 	void _progressWriter();
 	void _consoleWriter();
 };
-
-std::wstring make_filled_string(int n, wchar_t filler);
-std::wstring make_leftpad_for_networkstats(int space, int coins);

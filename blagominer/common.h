@@ -316,4 +316,17 @@ struct IUserInterface
 	virtual void showNewVersion(std::string version) = 0;
 
 	virtual void printFileStats(std::map<std::string, t_file_stats>const& fileStats) = 0;
+
+	// ---
+
+	static std::wstring make_filled_string(int nspaces, wchar_t filler)
+	{
+		return std::wstring(max(0, nspaces), filler);
+	}
+
+	static std::wstring make_leftpad_for_networkstats(int availablespace, int nactivecoins)
+	{
+		const int remainingspace = availablespace - (nactivecoins * 4) - (nactivecoins - 1);
+		return make_filled_string(remainingspace, L' ');
+	}
 };
