@@ -1051,8 +1051,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 
 						Log(L"[%20llu] %s set targetDL: %10llu", naccountId, coinName, ntargetDeadline);
 						if (use_debug) {
-							gui->printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] Set target DL: %s",
-								naccountId, toWStr(ntargetDeadline, 11).c_str());
+							gui->debugNetworkTargetDeadlineUpdated(naccountId, coinName, ntargetDeadline);
 						}
 					}
 					else {

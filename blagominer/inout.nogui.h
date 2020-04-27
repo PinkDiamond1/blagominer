@@ -42,6 +42,11 @@ public:
 		std::wstring const& coinName,
 		unsigned long long deadline
 	) override;
+	void debugNetworkTargetDeadlineUpdated(
+		unsigned long long account_id,
+		std::wstring const& coinName,
+		unsigned long long targetDeadline
+	) override;
 	void debugRoundTime(
 		double theads_time
 	) override;

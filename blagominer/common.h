@@ -333,6 +333,11 @@ struct IUserInterface
 		std::wstring const& coinName,
 		unsigned long long deadline
 	) = 0;
+	virtual void debugNetworkTargetDeadlineUpdated(
+		unsigned long long account_id,
+		std::wstring const& coinName,
+		unsigned long long targetDeadline
+	) = 0;
 	virtual void debugRoundTime(
 		double theads_time
 	) = 0;

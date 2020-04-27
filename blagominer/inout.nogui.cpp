@@ -142,6 +142,17 @@ void Output_PlainText::printNetworkDeadlineConfirmed(
 	}
 }
 
+void Output_PlainText::debugNetworkTargetDeadlineUpdated(
+	unsigned long long account_id,
+	std::wstring const& coinName,
+	unsigned long long targetDeadline
+)
+{
+	printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] Set target DL: %s",
+		account_id, coinName,
+		toWStr(targetDeadline, 11).c_str());
+}
+
 void Output_PlainText::debugRoundTime(
 	double threads_time
 )
