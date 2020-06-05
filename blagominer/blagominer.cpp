@@ -1881,9 +1881,6 @@ int wmain(int argc, wchar_t **argv) {
 						thread_time, threads_speed,
 						miningCoin->mining->deadline);
 				}
-				else {
-					gui->printConnQuality(activecoins.size(), connQual.str());
-				}
 				
 				printFileStats();
 				
