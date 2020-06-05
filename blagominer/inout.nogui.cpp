@@ -147,12 +147,13 @@ void Output_PlainText::debugWorkerStats(
 
 void Output_PlainText::printWorkerDeadlineFound(
 	unsigned long long account_id,
-	std::wstring const& coinname,
+	std::wstring const& coinName,
 	unsigned long long deadline
 )
 {
-	printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Worker] DL found     : %s",
-		account_id, coinname, toWStr(deadline, 11).c_str());
+	printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Worker] DL found     : %11llu",
+		account_id, coinName.c_str(),
+		deadline);
 }
 
 void Output_PlainText::printNetworkHostResolution(
@@ -175,9 +176,9 @@ void Output_PlainText::printNetworkProxyDeadlineReceived(
 	char const (& const clientAddr)[22]
 )
 {
-	printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Proxy ] DL found     : %s {%S}",
-		account_id, coinName,
-		toWStr(deadline, 11).c_str(), clientAddr);
+	printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Proxy ] DL found     : %11llu {%S}",
+		account_id, coinName.c_str(),
+		deadline, clientAddr);
 }
 
 void Output_PlainText::debugNetworkProxyDeadlineAcked(
@@ -187,9 +188,9 @@ void Output_PlainText::debugNetworkProxyDeadlineAcked(
 	char const (& const clientAddr)[22]
 )
 {
-	printToConsole(9, true, false, true, false, L"[%20llu|%-10s|Proxy ] DL ack'ed    : %s {%S}",
-		account_id, coinName,
-		toWStr(deadline, 11).c_str(), clientAddr);
+	printToConsole(9, true, false, true, false, L"[%20llu|%-10s|Proxy ] DL ack'ed    : %11llu {%S}",
+		account_id, coinName.c_str(),
+		deadline, clientAddr);
 }
 
 void Output_PlainText::debugNetworkDeadlineDiscarded(
@@ -199,10 +200,9 @@ void Output_PlainText::debugNetworkDeadlineDiscarded(
 	unsigned long long targetDeadline
 )
 {
-	printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Sender] DL discarded : %s > %s",
-		account_id, coinName,
-		toWStr(deadline, 11).c_str(),
-		toWStr(targetDeadline, 11).c_str());
+	printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Sender] DL discarded : %11llu > %11llu",
+		account_id, coinName.c_str(),
+		deadline, targetDeadline);
 }
 
 void Output_PlainText::printNetworkDeadlineSent(
@@ -216,10 +216,10 @@ void Output_PlainText::printNetworkDeadlineSent(
 	unsigned min = (deadline % (60 * 60)) / 60;
 	unsigned sec = deadline % 60;
 
-	printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL sent      : %s %sd %02u:%02u:%02u",
-		account_id, coinName,
-		toWStr(deadline, 11).c_str(),
-		toWStr(days, 7).c_str(), hours, min, sec);
+	printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL sent      : %11llu %7ud %02u:%02u:%02u",
+		account_id, coinName.c_str(),
+		deadline,
+		days, hours, min, sec);
 }
 
 void Output_PlainText::printNetworkDeadlineConfirmed(
@@ -232,7 +232,7 @@ void Output_PlainText::printNetworkDeadlineConfirmed(
 	if (!with_timespan)
 	{
 		printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL confirmed : %s",
-			account_id, coinName,
+			account_id, coinName.c_str(),
 			deadline
 		);
 	}
@@ -243,10 +243,10 @@ void Output_PlainText::printNetworkDeadlineConfirmed(
 		unsigned min = (deadline % (60 * 60)) / 60;
 		unsigned sec = deadline % 60;
 
-		printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL confirmed : %s %sd %02u:%02u:%02u",
-			account_id, coinName,
-			toWStr(deadline, 11).c_str(),
-			toWStr(days, 7).c_str(), hours, min, sec);
+		printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL confirmed : %11llu %7ud %02u:%02u:%02u",
+			account_id, coinName.c_str(),
+			deadline,
+			days, hours, min, sec);
 	}
 }
 
@@ -256,9 +256,9 @@ void Output_PlainText::debugNetworkTargetDeadlineUpdated(
 	unsigned long long targetDeadline
 )
 {
-	printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] Set target DL: %s",
-		account_id, coinName,
-		toWStr(targetDeadline, 11).c_str());
+	printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] Set target DL: %11llu",
+		account_id, coinName.c_str(),
+		targetDeadline);
 }
 
 void Output_PlainText::debugRoundTime(
@@ -275,44 +275,42 @@ void Output_PlainText::printBlockEnqueued(
 )
 {
 	if (noQueue)
-		printToConsole(5, true, false, true, false, L"[#%s|%s|Info    ] New block.",
-			toWStr(currentHeight, 7).c_str(), toWStr(coinName, 10).c_str());
+		printToConsole(5, true, false, true, false, L"[#%7llu|%-10s|Info    ] New block.",
+			currentHeight, coinName.c_str());
 	else
-		printToConsole(5, true, false, true, false, L"[#%s|%s|Info    ] New block has been added to the%s queue.",
-			toWStr(currentHeight, 7).c_str(), toWStr(coinName, 10).c_str(), atEnd ? L" end of the" : L"");
+		printToConsole(5, true, false, true, false, L"[#%7llu|%-10s|Info    ] New block has been added to the%s queue.",
+			currentHeight, coinName.c_str(), atEnd ? L" end of the" : L"");
 }
 
 void Output_PlainText::printRoundInterrupt(
 	unsigned long long currentHeight,
-	std::wstring const& coinname
+	std::wstring const& coinName
 )
 {
-	printToConsole(8, true, false, true, true, L"[#%s|%s|Info    ] Mining has been interrupted by another coin.",
-		toWStr(currentHeight, 7).c_str(),
-		toWStr(coinname, 10).c_str());
+	printToConsole(8, true, false, true, true, L"[#%7llu|%-10s|Info    ] Mining has been interrupted by another coin.",
+		currentHeight, coinName.c_str());
 }
 
 void Output_PlainText::printRoundChangeInfo(bool isResumingInterrupted,
 	unsigned long long currentHeight,
-	std::wstring const& coinname,
+	std::wstring const& coinName,
 	unsigned long long currentBaseTarget,
 	unsigned long long currentNetDiff,
 	bool isPoc2Round
 )
 {
 	auto msgFormat = isResumingInterrupted
-		? L"[#%s|%s|Continue] Base Target %s %c Net Diff %s TiB %c PoC%i"
-		: L"[#%s|%s|Start   ] Base Target %s %c Net Diff %s TiB %c PoC%i";
+		? L"[#%7llu|%-10s|Continue] Base Target %7llu %c Net Diff %8llu TiB %c PoC%i"
+		: L"[#%7llu|%-10s|Start   ] Base Target %7llu %c Net Diff %8llu TiB %c PoC%i";
 
 	auto colorPair = isResumingInterrupted
 		? 5
 		: 25;
 
 	printToConsole(colorPair, true, false, true, false, msgFormat,
-		toWStr(currentHeight, 7).c_str(),
-		toWStr(coinname, 10).c_str(),
-		toWStr(currentBaseTarget, 7).c_str(), sepChar,
-		toWStr(currentNetDiff, 8).c_str(), sepChar,
+		currentHeight, coinName.c_str(),
+		currentBaseTarget, sepChar,
+		currentNetDiff, sepChar,
 		isPoc2Round);
 }
 
