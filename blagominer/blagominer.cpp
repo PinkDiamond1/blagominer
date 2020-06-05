@@ -1731,6 +1731,7 @@ int wmain(int argc, wchar_t **argv) {
 
 			newRound(miningCoin);
 
+			// TODO: there doesn't seem to be a way for a 'miningcoin' to be 'not enabled'
 			if (miningCoin->mining->enable) {
 				auto verb = (miningCoin->mining->state == INTERRUPTED) ? L"Continuing" : L"New";
 				Log(L"------------------------    %s %s block: %llu", verb, miningCoin->coinname.c_str(), miningCoin->mining->currentHeight);
@@ -1825,11 +1826,12 @@ int wmain(int argc, wchar_t **argv) {
 					if (miningCoin->mining->state == MINING) {
 						Log(L"Round done.");
 						Log(L"Bytes read: %llu", bytesRead);
-						miningCoin->mining->state = DONE;
+						miningCoin->mining->state = DONE; // NTS: it seems FINE to not synchronize write here, as all writes to STATE seem to occur on WMAIN thread
 						//Display total round time
 						QueryPerformanceCounter((LARGE_INTEGER*)&end_threads_time);
 						thread_time = (double)(end_threads_time - start_threads_time) / pcFreq;
 
+						// TODO: there doesn't seem to be a way for a 'miningcoin' to be 'not enabled'
 						if (miningCoin->mining->enable) {
 							Log(L"Total round time: %.1f seconds", thread_time);
 							if (use_debug)
@@ -1875,6 +1877,8 @@ int wmain(int argc, wchar_t **argv) {
 					pastfirst = true;
 				}
 
+				// TODO: there doesn't seem to be a way for a 'miningcoin' to be 'not enabled'
+				// TODO: do we really NEED to call this each 50ms? even after the round ended and we're idling?
 				if (miningCoin->mining->enable && round_size > 0) {
 					gui->printScanProgress(activecoins.size(), connQual.str(),
 						bytesRead, round_size,
