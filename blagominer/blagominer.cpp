@@ -720,7 +720,7 @@ hwinfo GetCPUInfo(void)
 	{
 		// Check if the OS will save the YMM registers
 		unsigned long long xcrFeatureMask = _xgetbv(_XCR_XFEATURE_ENABLED_MASK);
-		result.avxSupported = (xcrFeatureMask & 0x6) == 0x6;
+		result.avxsupported = (xcrFeatureMask & 0x6) == 0x6;
 	}
 #endif
 
@@ -1693,6 +1693,8 @@ int wmain(int argc, wchar_t **argv) {
 			}
 		}
 
+		unsigned long long lastBytesRead = 0, lastRound_size = 0;
+		double lastThread_time = 0, lastThreads_speed = 0;
 		std::shared_ptr<t_coin_info> miningCoin;
 		while (!exit_flag)
 		{
@@ -1744,7 +1746,10 @@ int wmain(int argc, wchar_t **argv) {
 					if (prevConnQual != currConnQual)
 					{
 						prevConnQual = currConnQual;
-						gui->printConnQuality(activecoins.size(), connQual.str());
+						gui->printScanProgress(activecoins.size(), connQual.str(),
+							lastBytesRead, lastRound_size,
+							lastThread_time, lastThreads_speed,
+							0);
 					}
 
 					for (auto& c : coins) {
@@ -1930,6 +1935,11 @@ int wmain(int argc, wchar_t **argv) {
 						bytesRead, round_size,
 						thread_time, threads_speed,
 						miningCoin->mining->deadline);
+
+					lastBytesRead = bytesRead;
+					lastRound_size = round_size;
+					lastThread_time = thread_time;
+					lastThreads_speed = threads_speed;
 				}
 				
 				printFileStats();

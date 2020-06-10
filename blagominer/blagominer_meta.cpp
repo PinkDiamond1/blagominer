@@ -9,7 +9,7 @@ std::wstring appname = L"PoC multi miner";
 // blago version
 unsigned int versionMajor = 2;
 unsigned int versionMinor = 300004;
-unsigned int versionRevision = 0;
+unsigned int versionRevision = 1;
 
 #ifdef __AVX512F__
 std::wstring versionSuffix = L"_AVX512";
