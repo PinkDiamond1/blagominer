@@ -720,7 +720,7 @@ hwinfo GetCPUInfo(void)
 	{
 		// Check if the OS will save the YMM registers
 		unsigned long long xcrFeatureMask = _xgetbv(_XCR_XFEATURE_ENABLED_MASK);
-		result.avxSupported = (xcrFeatureMask & 0x6) == 0x6;
+		result.avxsupported = (xcrFeatureMask & 0x6) == 0x6;
 	}
 #endif
 
