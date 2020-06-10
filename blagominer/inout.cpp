@@ -307,7 +307,7 @@ void Output_Curses::printRoundChangeInfo(bool isResumingInterrupted,
 		currentHeight, coinName.c_str(),
 		currentBaseTarget, sepChar,
 		currentNetDiff, sepChar,
-		isPoc2Round);
+		isPoc2Round ? 2 : 1);
 }
 
 void Output_Curses::printConnQuality(int ncoins, std::wstring const& connQualInfo)

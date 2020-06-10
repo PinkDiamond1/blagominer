@@ -311,7 +311,7 @@ void Output_PlainText::printRoundChangeInfo(bool isResumingInterrupted,
 		currentHeight, coinName.c_str(),
 		currentBaseTarget, sepChar,
 		currentNetDiff, sepChar,
-		isPoc2Round);
+		isPoc2Round ? 2 : 1);
 }
 
 // TODO: this proc is called VERY often; for now, we want to skip that
