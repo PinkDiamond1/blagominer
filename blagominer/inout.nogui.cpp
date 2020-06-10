@@ -1,5 +1,8 @@
 ﻿#include "inout.nogui.h"
 
+#undef max
+#include <algorithm>
+
 const std::string header = "File name                                             +DLs      -DLs       I/O";
 
 Output_PlainText::~Output_PlainText()
@@ -356,7 +359,7 @@ void Output_PlainText::printScanProgress(int ncoins, std::wstring const& connQua
 	}
 
 	size_t size = swprintf(nullptr, 0, L"%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c %s%s",
-		(bytesRead * 4096 * 100 / round_size), sepChar,
+		(bytesRead * 4096 * 100 / std::max(1ull, round_size)), sepChar,
 		(((double)bytesRead) / (256 * 1024 * 1024)), sepChar,
 		thread_time, sepChar,
 		threads_speed, sepChar,
@@ -364,7 +367,7 @@ void Output_PlainText::printScanProgress(int ncoins, std::wstring const& connQua
 		leadingSpace94.c_str(), connQualInfo.c_str()) + 1;
 	std::unique_ptr<wchar_t[]> buf(new wchar_t[size]);
 	swprintf(buf.get(), size, L"%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c %s%s",
-		(bytesRead * 4096 * 100 / round_size), sepChar,
+		(bytesRead * 4096 * 100 / std::max(1ull, round_size)), sepChar,
 		(((double)bytesRead) / (256 * 1024 * 1024)), sepChar,
 		thread_time, sepChar,
 		threads_speed, sepChar,
