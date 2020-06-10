@@ -1,26 +1,372 @@
-﻿#include "stdafx.h"
-#include "inout.h"
+﻿#include "inout.h"
 
-short win_size_x = 96;
-short win_size_y = 60;
-int minimumWinMainHeight = 5;
-const short progress_lines = 3;
-const short new_version_lines = 3;
-WINDOW * win_main;
-WINDOW * win_progress;
-WINDOW * win_corrupted;
-WINDOW * win_new_version;
+const std::string header = "File name                                             +DLs      -DLs       I/O";
 
-std::mutex mConsoleQueue;
-std::mutex mProgressQueue;
-std::mutex mConsoleWindow;
-std::list<ConsoleOutput> consoleQueue;
-std::list<std::wstring> progressQueue;
-std::thread consoleWriter;
-std::thread progressWriter;
-bool interruptConsoleWriter = false;
+IUserInterface::~IUserInterface() {}
 
-void _progressWriter() {
+Output_Curses::~Output_Curses()
+{
+	bm_end();
+}
+
+Output_Curses::Output_Curses(short x, short y, bool lock)
+{
+	setupSize(x, y, lock);
+	bm_init();
+}
+
+void Output_Curses::printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
+	bool trailingNewLine, bool fillLine, const wchar_t * format, ...)
+{
+	std::wstring message;
+	SYSTEMTIME cur_time;
+	GetLocalTime(&cur_time);
+	wchar_t timeBuff[9];
+	wchar_t timeBuffMil[13];
+	swprintf(timeBuff, sizeof(timeBuff), L"%02d:%02d:%02d", cur_time.wHour, cur_time.wMinute, cur_time.wSecond);
+	swprintf(timeBuffMil, sizeof(timeBuff), L"%02d:%02d:%02d.%03d", cur_time.wHour, cur_time.wMinute, cur_time.wSecond, cur_time.wMilliseconds);
+	std::wstring time = timeBuff;
+	std::wstring timeMil = timeBuffMil;
+
+	if (printTimestamp) {
+
+		message = timeBuff;
+		message += L" ";
+	}
+
+	va_list args;
+	va_start(args, format);
+	int size = vswprintf(nullptr, 0, format, args) + 1;
+	va_end(args);
+	std::unique_ptr<wchar_t[]> buf(new wchar_t[size]);
+	va_list args2;
+	va_start(args2, format);
+	vswprintf(buf.get(), size, format, args2);
+	va_end(args2);
+	message += std::wstring(buf.get(), buf.get() + size - 1);
+	{
+		std::lock_guard<std::mutex> lockGuard(mConsoleQueue);
+		consoleQueue.push_back({
+			colorPair,
+			leadingNewLine, trailingNewLine,
+			fillLine,
+			message });
+	}
+	{
+		std::lock_guard<std::mutex> lockGuard(mLog);
+		loggingQueue.push_back(timeMil + L" " + std::wstring(buf.get(), buf.get() + size - 1));
+	}
+}
+
+void Output_Curses::printHeadlineTitle(
+	std::wstring const& appname,
+	std::wstring const& version,
+	bool elevated
+)
+{
+	printToConsole(12, false, false, true, false, L"%s, %s %s",
+		appname.c_str(), version.c_str(),
+		elevated ? L"(elevated)" : L"(nonelevated)");
+}
+
+void Output_Curses::printWallOfCredits(
+	std::vector<std::wstring> const& history
+)
+{
+	for (auto&& item : history)
+		printToConsole(4, false, false, true, false, item.c_str());
+}
+
+void Output_Curses::printHWInfo(
+	hwinfo const& info
+)
+{
+	printToConsole(-1, false, true, false, false, L"CPU support: ");
+	if (info.AES)		printToConsole(-1, false, false, false, false, L" AES ");
+	if (info.SSE)		printToConsole(-1, false, false, false, false, L" SSE ");
+	if (info.SSE2)		printToConsole(-1, false, false, false, false, L" SSE2 ");
+	if (info.SSE3)		printToConsole(-1, false, false, false, false, L" SSE3 ");
+	if (info.SSE42)		printToConsole(-1, false, false, false, false, L" SSE4.2 ");
+	if (info.AVX)		printToConsole(-1, false, false, false, false, L" AVX ");
+	if (info.AVX2)		printToConsole(-1, false, false, false, false, L" AVX2 ");
+	if (info.AVX512F)	printToConsole(-1, false, false, false, false, L" AVX512F ");
+
+	if (info.avxsupported)	printToConsole(-1, false, false, false, false, L"     [recomend use AVX]");
+	if (info.AVX2)			printToConsole(-1, false, false, false, false, L"     [recomend use AVX2]");
+	if (info.AVX512F)		printToConsole(-1, false, false, false, false, L"     [recomend use AVX512F]");
+
+	printToConsole(-1, false, true, false, false, L"%S %S [%u cores]", info.vendor.c_str(), info.brand.c_str(), info.cores);
+	printToConsole(-1, false, true, true, false, L"RAM: %llu Mb", info.memory);
+}
+
+void Output_Curses::printPlotsStart()
+{
+	printToConsole(15, false, false, true, false, L"Using plots:");
+}
+
+void Output_Curses::printPlotsInfo(char const* const directory, unsigned nfiles, unsigned long long size)
+{
+	printToConsole(-1, false, false, true, false, L"%S\tfiles: %4u\t size: %7llu GiB",
+		directory, nfiles, size / 1024 / 1024 / 1024);
+}
+
+void Output_Curses::printPlotsEnd(unsigned long long total_size)
+{
+	printToConsole(15, false, false, true, false, L"TOTAL: %llu GiB (%llu TiB)",
+		total_size / 1024 / 1024 / 1024, total_size / 1024 / 1024 / 1024 / 1024);
+}
+
+void Output_Curses::printThreadActivity(
+	std::wstring const& coinName,
+	std::wstring const& threadKind,
+	std::wstring const& threadAction
+)
+{
+	printToConsole(25, false, false, false, true, L"%s %s thread %s", coinName.c_str(), threadKind.c_str(), threadAction.c_str());
+}
+
+void Output_Curses::debugWorkerStats(
+	std::wstring const& specialReadMode,
+	std::string const& directory,
+	double proc_time, double work_time,
+	unsigned long long files_size_per_thread
+)
+{
+	auto msgFormat = !specialReadMode.empty()
+		? L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (%s)"
+		: L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%%%s"; // note that the last %s is always empty, it is there just to keep the same number of placeholders
+
+	printToConsole(7, true, false, true, false, msgFormat,
+		directory.c_str(), work_time, (double)(files_size_per_thread) / work_time / 1024 / 1024 / 4096,
+		proc_time / work_time * 100);
+}
+
+void Output_Curses::printWorkerDeadlineFound(
+	unsigned long long account_id,
+	std::wstring const& coinName,
+	unsigned long long deadline
+)
+{
+	printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Worker] DL found     : %11llu",
+		account_id, coinName.c_str(),
+		deadline);
+}
+
+void Output_Curses::printNetworkHostResolution(
+	std::wstring const& lookupWhat,
+	std::wstring const& coinName,
+	std::string const& remoteName,
+	std::vector<char> const& resolvedIP,
+	std::string const& remotePost,
+	std::string const& remotePath
+)
+{
+	printToConsole(-1, false, false, true, false, L"%s %15s %S (ip %S:%S) %S", coinName.c_str(), lookupWhat.c_str(),
+		remoteName.c_str(), resolvedIP.data(), remotePost.c_str(), ((remotePath.length() ? "on /" : "") + remotePath).c_str());
+}
+
+void Output_Curses::printNetworkProxyDeadlineReceived(
+	unsigned long long account_id,
+	std::wstring const& coinName,
+	unsigned long long deadline,
+	char const (& const clientAddr)[22]
+)
+{
+	printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Proxy ] DL found     : %11llu {%S}",
+		account_id, coinName.c_str(),
+		deadline, clientAddr);
+}
+
+void Output_Curses::debugNetworkProxyDeadlineAcked(
+	unsigned long long account_id,
+	std::wstring const& coinName,
+	unsigned long long deadline,
+	char const (& const clientAddr)[22]
+)
+{
+	printToConsole(9, true, false, true, false, L"[%20llu|%-10s|Proxy ] DL ack'ed    : %11llu {%S}",
+		account_id, coinName.c_str(),
+		deadline, clientAddr);
+}
+
+void Output_Curses::debugNetworkDeadlineDiscarded(
+	unsigned long long account_id,
+	std::wstring const& coinName,
+	unsigned long long deadline,
+	unsigned long long targetDeadline
+)
+{
+	printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Sender] DL discarded : %11llu > %11llu",
+		account_id, coinName.c_str(),
+		deadline, targetDeadline);
+}
+
+void Output_Curses::printNetworkDeadlineSent(
+	unsigned long long account_id,
+	std::wstring const& coinName,
+	unsigned long long deadline
+)
+{
+	unsigned long long days = (deadline) / (24 * 60 * 60);
+	unsigned hours = (deadline % (24 * 60 * 60)) / (60 * 60);
+	unsigned min = (deadline % (60 * 60)) / 60;
+	unsigned sec = deadline % 60;
+
+	printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL sent      : %11llu %7ud %02u:%02u:%02u",
+		account_id, coinName.c_str(),
+		deadline,
+		days, hours, min, sec);
+}
+
+void Output_Curses::printNetworkDeadlineConfirmed(
+	bool with_timespan,
+	unsigned long long account_id,
+	std::wstring const& coinName,
+	unsigned long long deadline
+)
+{
+	if (!with_timespan)
+	{
+		printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL confirmed : %s",
+			account_id, coinName.c_str(),
+			deadline
+		);
+	}
+	else
+	{
+		unsigned long long days = (deadline) / (24 * 60 * 60);
+		unsigned hours = (deadline % (24 * 60 * 60)) / (60 * 60);
+		unsigned min = (deadline % (60 * 60)) / 60;
+		unsigned sec = deadline % 60;
+
+		printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL confirmed : %11llu %7ud %02u:%02u:%02u",
+			account_id, coinName.c_str(),
+			deadline,
+			days, hours, min, sec);
+	}
+}
+
+void Output_Curses::debugNetworkTargetDeadlineUpdated(
+	unsigned long long account_id,
+	std::wstring const& coinName,
+	unsigned long long targetDeadline
+)
+{
+	printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] Set target DL: %11llu",
+		account_id, coinName.c_str(),
+		targetDeadline);
+}
+
+void Output_Curses::debugRoundTime(
+	double threads_time
+)
+{
+	printToConsole(7, true, false, true, false, L"Total round time: %.1f sec", threads_time);
+}
+
+void Output_Curses::printBlockEnqueued(
+	unsigned long long currentHeight,
+	std::wstring const& coinName,
+	bool atEnd, bool noQueue
+)
+{
+	if (noQueue)
+		printToConsole(5, true, false, false, true, L"[#%7llu|%-10s|Info    ] New block.",
+			currentHeight, coinName.c_str());
+	else
+		printToConsole(5, true, false, false, true, L"[#%7llu|%-10s|Info    ] New block has been added to the%s queue.",
+			currentHeight, coinName.c_str(), atEnd ? L" end of the" : L"");
+}
+
+void Output_Curses::printRoundInterrupt(
+	unsigned long long currentHeight,
+	std::wstring const& coinName
+)
+{
+	printToConsole(8, true, false, false, true, L"[#%7llu|%-10s|Info    ] Mining has been interrupted by another coin.",
+		currentHeight, coinName.c_str());
+}
+
+void Output_Curses::printRoundChangeInfo(bool isResumingInterrupted,
+	unsigned long long currentHeight,
+	std::wstring const& coinName,
+	unsigned long long currentBaseTarget,
+	unsigned long long currentNetDiff,
+	bool isPoc2Round
+)
+{
+	auto msgFormat = isResumingInterrupted
+		? L"[#%7llu|%-10s|Continue] Base Target %7llu %c Net Diff %8llu TiB %c PoC%i"
+		: L"[#%7llu|%-10s|Start   ] Base Target %7llu %c Net Diff %8llu TiB %c PoC%i";
+
+	auto colorPair = isResumingInterrupted
+		? 5
+		: 25;
+
+	printToConsole(colorPair, true, true, false, true, msgFormat,
+		currentHeight, coinName.c_str(),
+		currentBaseTarget, sepChar,
+		currentNetDiff, sepChar,
+		isPoc2Round ? 2 : 1);
+}
+
+void Output_Curses::printConnQuality(int ncoins, std::wstring const& connQualInfo)
+{
+	if (ncoins != prevNCoins94)
+	{
+		std::lock_guard<std::mutex> lockGuard(mProgressQueue);
+		if (ncoins != prevNCoins94)
+			leadingSpace94 = IUserInterface::make_leftpad_for_networkstats(94, ncoins);
+	}
+
+	size_t size = swprintf(nullptr, 0, L"%s%s", leadingSpace94.c_str(), connQualInfo.c_str()) + 1;
+	std::unique_ptr<wchar_t[]> buf(new wchar_t[size]);
+	swprintf(buf.get(), size, L"%s%s", leadingSpace94.c_str(), connQualInfo.c_str());
+
+	auto message = std::wstring(buf.get(), buf.get() + size - 1);
+	{
+		std::lock_guard<std::mutex> lockGuard(mProgressQueue);
+		progressQueue.push_back(message);
+	}
+}
+
+void Output_Curses::printScanProgress(int ncoins, std::wstring const& connQualInfo,
+	unsigned long long bytesRead, unsigned long long round_size,
+	double thread_time, double threads_speed,
+	unsigned long long deadline
+)
+{
+	if (ncoins != prevNCoins21)
+	{
+		std::lock_guard<std::mutex> lockGuard(mProgressQueue);
+		if (ncoins != prevNCoins21)
+			leadingSpace21 = IUserInterface::make_leftpad_for_networkstats(21, ncoins);
+	}
+
+	size_t size = swprintf(nullptr, 0, L"%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c %s%s",
+		(bytesRead * 4096 * 100 / round_size), sepChar,
+		(((double)bytesRead) / (256 * 1024 * 1024)), sepChar,
+		thread_time, sepChar,
+		threads_speed, sepChar,
+		(deadline == 0) ? L"          -" : toWStr(deadline, 11).c_str(), sepChar,
+		leadingSpace94.c_str(), connQualInfo.c_str()) + 1;
+	std::unique_ptr<wchar_t[]> buf(new wchar_t[size]);
+	swprintf(buf.get(), size, L"%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c %s%s",
+		(bytesRead * 4096 * 100 / round_size), sepChar,
+		(((double)bytesRead) / (256 * 1024 * 1024)), sepChar,
+		thread_time, sepChar,
+		threads_speed, sepChar,
+		(deadline == 0) ? L"          -" : toWStr(deadline, 11).c_str(), sepChar,
+		leadingSpace21.c_str(), connQualInfo.c_str());
+
+	auto message = std::wstring(buf.get(), buf.get() + size - 1);
+	{
+		std::lock_guard<std::mutex> lockGuard(mProgressQueue);
+		progressQueue.push_back(message);
+	}
+}
+
+void Output_Curses::_progressWriter() {
 	while (!interruptConsoleWriter) {
 		if (!progressQueue.empty()) {
 
@@ -47,7 +393,7 @@ void _progressWriter() {
 	}
 }
 
-void _consoleWriter() {
+void Output_Curses::_consoleWriter() {
 	while (!interruptConsoleWriter) {
 		if (!consoleQueue.empty()) {
 			ConsoleOutput consoleOutput;
@@ -97,6 +443,9 @@ void _consoleWriter() {
 						}
 					}
 				}
+				if (consoleOutput.trailingNewLine) {
+					waddwstr(win_main, L"\n");
+				}
 				if (consoleOutput.colorPair >= 0) {
 					wattroff(win_main, COLOR_PAIR(consoleOutput.colorPair));
 				}
@@ -111,37 +460,172 @@ void _consoleWriter() {
 	}
 }
 
-bool currentlyDisplayingCorruptedPlotFiles() {
+bool Output_Curses::currentlyDisplayingCorruptedPlotFiles() {
 	return getbegy(win_corrupted) >= 0;
 }
 
-bool currentlyDisplayingNewVersion() {
+bool Output_Curses::currentlyDisplayingNewVersion() {
 	return getbegy(win_new_version) >= 0;
 }
 
-int bm_wgetchMain() {
+int Output_Curses::bm_wgetchMain() {
 	return wgetch(win_main);
 }
 
 //Turn on color attribute
-int bm_wattronC(int color) {
+int Output_Curses::bm_wattronC(int color) {
 	return wattron(win_corrupted, COLOR_PAIR(color));
 }
 
 //Turn off color attribute
-int bm_wattroffC(int color) {
+int Output_Curses::bm_wattroffC(int color) {
 	return wattroff(win_corrupted, COLOR_PAIR(color));
 }
 
-int bm_wprintwC(const char * output, ...) {
+int Output_Curses::bm_wprintwC(const char * output, ...) {
 	va_list args;
 	va_start(args, output);
 	return vw_printw(win_corrupted, output, args);
 	va_end(args);
 }
 
+void Output_Curses::setupSize(short& x, short& y, bool& lock)
+{
+	if (x < 96) x = 96;
+	if (y < 20) y = 20;
+	win_size_x = x;
+	win_size_y = y;
+	lockWindowSize = lock;
+}
+
+static void handleReturn(BOOL success) {
+	if (!success) {
+		Log(L"FAILED with error %lu", GetLastError());
+	}
+}
+
+static void resizeConsole(SHORT newColumns, SHORT newRows, BOOL lockWindowSize) {
+	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+	CONSOLE_SCREEN_BUFFER_INFO csbi; // Hold Current Console Buffer Info 
+	BOOL bSuccess;
+	SMALL_RECT newWindowRect;         // Hold the New Console Size 
+	COORD currentWindowSize;
+
+	Log(L"GetConsoleScreenBufferInfo");
+	bSuccess = GetConsoleScreenBufferInfo(hConsole, &csbi);
+	handleReturn(bSuccess);
+	currentWindowSize.X = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+	currentWindowSize.Y = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+
+	Log(L"Current buffer size csbi.dwSize X: %hi, Y: %hi", csbi.dwSize.X, csbi.dwSize.Y);
+	Log(L"csbi.dwMaximumWindowSize X: %hi, Y: %hi", csbi.dwMaximumWindowSize.X, csbi.dwMaximumWindowSize.Y);
+	Log(L"currentWindowSize X: %hi, Y: %hi", currentWindowSize.X, currentWindowSize.Y);
+
+	// Get the Largest Size we can size the Console Window to 
+	COORD largestWindowSize = GetLargestConsoleWindowSize(hConsole);
+	Log(L"largestWindowSize X: %hi, Y: %hi", largestWindowSize.X, largestWindowSize.Y);
+
+	// Define the New Console Window Size and Scroll Position 
+	newWindowRect.Right = min(newColumns, largestWindowSize.X) - 1;
+	newWindowRect.Bottom = min(newRows, largestWindowSize.Y) - 1;
+	newWindowRect.Left = newWindowRect.Top = (SHORT)0;
+
+	Log(L"newWindowRect b: %hi, l: %hi, r: %hi, t: %hi", newWindowRect.Bottom, newWindowRect.Left, newWindowRect.Right, newWindowRect.Top);
+
+	// Define the New Console Buffer Size
+	COORD newBufferSize;
+	newBufferSize.X = min(newColumns, largestWindowSize.X);
+	newBufferSize.Y = min(newRows, largestWindowSize.Y);
+
+	Log(L"Resizing buffer (x: %hi, y: %hi).", newBufferSize.X, newBufferSize.Y);
+	Log(L"Resizing window (x: %hi, y: %hi).", newWindowRect.Right - newWindowRect.Left, newWindowRect.Bottom - newWindowRect.Top);
+
+
+	/*
+		Information from https://docs.microsoft.com/en-us/windows/console/window-and-screen-buffer-size
+
+		To change a screen buffer's size, use the SetConsoleScreenBufferSize function. This function
+		fails if either dimension of the specified size is less than the corresponding dimension of the
+		console's window.
+
+		To change the size or location of a screen buffer's window, use the SetConsoleWindowInfo function.
+		This function fails if the specified window-corner coordinates exceed the limits of the console
+		screen buffer or the screen. Changing the window size of the active screen buffer changes the
+		size of the console window displayed on the screen.
+
+	*/
+	while (true) {
+		if (currentWindowSize.X > newBufferSize.X || currentWindowSize.Y > newBufferSize.Y) {
+			Log(L"Current window size is larger than the new buffer size. Resizing window first.");
+			Log(L"SetConsoleWindowInfo srWindowRect b: %hi, l: %hi, r: %hi, t: %hi", newWindowRect.Bottom, newWindowRect.Left, newWindowRect.Right, newWindowRect.Top);
+			bSuccess = SetConsoleWindowInfo(hConsole, TRUE, &newWindowRect);
+			handleReturn(bSuccess);
+			//std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
+			Log(L"SetConsoleScreenBufferSize coordScreen X: %hi, Y: %hi", newBufferSize.X, newBufferSize.Y);
+			bSuccess = SetConsoleScreenBufferSize(hConsole, newBufferSize);
+			handleReturn(bSuccess);
+		}
+		else {
+			Log(L"SetConsoleScreenBufferSize coordScreen X: %hi, Y: %hi", newBufferSize.X, newBufferSize.Y);
+			bSuccess = SetConsoleScreenBufferSize(hConsole, newBufferSize);
+			handleReturn(bSuccess);
+			//std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
+			Log(L"SetConsoleWindowInfo srWindowRect b: %hi, l: %hi, r: %hi, t: %hi", newWindowRect.Bottom, newWindowRect.Left, newWindowRect.Right, newWindowRect.Top);
+			bSuccess = SetConsoleWindowInfo(hConsole, TRUE, &newWindowRect);
+			handleReturn(bSuccess);
+		}
+
+		HWND consoleWindow = GetConsoleWindow();
+
+		// Get the monitor that is displaying the window
+		HMONITOR monitor = MonitorFromWindow(consoleWindow, MONITOR_DEFAULTTONEAREST);
+
+		// Get the monitor's offset in virtual-screen coordinates
+		MONITORINFO monitorInfo;
+		monitorInfo.cbSize = sizeof(MONITORINFO);
+		GetMonitorInfoA(monitor, &monitorInfo);
+
+		RECT wSize;
+		GetWindowRect(consoleWindow, &wSize);
+		Log(L"Window Rect wSize b: %hi, l: %hi, r: %hi, t: %hi", wSize.bottom, wSize.left, wSize.right, wSize.top);
+		// Move window to top
+		Log(L"MoveWindow X: %ld, Y: %ld, w: %ld, h: %ld", wSize.left, monitorInfo.rcWork.top, wSize.right - wSize.left, wSize.bottom - wSize.top);
+		bSuccess = MoveWindow(consoleWindow, wSize.left, monitorInfo.rcWork.top, wSize.right - wSize.left, wSize.bottom - wSize.top, true);
+		handleReturn(bSuccess);
+
+		if (lockWindowSize) {
+			//Prevent resizing. Source: https://stackoverflow.com/a/47359526
+			SetWindowLong(consoleWindow, GWL_STYLE, GetWindowLong(consoleWindow, GWL_STYLE) & ~WS_MAXIMIZEBOX & ~WS_SIZEBOX);
+		}
+
+		Log(L"GetConsoleScreenBufferInfo");
+		bSuccess = GetConsoleScreenBufferInfo(hConsole, &csbi);
+		handleReturn(bSuccess);
+		currentWindowSize.X = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+		currentWindowSize.Y = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+		Log(L"New buffer size csbi.dwSize X: %hi, Y: %hi", csbi.dwSize.X, csbi.dwSize.Y);
+		Log(L"New window size X: %hi, Y: %hi", currentWindowSize.X, currentWindowSize.Y);
+
+		Log(L"Hiding scroll bars.");
+		bSuccess = ShowScrollBar(consoleWindow, SB_BOTH, FALSE);
+		handleReturn(bSuccess);
+
+		if (currentWindowSize.X != newBufferSize.X || currentWindowSize.Y != newBufferSize.Y) {
+			Log(L"Failed to resize window. Retrying.");
+		}
+		else {
+			break;
+		}
+
+	}
+
+	return;
+}
+
 // init screen
-void bm_init() {
+void Output_Curses::bm_init() {
+	resizeConsole(win_size_x, win_size_y, lockWindowSize);
+
 	initscr();
 	raw();
 	cbreak();		// don't use buffer for getch()
@@ -175,11 +659,11 @@ void bm_init() {
 	win_new_version = newwin(new_version_lines, COLS, -1, 0);
 	leaveok(win_corrupted, true);
 
-	consoleWriter = std::thread(_consoleWriter);
-	progressWriter = std::thread(_progressWriter);
+	consoleWriter = std::thread(&Output_Curses::_consoleWriter, this);
+	progressWriter = std::thread(&Output_Curses::_progressWriter, this);
 }
 
-void bm_end() {
+void Output_Curses::bm_end() {
 	interruptConsoleWriter = true;
 	if (consoleWriter.joinable())
 	{
@@ -191,13 +675,13 @@ void bm_end() {
 	}
 }
 
-void refreshCorrupted() {
+void Output_Curses::refreshCorrupted() {
 	if (currentlyDisplayingCorruptedPlotFiles()) {
 		wrefresh(win_corrupted);
 	}
 }
 
-void showNewVersion(std::string version) {
+void Output_Curses::showNewVersion(std::string version) {
 	std::lock_guard<std::mutex> lockGuardConsoleWindow(mConsoleWindow);
 	version = "New version available: " + version;
 	if (!currentlyDisplayingNewVersion()) {
@@ -243,7 +727,7 @@ void showNewVersion(std::string version) {
 	wrefresh(win_new_version);
 }
 
-void cropCorruptedIfNeeded(int lineCount) {
+void Output_Curses::cropCorruptedIfNeeded(int lineCount) {
 	int rowsCorrupted = getRowsCorrupted();
 	if (rowsCorrupted < lineCount) {
 		bm_wmoveC(rowsCorrupted - 3, 1);
@@ -257,7 +741,7 @@ void cropCorruptedIfNeeded(int lineCount) {
 	refreshCorrupted();
 }
 
-void resizeCorrupted(int lineCount) {
+void Output_Curses::resizeCorrupted(int lineCount) {
 	int winVerRow = 0;
 	if (currentlyDisplayingNewVersion()) {
 		winVerRow = getmaxy(win_new_version);
@@ -285,47 +769,98 @@ void resizeCorrupted(int lineCount) {
 	}
 }
 
-int getRowsCorrupted() {
+int Output_Curses::getRowsCorrupted() {
 	return getmaxy(win_corrupted);
 }
 
-void clearCorrupted() {
+void Output_Curses::clearCorrupted() {
 	if (currentlyDisplayingCorruptedPlotFiles()) {
 		mvwin(win_corrupted, -1, 0);
 		wclear(win_corrupted);
 	}
 }
-void clearCorruptedLine() {
+void Output_Curses::clearCorruptedLine() {
 	wclrtoeol(win_corrupted);
 }
-void clearNewVersion() {
+void Output_Curses::clearNewVersion() {
 	wclear(win_new_version);
 }
 
-void hideCorrupted() {
+void Output_Curses::hideCorrupted() {
 	if (currentlyDisplayingCorruptedPlotFiles()) {
 		win_corrupted = newwin(1, COLS, -1, 0);
 		leaveok(win_corrupted, true);
 	}
 }
 
-int bm_wmoveC(int line, int column) {
+int Output_Curses::bm_wmoveC(int line, int column) {
 	return wmove(win_corrupted, line, column);
 };
 
-void boxCorrupted() {
+void Output_Curses::boxCorrupted() {
 	wattron(win_corrupted, COLOR_PAIR(4));
 	box(win_corrupted, 0, 0);
 	wattroff(win_corrupted, COLOR_PAIR(4));
 }
 
-std::wstring make_filled_string(int nspaces, wchar_t filler)
-{
-	return std::wstring(max(0, nspaces), filler);
-}
+void Output_Curses::printFileStats(std::map<std::string, t_file_stats>const& fileStats) {
+	std::lock_guard lockGuardConsoleWindow(mConsoleWindow);
+	int lineCount = 0;
+	for (auto& element : fileStats) {
+		if (element.second.conflictingDeadlines > 0 || element.second.readErrors > 0) {
+			++lineCount;
+		}
+	}
 
-std::wstring make_leftpad_for_networkstats(int availablespace, int nactivecoins)
-{
-	const int remainingspace = availablespace - (nactivecoins * 4) - (nactivecoins - 1);
-	return make_filled_string(remainingspace, L' ');
+	if (lineCount == 0 && currentlyDisplayingCorruptedPlotFiles()) {
+		hideCorrupted();
+		resizeCorrupted(0);
+		refreshCorrupted();
+		return;
+	}
+	else if (lineCount == 0) {
+		return;
+	}
+
+	// Increase for header, border and for clear message.
+	lineCount += 4;
+
+	if (lineCount != oldLineCount) {
+		clearCorrupted();
+		resizeCorrupted(lineCount);
+		oldLineCount = lineCount;
+	}
+	refreshCorrupted();
+
+	lineCount = 1;
+	bm_wmoveC(lineCount++, 1);
+	bm_wprintwC("%s", header.c_str(), 0);
+
+	for (auto& element : fileStats) {
+		if (element.second.conflictingDeadlines > 0 || element.second.readErrors > 0) {
+			bm_wattronC(14);
+			bm_wmoveC(lineCount, 1);
+			bm_wprintwC("%s %s", toStr(element.first, 46).c_str(), toStr(element.second.matchingDeadlines, 11).c_str(), 0);
+			if (element.second.conflictingDeadlines > 0) {
+				bm_wattronC(4);
+			}
+			bm_wprintwC(" %s", toStr(element.second.conflictingDeadlines, 9).c_str(), 0);
+			bm_wattroffC(4);
+			bm_wattronC(14);
+			if (element.second.readErrors > 0) {
+				bm_wattronC(4);
+			}
+			bm_wprintwC(" %s\n", toStr(element.second.readErrors, 9).c_str(), 0);
+			bm_wattroffC(4);
+
+			++lineCount;
+		}
+	}
+	bm_wattroffC(14);
+
+	bm_wmoveC(lineCount, 1);
+	bm_wprintwC("Press 'f' to clear data.");
+
+	cropCorruptedIfNeeded(lineCount);
+	return;
 }

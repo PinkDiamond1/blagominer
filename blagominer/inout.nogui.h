@@ -3,20 +3,11 @@
 
 #include "common.h"
 
-#undef  MOUSE_MOVED
-#ifndef PDC_DLL_BUILD
-# define PDC_DLL_BUILD
-#endif
-#ifndef PDC_WIDE
-# define PDC_WIDE
-#endif
-#include <curses.h>
-
-class Output_Curses : public IUserInterface
+class Output_PlainText : public IUserInterface
 {
 public:
-	~Output_Curses();
-	Output_Curses(short x, short y, bool lock);
+	~Output_PlainText();
+	Output_PlainText();
 
 	// TODO: add v-overload taking va_list
 	void printToConsole(
@@ -141,21 +132,13 @@ public:
 private:
 
 	struct ConsoleOutput {
-		int colorPair;
 		bool leadingNewLine, trailingNewLine;
 		bool fillLine;
 		std::wstring message;
 	};
 
-	short win_size_x = 96;
-	short win_size_y = 60;
-	bool lockWindowSize = true;
-
 	std::mutex mConsoleQueue;
-	std::mutex mProgressQueue;
-	std::mutex mConsoleWindow;
 	std::list<ConsoleOutput> consoleQueue;
-	std::list<std::wstring> progressQueue;
 
 	int prevNCoins21 = 0;
 	std::wstring leadingSpace21 = IUserInterface::make_leftpad_for_networkstats(21, 0);
@@ -166,39 +149,8 @@ private:
 	std::mutex mLog;
 	std::list<std::wstring> loggingQueue;
 
-	int minimumWinMainHeight = 5;
-	const short progress_lines = 3;
-	const short new_version_lines = 3;
-	WINDOW * win_main;
-	WINDOW * win_progress;
-	WINDOW * win_corrupted;
-	WINDOW * win_new_version;
-
-	std::thread consoleWriter;
-	std::thread progressWriter;
 	bool interruptConsoleWriter = false;
-
-	int oldLineCount = -1;
-
-	void bm_init();
-	void bm_end();
-	int bm_wattronC(int color);
-	int bm_wattroffC(int color);
-	int bm_wprintwC(const char * output, ...);
-	int bm_wmoveC(int line, int column);
-
-	void setupSize(short& x, short& y, bool& lock);
-	bool currentlyDisplayingNewVersion();
-	void clearNewVersion();
-
-	void refreshCorrupted();
-	void cropCorruptedIfNeeded(int lineCount);
-	void resizeCorrupted(int lineCount);
-	int getRowsCorrupted();
-	void clearCorrupted();
-	void clearCorruptedLine();
-	void hideCorrupted();
-	void boxCorrupted();
+	std::thread consoleWriter;
 
 	void _progressWriter();
 	void _consoleWriter();

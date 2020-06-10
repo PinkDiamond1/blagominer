@@ -7,5 +7,4 @@
 // note to self: common header hierarchy
 // targetver.h
 // common-pragmas.h
-// stdafx.h
-// common.h
+// common.h | stdafx.h

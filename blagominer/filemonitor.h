@@ -1,18 +1,8 @@
 #pragma once
 #include "common-pragmas.h"
 
-#include <map>
-#include <string>
-#include <mutex>
-#include "inout.h"
+#include "common.h"
 
-struct t_file_stats {
-	unsigned long long matchingDeadlines;
-	unsigned long long conflictingDeadlines;
-	unsigned long long readErrors;
-};
-
-extern std::map<std::string, t_file_stats> fileStats;
 extern bool showCorruptedPlotFiles;
 
 void increaseMatchingDeadline(std::string file);

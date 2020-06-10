@@ -1,6 +1,9 @@
 #include "stdafx.h"
 #include "elevate.h"
 
+#include "logger.h"
+#include "inout.h"
+
 bool RestartWithElevation(int argc, wchar_t **argv) {
 	if (argc < 0 || !argv || !argv[0]) {
 		// TODO: log: panic
@@ -51,7 +54,7 @@ bool RestartWithElevation(int argc, wchar_t **argv) {
 }
 
 // https://stackoverflow.com/a/8196291/717732
-BOOL IsElevated() {
+bool IsElevated() {
 	BOOL fRet = FALSE;
 	HANDLE hToken = NULL;
 	if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken)) {
@@ -64,7 +67,7 @@ BOOL IsElevated() {
 	if (hToken) {
 		CloseHandle(hToken);
 	}
-	return fRet;
+	return fRet == TRUE;
 }
 
 // https://blogs.msdn.microsoft.com/twistylittlepassagesallalike/2011/04/23/everyone-quotes-command-line-arguments-the-wrong-way/

@@ -1,5 +1,7 @@
 #pragma once
+#include "common-pragmas.h"
 #include "stdafx.h"
+
 #include <stdexcept>
 #include <iomanip>
 

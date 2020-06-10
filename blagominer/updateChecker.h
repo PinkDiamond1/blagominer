@@ -1,8 +1,4 @@
 #pragma once
-#include "common.h"
-
-#include <string>
-#include "inout.h"
-#include "logger.h"
+#include "common-pragmas.h"
 
 void checkForUpdate();

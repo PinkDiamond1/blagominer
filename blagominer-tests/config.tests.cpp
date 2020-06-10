@@ -2,6 +2,7 @@
 #include <gmock/gmock.h>
 
 #include "blagominer.h"
+#include "network.h"
 
 TEST(LoadConfig, Basic_POC2StartBlock) {
 	Document document;

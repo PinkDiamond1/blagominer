@@ -1,9 +1,17 @@
-﻿#include "stdafx.h"
-#include "network.h"
+﻿#include "network.h"
 
 #include <curl/curl.h>
 
+#include "blagominer_meta.h"
+#include "logger.h"
+#include "loggerCsv.h"
+#include "error.h"
+#include "accounts.h"
+#include "filemonitor.h"
+#include "picohttpparser.h"
 #include "reference/diskcoin/DiskcoinMath.h"
+
+#include "blagominer.h" // for use_debug, total_size
 
 static std::map <u_long, unsigned long long> satellite_size; // Structure with volumes of satellite plots
 
@@ -79,18 +87,18 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 
 	iResult = getaddrinfo(nullptr, coinInfo->network->proxyport.c_str(), &hints, &result);
 	if (iResult != 0) {
-		printToConsole(12, true, false, true, false, L"PROXY %s: getaddrinfo failed with error: %i", proxyName, iResult);
+		gui->printToConsole(12, true, false, true, false, L"PROXY %s: getaddrinfo failed with error: %i", proxyName, iResult);
 	}
 
 	ServerSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
 	if (ServerSocket == INVALID_SOCKET) {
-		printToConsole(12, true, false, true, false, L"PROXY %s: socket failed with error: %i", proxyName, WSAGetLastError());
+		gui->printToConsole(12, true, false, true, false, L"PROXY %s: socket failed with error: %i", proxyName, WSAGetLastError());
 		freeaddrinfo(result);
 	}
 
 	iResult = bind(ServerSocket, result->ai_addr, (int)result->ai_addrlen);
 	if (iResult == SOCKET_ERROR) {
-		printToConsole(12, true, false, true, false, L"PROXY %s: bind failed with error: %i", proxyName, WSAGetLastError());
+		gui->printToConsole(12, true, false, true, false, L"PROXY %s: bind failed with error: %i", proxyName, WSAGetLastError());
 		freeaddrinfo(result);
 		closesocket(ServerSocket);
 	}
@@ -100,12 +108,12 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 	if (iResult == SOCKET_ERROR)
 	{
 		Log(L"Proxy %s: ! Error ioctlsocket's: %i", proxyName, WSAGetLastError());
-		printToConsole(12, true, false, true, false, L"PROXY %s: ioctlsocket failed: %i", proxyName, WSAGetLastError());
+		gui->printToConsole(12, true, false, true, false, L"PROXY %s: ioctlsocket failed: %i", proxyName, WSAGetLastError());
 	}
 
 	iResult = listen(ServerSocket, 8);
 	if (iResult == SOCKET_ERROR) {
-		printToConsole(12, true, false, true, false, L"PROXY %s: listen failed with error: %i", proxyName, WSAGetLastError());
+		gui->printToConsole(12, true, false, true, false, L"PROXY %s: listen failed with error: %i", proxyName, WSAGetLastError());
 		closesocket(ServerSocket);
 	}
 	Log(L"Proxy %s thread started", proxyName);
@@ -124,7 +132,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 			if (WSAGetLastError() != WSAEWOULDBLOCK)
 			{
 				Log(L"Proxy %s:! Error Proxy's accept: %i", proxyName, WSAGetLastError());
-				printToConsole(12, true, false, true, false, L"PROXY %s: can't accept. Error: %i", proxyName, WSAGetLastError());
+				gui->printToConsole(12, true, false, true, false, L"PROXY %s: can't accept. Error: %i", proxyName, WSAGetLastError());
 			}
 		}
 		else
@@ -185,9 +193,9 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 								client_address_str, get_accountId, get_deadline, get_nonce, get_deadline, coinInfo->mining->currentHeight, coinInfo->mining->currentBaseTarget));
 							LeaveCriticalSection(&coinInfo->locks->sharesLock);
 
-							printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Proxy ] DL found     : %s {%S}", get_accountId, proxyName,
-								toWStr(get_deadline / coinInfo->mining->currentBaseTarget, 11).c_str(), client_address_str);
-							Log(L"Proxy %s: received DL %llu from %S", proxyName, get_deadline / coinInfo->mining->currentBaseTarget, client_address_str);
+							auto scaledDL = get_deadline / coinInfo->mining->currentBaseTarget;
+							gui->printNetworkProxyDeadlineReceived(get_accountId, proxyName, scaledDL, client_address_str);
+							Log(L"Proxy %s: received DL %llu from %S", proxyName, scaledDL, client_address_str);
 							
 							// We confirm
 							RtlSecureZeroMemory(buffer.data(), buffer.size());
@@ -197,16 +205,15 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 							if (iResult == SOCKET_ERROR)
 							{
 								Log(L"Proxy %s: ! Error sending to client: %i", proxyName, WSAGetLastError());
-								printToConsole(12, true, false, true, false, L"PROXY %s: failed sending to client: %i", proxyName, WSAGetLastError());
+								gui->printToConsole(12, true, false, true, false, L"PROXY %s: failed sending to client: %i", proxyName, WSAGetLastError());
 							}
 							else
 							{
 								if (use_debug)
 								{
-									printToConsole(9, true, false, true, false, L"[%20llu|%-10s|Proxy ] DL confirmed to             %S",
-										get_accountId, proxyName, client_address_str);
+									gui->debugNetworkProxyDeadlineAcked(get_accountId, proxyName, scaledDL, client_address_str);
 								}
-								Log(L"Proxy %s: sent confirmation to %S", proxyName, client_address_str);
+								Log(L"Proxy %s: sent acknowledgement of %llu to %S", proxyName, scaledDL, client_address_str);
 							}
 						}
 					}
@@ -224,7 +231,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 						if (iResult == SOCKET_ERROR)
 						{
 							Log(L"Proxy %s: ! Error sending to client: %i", proxyName, WSAGetLastError());
-							printToConsole(12, true, false, true, false, L"PROXY %s: failed sending to client: %i", proxyName, WSAGetLastError());
+							gui->printToConsole(12, true, false, true, false, L"PROXY %s: failed sending to client: %i", proxyName, WSAGetLastError());
 						}
 						else if (loggingConfig.logAllGetMiningInfos)
 						{
@@ -241,7 +248,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 						{
 							find[0] = 0;
 							//You can crash the miner when the proxy is enabled and you open the address in a browser.  wprintw("PROXY: %s\n", "Error", 0);
-							printToConsole(15, true, false, true, false, L"PROXY %s: %S", proxyName, buffer.data());
+							gui->printToConsole(15, true, false, true, false, L"PROXY %s: %S", proxyName, buffer.data());
 						}
 					}
 				}
@@ -292,13 +299,13 @@ void __impl__send_i__sockets(std::vector<char, heap_allocator<char>>& buffer, st
 	iResult = getaddrinfo(coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str(), &hints, &result);
 	if (iResult != 0) {
 		decreaseNetworkQuality(coinInfo);
-		printToConsole(12, true, false, true, false, L"[%20llu|%-10s|Sender] getaddrinfo failed with error: %i", share->account_id, senderName, iResult);
+		gui->printToConsole(12, true, false, true, false, L"[%20llu|%-10s|Sender] getaddrinfo failed with error: %i", share->account_id, senderName, iResult);
 		return;
 	}
 	ConnectSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
 	if (ConnectSocket == INVALID_SOCKET) {
 		decreaseNetworkQuality(coinInfo);
-		printToConsole(12, true, false, true, false, L"SENDER %s: socket failed with error: %i", senderName, WSAGetLastError());
+		gui->printToConsole(12, true, false, true, false, L"SENDER %s: socket failed with error: %i", senderName, WSAGetLastError());
 		freeaddrinfo(result);
 		return;
 	}
@@ -308,7 +315,7 @@ void __impl__send_i__sockets(std::vector<char, heap_allocator<char>>& buffer, st
 	{
 		decreaseNetworkQuality(coinInfo);
 		Log(L"Sender %s:! Error Sender's connect: %i", senderName, WSAGetLastError());
-		printToConsole(12, true, false, true, false, L"SENDER %s: can't connect. Error: %i", senderName, WSAGetLastError());
+		gui->printToConsole(12, true, false, true, false, L"SENDER %s: can't connect. Error: %i", senderName, WSAGetLastError());
 		freeaddrinfo(result);
 		return;
 	}
@@ -340,20 +347,16 @@ void __impl__send_i__sockets(std::vector<char, heap_allocator<char>>& buffer, st
 		{
 			decreaseNetworkQuality(coinInfo);
 			Log(L"Sender %s: ! Error deadline's sending: %i", senderName, WSAGetLastError());
-			printToConsole(12, true, false, true, false, L"SENDER %s: send failed: %i", senderName, WSAGetLastError());
+			gui->printToConsole(12, true, false, true, false, L"SENDER %s: send failed: %i", senderName, WSAGetLastError());
 			return;
 		}
 		else
 		{
 			increaseNetworkQuality(coinInfo);
-			printToConsole(9, true, false, true, false, L"[%20llu|%-10s|Sender] DL sent      : %s %sd %02llu:%02llu:%02llu",
+			gui->printNetworkDeadlineSent(
 				share->account_id,
 				senderName,
-				toWStr(share->deadline, 11).c_str(),
-				toWStr(share->deadline / (24 * 60 * 60), 7).c_str(),
-				(share->deadline % (24 * 60 * 60)) / (60 * 60),
-				(share->deadline % (60 * 60)) / 60,
-				share->deadline % 60);
+				share->deadline);
 
 			tmpSessions.push_back(std::make_shared<t_session>(ConnectSocket, share->deadline, *share));
 			guardConnectSocket.release();
@@ -475,19 +478,15 @@ void __impl__send_i__curl(std::vector<char, heap_allocator<char>>& buffer, std::
 		if (res != CURLE_OK) {
 			decreaseNetworkQuality(coinInfo);
 			Log(L"Sender %s: ! Error deadline's sending: %S", senderName, curl_easy_strerror(res));
-			printToConsole(12, true, false, true, false, L"SENDER %s: send failed: %S", senderName, curl_easy_strerror(res));
+			gui->printToConsole(12, true, false, true, false, L"SENDER %s: send failed: %S", senderName, curl_easy_strerror(res));
 			failed = true;
 		}
 		else {
 			increaseNetworkQuality(coinInfo);
-			printToConsole(9, true, false, true, false, L"[%20llu|%-10s|Sender] DL sent      : %s %sd %02llu:%02llu:%02llu",
+			gui->printNetworkDeadlineSent(
 				share->account_id,
 				senderName,
-				toWStr(share->deadline, 11).c_str(),
-				toWStr(share->deadline / (24 * 60 * 60), 7).c_str(),
-				(share->deadline % (24 * 60 * 60)) / (60 * 60),
-				(share->deadline % (60 * 60)) / 60,
-				share->deadline % 60);
+				share->deadline);
 
 			tmpSessions.push_back(std::make_shared<t_session2>(curl.get(), share->deadline, *share));
 			curl.release();
@@ -555,9 +554,9 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 				coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline);
 			if (use_debug)
 			{
-				printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Sender] DL discarded : %s > %s",
-					share->account_id, senderName, toWStr(share->deadline, 11).c_str(),
-					toWStr(coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline, 11).c_str());
+				gui->debugNetworkDeadlineDiscarded(
+					share->account_id, senderName, share->deadline,
+					coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline);
 			}
 			EnterCriticalSection(&coinInfo->locks->sharesLock);
 			if (!coinInfo->mining->shares.empty()) {
@@ -632,7 +631,7 @@ bool __impl__confirm_i__sockets(std::vector<char, heap_allocator<char>>& buffer,
 	{
 		decreaseNetworkQuality(coinInfo);
 		Log(L"Confirmer %s: ! Error ioctlsocket's: %i", confirmerName, WSAGetLastError());
-		printToConsole(12, true, false, true, false, L"SENDER %s: ioctlsocket failed: %i", confirmerName, WSAGetLastError());
+		gui->printToConsole(12, true, false, true, false, L"SENDER %s: ioctlsocket failed: %i", confirmerName, WSAGetLastError());
 		return true;
 	}
 	RtlSecureZeroMemory(buffer.data(), buffer.size());
@@ -721,7 +720,7 @@ bool __impl__confirm_i__sockets(std::vector<char, heap_allocator<char>>& buffer,
 					if (status != 0)
 					{
 						std::string error_str(msg, msg_len);
-						printToConsole(6, true, false, true, false, L"%s: Server error: %d %S", confirmerName, status, error_str.c_str());
+						gui->printToConsole(6, true, false, true, false, L"%s: Server error: %d %S", confirmerName, status, error_str.c_str());
 						Log(L"Confirmer %s: server error for DL: %llu", confirmerName, session->deadline);
 						EnterCriticalSection(&coinInfo->locks->sharesLock);
 						coinInfo->mining->shares.push_back(std::make_shared<t_shares>(
@@ -736,7 +735,7 @@ bool __impl__confirm_i__sockets(std::vector<char, heap_allocator<char>>& buffer,
 					}
 					else //got something incomprehensible
 					{
-						printToConsole(7, true, false, true, false, L"%s: %S", confirmerName, buffer.data());
+						gui->printToConsole(7, true, false, true, false, L"%s: %S", confirmerName, buffer.data());
 					}
 				}
 			}
@@ -933,7 +932,7 @@ bool __impl__confirm_i__curl(std::vector<char, heap_allocator<char>>& buffer, st
 					if (status != 0)
 					{
 						std::string error_str(msg, msg_len);
-						printToConsole(6, true, false, true, false, L"%s: Server error: %d %S", confirmerName, status, error_str.c_str());
+						gui->printToConsole(6, true, false, true, false, L"%s: Server error: %d %S", confirmerName, status, error_str.c_str());
 						Log(L"Confirmer %s: server error for DL: %llu", confirmerName, session->deadline);
 						EnterCriticalSection(&coinInfo->locks->sharesLock);
 						coinInfo->mining->shares.push_back(std::make_shared<t_shares>(
@@ -948,7 +947,7 @@ bool __impl__confirm_i__curl(std::vector<char, heap_allocator<char>>& buffer, st
 					}
 					else //got something incomprehensible
 					{
-						printToConsole(7, true, false, true, false, L"%s: %S", confirmerName, buffer.data());
+						gui->printToConsole(7, true, false, true, false, L"%s: %S", confirmerName, buffer.data());
 					}
 				}
 			}
@@ -970,8 +969,8 @@ bool __impl__confirm_i__curl(std::vector<char, heap_allocator<char>>& buffer, st
 }
 
 void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
-	const wchar_t* confirmerName = coinInfo->coinname.c_str();
-	Log(L"Confirmer %s: started thread", confirmerName);
+	const wchar_t* coinName = coinInfo->coinname.c_str();
+	Log(L"Confirmer %s: started thread", coinName);
 
 	SOCKET ConnectSocket;
 	int iResult = 0;
@@ -1021,7 +1020,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 					if (answ["deadline"].IsString())	ndeadline = _strtoui64(answ["deadline"].GetString(), 0, 10);
 					else
 						if (answ["deadline"].IsInt64()) ndeadline = answ["deadline"].GetInt64();
-					Log(L"Confirmer %s: confirmed deadline: %llu", confirmerName, ndeadline);
+					Log(L"Confirmer %s: confirmed deadline: %llu", coinName, ndeadline);
 
 					if (answ.HasMember("targetDeadline")) {
 						if (answ["targetDeadline"].IsString())	ntargetDeadline = _strtoui64(answ["targetDeadline"].GetString(), 0, 10);
@@ -1034,75 +1033,83 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 							if (answ["accountId"].IsInt64()) naccountId = answ["accountId"].GetInt64();
 					}
 
-					unsigned long long days = (ndeadline) / (24 * 60 * 60);
-					unsigned hours = (ndeadline % (24 * 60 * 60)) / (60 * 60);
-					unsigned min = (ndeadline % (60 * 60)) / 60;
-					unsigned sec = ndeadline % 60;
 					if ((naccountId != 0) && (ntargetDeadline != 0))
 					{
 						EnterCriticalSection(&coinInfo->locks->bestsLock);
 						coinInfo->mining->bests[Get_index_acc(naccountId, coinInfo, targetDeadlineInfo)].targetDeadline = ntargetDeadline;
 						LeaveCriticalSection(&coinInfo->locks->bestsLock);
 
-						printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL confirmed : %s %sd %02u:%02u:%02u",
-							naccountId, confirmerName, toWStr(ndeadline, 11).c_str(), toWStr(days, 7).c_str(), hours, min, sec);
-						Log(L"[%20llu] %s confirmed DL: %10llu %5llud %02u:%02u:%02u", naccountId, confirmerName, ndeadline, days, hours, min, sec);
-						Log(L"[%20llu] %s set targetDL: %10llu", naccountId, confirmerName, ntargetDeadline);
+						gui->printNetworkDeadlineConfirmed(true, naccountId, coinName, ndeadline);
+
+						// TODO: somehow deduplicate log math
+						// and yes, I've CONSIDERED putting the logging it into printNetworkDeadlineConfirmed, and I'm still hesitant
+						unsigned long long days = (ndeadline) / (24 * 60 * 60);
+						unsigned hours = (ndeadline % (24 * 60 * 60)) / (60 * 60);
+						unsigned min = (ndeadline % (60 * 60)) / 60;
+						unsigned sec = ndeadline % 60;
+						Log(L"[%20llu] %s confirmed DL: %10llu %5llud %02u:%02u:%02u", naccountId, coinName, ndeadline, days, hours, min, sec);
+
+						Log(L"[%20llu] %s set targetDL: %10llu", naccountId, coinName, ntargetDeadline);
 						if (use_debug) {
-							printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] Set target DL: %s",
-								naccountId, toWStr(ntargetDeadline, 11).c_str());
+							gui->debugNetworkTargetDeadlineUpdated(naccountId, coinName, ntargetDeadline);
 						}
 					}
 					else {
-						printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL confirmed : %s %sd %02u:%02u:%02u",
-							sessionX->body.account_id, confirmerName, toWStr(ndeadline, 11).c_str(), toWStr(days, 7).c_str(), hours, min, sec);
-						Log(L"[%20llu] %s confirmed DL: %10llu %5llud %02u:%02u:%02u", sessionX->body.account_id, confirmerName, ndeadline, days, hours, min, sec);
+						gui->printNetworkDeadlineConfirmed(true, sessionX->body.account_id, coinName, ndeadline);
+
+						// TODO: somehow deduplicate log math
+						// and yes, I've CONSIDERED putting the logging it into printNetworkDeadlineConfirmed, and I'm still hesitant
+						unsigned long long days = (ndeadline) / (24 * 60 * 60);
+						unsigned hours = (ndeadline % (24 * 60 * 60)) / (60 * 60);
+						unsigned min = (ndeadline % (60 * 60)) / 60;
+						unsigned sec = ndeadline % 60;
+						Log(L"[%20llu] %s confirmed DL: %10llu %5llud %02u:%02u:%02u", sessionX->body.account_id, coinName, ndeadline, days, hours, min, sec);
 					}
 					if (ndeadline < coinInfo->mining->deadline || coinInfo->mining->deadline == 0)  coinInfo->mining->deadline = ndeadline;
 
 					if (ndeadline != sessionX->deadline)
 					{
 						// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
-						Log(L"Confirmer %s: Calculated and confirmed deadlines don't match. Fast block or corrupted file? Response: %S", confirmerName, find);
+						Log(L"Confirmer %s: Calculated and confirmed deadlines don't match. Fast block or corrupted file? Response: %S", coinName, find);
 						std::thread{ Csv_Fail, coinInfo, sessionX->body.height, sessionX->body.file_name, sessionX->body.baseTarget,
 							4398046511104 / 240 / sessionX->body.baseTarget, sessionX->body.nonce, sessionX->deadline, ndeadline, find }.detach();
 						std::thread{ increaseConflictingDeadline, coinInfo, sessionX->body.height, sessionX->body.file_name }.detach();
-						printToConsole(6, false, false, true, false,
+						gui->printToConsole(6, false, false, true, false,
 							L"----Fast block or corrupted file?----\n%s sent deadline:\t%llu\nServer's deadline:\t%llu \n----",
-							confirmerName, sessionX->deadline, ndeadline);
+							coinName, sessionX->deadline, ndeadline);
 					}
 				}
 				else {
 					if (answ.HasMember("errorDescription")) {
 						// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
-						Log(L"Confirmer %s: Deadline %llu sent with error: %S", confirmerName, sessionX->deadline, find);
+						Log(L"Confirmer %s: Deadline %llu sent with error: %S", coinName, sessionX->deadline, find);
 						std::thread{ Csv_Fail, coinInfo, sessionX->body.height, sessionX->body.file_name, sessionX->body.baseTarget,
 								4398046511104 / 240 / sessionX->body.baseTarget, sessionX->body.nonce, sessionX->deadline, 0, find }.detach();
 						std::thread{ increaseConflictingDeadline, coinInfo, sessionX->body.height, sessionX->body.file_name }.detach();
 						if (sessionX->deadline <= targetDeadlineInfo) {
-							Log(L"Confirmer %s: Deadline should have been accepted (%llu <= %llu). Fast block or corrupted file?", confirmerName, sessionX->deadline, targetDeadlineInfo);
-							printToConsole(6, false, false, true, false,
+							Log(L"Confirmer %s: Deadline should have been accepted (%llu <= %llu). Fast block or corrupted file?", coinName, sessionX->deadline, targetDeadlineInfo);
+							gui->printToConsole(6, false, false, true, false,
 								L"----Fast block or corrupted file?----\n%s sent deadline:\t%llu\nTarget deadline:\t%llu \n----",
-								confirmerName, sessionX->deadline, targetDeadlineInfo);
+								coinName, sessionX->deadline, targetDeadlineInfo);
 						}
 						if (answ["errorCode"].IsInt()) {
-							printToConsole(15, true, false, true, false, L"[ERROR %i] %s: %S", answ["errorCode"].GetInt(), confirmerName, answ["errorDescription"].GetString());
+							gui->printToConsole(15, true, false, true, false, L"[ERROR %i] %s: %S", answ["errorCode"].GetInt(), coinName, answ["errorDescription"].GetString());
 							if (answ["errorCode"].GetInt() == 1004) {
-								printToConsole(12, true, false, true, false, L"%s: You need change reward assignment and wait 4 blocks (~16 minutes)", confirmerName); //error 1004
+								gui->printToConsole(12, true, false, true, false, L"%s: You need change reward assignment and wait 4 blocks (~16 minutes)", coinName); //error 1004
 							}
 						}
 						else if (answ["errorCode"].IsString()) {
-							printToConsole(15, true, false, true, false, L"[ERROR %S] %s: %S", answ["errorCode"].GetString(), confirmerName, answ["errorDescription"].GetString());
+							gui->printToConsole(15, true, false, true, false, L"[ERROR %S] %s: %S", answ["errorCode"].GetString(), coinName, answ["errorDescription"].GetString());
 							if (answ["errorCode"].GetString() == "1004") {
-								printToConsole(12, true, false, true, false, L"%s: You need change reward assignment and wait 4 blocks (~16 minutes)", confirmerName); //error 1004
+								gui->printToConsole(12, true, false, true, false, L"%s: You need change reward assignment and wait 4 blocks (~16 minutes)", coinName); //error 1004
 							}
 						}
 						else {
-							printToConsole(15, true, false, true, false, L"[ERROR] %s: %S", confirmerName, answ["errorDescription"].GetString());
+							gui->printToConsole(15, true, false, true, false, L"[ERROR] %s: %S", coinName, answ["errorDescription"].GetString());
 						}
 					}
 					else {
-						printToConsole(15, true, false, true, false, L"%s: %S", confirmerName, find);
+						gui->printToConsole(15, true, false, true, false, L"%s: %S", coinName, find);
 					}
 				}
 			}
@@ -1112,15 +1119,14 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 				coinInfo->mining->deadline = coinInfo->mining->bests[Get_index_acc(sessionX->body.account_id, coinInfo, targetDeadlineInfo)].DL; //maybe better iter-> deadline?
 																			// if(deadline > iter->deadline) deadline = iter->deadline;
 				std::thread{ increaseMatchingDeadline, sessionX->body.file_name }.detach();
-				printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL confirmed : %s",
-					sessionX->body.account_id, confirmerName, toWStr(sessionX->deadline, 11).c_str());
+				gui->printNetworkDeadlineConfirmed(false, sessionX->body.account_id, coinName, sessionX->deadline); // TODO: why pretty-time is disabled here?
 		}
 
 		std::this_thread::yield();
 		std::this_thread::sleep_for(std::chrono::milliseconds(coinInfo->network->send_interval));
 	}
 
-	Log(L"Confirmer %s: All work done, shutting down.", confirmerName);
+	Log(L"Confirmer %s: All work done, shutting down.", coinName);
 }
 
 

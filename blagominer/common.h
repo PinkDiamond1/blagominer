@@ -1,5 +1,5 @@
 #pragma once
-#include "stdafx.h"
+#include "common-pragmas.h"
 
 #include <mutex>
 #include <array>
@@ -7,21 +7,16 @@
 #include <ctime>
 #include <math.h>
 #include <optional>
+#include <string>
+#include <map>
 
 #include "heapallocator.h"
 #include "logger.h"
 
 #include <curl/curl.h>
 
-// blago version
-extern const unsigned int versionMajor;
-extern const unsigned int versionMinor;
-extern const unsigned int versionRevision;
-extern std::wstring version;
-
 extern const wchar_t sepChar;
 
-extern bool lockWindowSize;
 extern double checkForUpdateInterval;
 extern bool ignoreSuspectedFastBlocks;
 extern volatile bool exit_flag;							// true if miner is to be exited
@@ -93,6 +88,13 @@ struct t_directory_info {
 	std::string dir;
 	bool done;
 	std::vector<t_files> files;
+};
+
+struct t_gui {
+	bool disableGui;
+	short size_x;
+	short size_y;
+	bool lockWindowSize;
 };
 
 struct t_logging {
@@ -204,6 +206,12 @@ struct t_coin_info {
 	t_roundreplay_round_test* testround2;
 };
 
+struct t_file_stats {
+	unsigned long long matchingDeadlines;
+	unsigned long long conflictingDeadlines;
+	unsigned long long readErrors;
+};
+
 
 extern std::vector<std::shared_ptr<t_coin_info>> allcoins;
 extern std::vector<std::shared_ptr<t_coin_info>> coins;
@@ -281,3 +289,175 @@ std::wstring toWStr(std::string str, const unsigned short length);
 
 std::string toStr(unsigned long long number, const unsigned short length);
 std::string toStr(std::string str, const unsigned short length);
+
+struct IUserInterface;
+
+extern std::unique_ptr<IUserInterface> gui;
+
+struct hwinfo
+{
+	bool AES;
+	bool SSE, SSE2, SSE3, SSE42;
+	bool AVX, AVX2, AVX512F, avxsupported;
+	std::string vendor, brand;
+	unsigned long cores;
+	unsigned long long memory; // in megabytes
+};
+
+struct IUserInterface
+{
+	virtual ~IUserInterface() = 0;
+
+	virtual void printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
+		bool trailingNewLine, bool fillLine, const wchar_t * format, ...) = 0;
+
+	virtual void printHeadlineTitle(
+		std::wstring const& appname,
+		std::wstring const& version,
+		bool elevated
+	) = 0;
+	virtual void printWallOfCredits(
+		std::vector<std::wstring> const& history
+	) = 0;
+	virtual void printHWInfo(
+		hwinfo const& info
+	) = 0;
+
+	virtual void printPlotsStart() = 0;
+	virtual void printPlotsInfo(char const* const directory, unsigned nfiles, unsigned long long size) = 0;
+	virtual void printPlotsEnd(unsigned long long total_size) = 0;
+
+	virtual void printThreadActivity(
+		std::wstring const& coinName,
+		std::wstring const& threadKind,
+		std::wstring const& threadAction
+	) = 0;
+
+	virtual void debugWorkerStats(
+		std::wstring const& specialReadMode,
+		std::string const& directory,
+		double proc_time, double work_time,
+		unsigned long long files_size_per_thread
+	) = 0;
+	virtual void printWorkerDeadlineFound(
+		unsigned long long account_id,
+		std::wstring const& coinname,
+		unsigned long long deadline
+	) = 0;
+	virtual void printScanProgress(
+		int ncoins, std::wstring const& connQualInfo,
+		unsigned long long bytesRead, unsigned long long round_size,
+		double thread_time, double threads_speed,
+		unsigned long long deadline
+	) = 0;
+
+	virtual void printNetworkHostResolution(
+		std::wstring const& lookupWhat,
+		std::wstring const& coinName,
+		std::string const& remoteName,
+		std::vector<char> const& resolvedIP,
+		std::string const& remotePost,
+		std::string const& remotePath
+	) = 0;
+	virtual void printNetworkProxyDeadlineReceived(
+		unsigned long long account_id,
+		std::wstring const& coinName,
+		unsigned long long deadline,
+		char const (& const clientAddr)[22]
+	) = 0;
+	virtual void debugNetworkProxyDeadlineAcked(
+		unsigned long long account_id,
+		std::wstring const& coinName,
+		unsigned long long deadline,
+		char const (& const clientAddr)[22]
+	) = 0;
+	virtual void debugNetworkDeadlineDiscarded(
+		unsigned long long account_id,
+		std::wstring const& coinName,
+		unsigned long long deadline,
+		unsigned long long targetDeadline
+	) = 0;
+	virtual void printNetworkDeadlineSent(
+		unsigned long long account_id,
+		std::wstring const& coinName,
+		unsigned long long deadline
+	) = 0;
+	virtual void printNetworkDeadlineConfirmed(
+		bool with_timespan,
+		unsigned long long account_id,
+		std::wstring const& coinName,
+		unsigned long long deadline
+	) = 0;
+	virtual void debugNetworkTargetDeadlineUpdated(
+		unsigned long long account_id,
+		std::wstring const& coinName,
+		unsigned long long targetDeadline
+	) = 0;
+	virtual void printConnQuality(
+		int ncoins, std::wstring const& connQualInfo
+	) = 0;
+
+	virtual void debugRoundTime(
+		double theads_time
+	) = 0;
+	virtual void printBlockEnqueued(
+		unsigned long long currentHeight,
+		std::wstring const& coinname,
+		bool atEnd, bool noQueue
+	) = 0;
+	virtual void printRoundInterrupt(
+		unsigned long long currentHeight,
+		std::wstring const& coinname
+	) = 0;
+	virtual void printRoundChangeInfo(bool isResumingInterrupted,
+		unsigned long long currentHeight,
+		std::wstring const& coinname,
+		unsigned long long currentBaseTarget,
+		unsigned long long currentNetDiff,
+		bool isPoc2Round
+	) = 0;
+
+	void testmodeWarning(wchar_t const* const message)
+	{
+		printToConsole(2, true, false, true, false, message);
+	}
+	void testmodeError(wchar_t const* const message)
+	{
+		printToConsole(12, true, false, true, false, message);
+	}
+	void testmodeSuccess(wchar_t const* const const message)
+	{
+		printToConsole(10, true, false, true, false, message);
+	}
+	void testmodeFinished()
+	{
+		printToConsole(2, false, true, true, false, L"TestMode has finished all tasks, press any key.");
+
+		// after the last test, last status line is pending in console output writer
+		// and the closeMiner will bm_end() which will interrupt the console writer
+		// causing the last line to never show up.
+		// Sadly, currently there's no better way to flush it other than wait
+		system("pause > nul");
+	}
+
+	virtual bool currentlyDisplayingCorruptedPlotFiles() = 0;
+
+	virtual int bm_wgetchMain() = 0; //get input vom main window
+
+	virtual void showNewVersion(std::string version) = 0;
+
+	virtual void printFileStats(std::map<std::string, t_file_stats>const& fileStats) = 0;
+
+	// ---
+
+	static std::wstring make_filled_string(int nspaces, wchar_t filler)
+	{
+		return std::wstring(max(0, nspaces), filler);
+	}
+
+	static std::wstring make_leftpad_for_networkstats(int availablespace, int nactivecoins)
+	{
+		const int remainingspace = availablespace - (nactivecoins * 4) - (nactivecoins - 1);
+		return make_filled_string(remainingspace, L' ');
+	}
+};
