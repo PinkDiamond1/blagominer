@@ -1,5 +1,6 @@
-﻿#include <sstream>
-#include <memory>
+﻿#include "DiskcoinMath.h"
+
+#include <sstream>
 
 #include "../../hexstring.h"
 

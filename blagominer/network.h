@@ -1,16 +1,8 @@
 #pragma once
-#include "stdafx.h"
-#include "logger.h"
-#include "loggerCsv.h"
-#include "error.h"
-#include "accounts.h"
+#include "common-pragmas.h"
+
 #include "common.h"
-#include "filemonitor.h"
 
-
-#pragma comment(lib,"Ws2_32.lib")
-
-#include "picohttpparser.h"
 
 void init_coinNetwork(std::shared_ptr<t_coin_info> coin);
 

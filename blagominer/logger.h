@@ -1,5 +1,7 @@
 #pragma once
-#include "error.h"
+#include "common-pragmas.h"
+#include "stdafx.h" // for SYSTEMTIME
+
 #include <mutex>
 #include <list>
 #include <ctime>

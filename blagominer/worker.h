@@ -1,5 +1,6 @@
 #pragma once
-#include "blagominer.h"
+#include "common-pragmas.h"
+
 #include "common.h"
 
 extern bool use_boost;							// use optimisations if true

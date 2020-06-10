@@ -1,4 +1,5 @@
 #pragma once
+#include "common-pragmas.h"
 
 #include <bitset>
 #include <array>
@@ -189,4 +190,3 @@ private:
 
   
 };
-

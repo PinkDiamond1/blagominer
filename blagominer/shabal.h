@@ -1,9 +1,9 @@
 #pragma once
+#include "common-pragmas.h"
 
-#include "blagominer.h"
+#include "common.h"
 #include "sph_shabal.h"
 #include "mshabal.h"
-#include "common.h"
 
 
 //gobal shabal contexts, just created once
@@ -25,4 +25,3 @@ void procscoop_sse_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 void procscoop_avx_fast(std::shared_ptr<t_coin_info> coin, unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name);
 void procscoop_avx2_fast(std::shared_ptr<t_coin_info> coin, unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name);
 void procscoop_avx512_fast(std::shared_ptr<t_coin_info> coin, unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name);
-

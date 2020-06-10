@@ -1,29 +1,8 @@
+#include "stdafx.h"
 #include "common.h"
-
-const unsigned int versionMajor = 2;
-const unsigned int versionMinor = 300003;
-const unsigned int versionRevision = 2;
-
-// blago version
-#ifdef __AVX512F__
-std::wstring versionSuffix = L"_AVX512";
-#else
-#ifdef __AVX2__
-std::wstring versionSuffix = L"_AVX2";
-#else
-#ifdef __AVX__
-std::wstring versionSuffix = L"_AVX";
-#else
-std::wstring versionSuffix = L"_SSE";
-//	std::string versionSuffix = "";
-#endif
-#endif 
-#endif 
-std::wstring version = std::to_wstring(versionMajor) + L"." + std::to_wstring(versionMinor) + L"." + std::to_wstring(versionRevision) + versionSuffix;
 
 const wchar_t sepChar = 0x00B7;
 
-extern bool lockWindowSize = true;
 double checkForUpdateInterval = 1;
 bool ignoreSuspectedFastBlocks = true;
 volatile bool exit_flag = false;

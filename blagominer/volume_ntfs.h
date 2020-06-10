@@ -1,6 +1,8 @@
 #pragma once
-#include "logger.h"
-#include "inout.h"
+#include "common-pragmas.h"
+
+#include "common.h"
+
 
 struct OrderingByPositionOnSequentialMedia
 {

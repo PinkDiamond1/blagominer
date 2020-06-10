@@ -1,5 +1,5 @@
-#include "stdafx.h"
 #include "shabal.h"
+
 #include "hexstring.h"
 
 // context for 1-dimensional shabal (32bit)
@@ -100,8 +100,8 @@ void procscoop_sph(std::shared_ptr<t_coin_info> coin, const unsigned long long n
 					coin->mining->currentHeight,
 					coin->mining->currentBaseTarget));
 				LeaveCriticalSection(&coin->locks->sharesLock);
-				printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Worker] DL found     : %s",
-					coin->mining->bests[acc].account_id, coin->coinname.c_str(), toWStr(coin->mining->bests[acc].DL, 11).c_str());
+
+				gui->printWorkerDeadlineFound(coin->mining->bests[acc].account_id, coin->coinname, coin->mining->bests[acc].DL);
 			}
 		}
 	}
@@ -257,8 +257,8 @@ void procscoop_sse_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 					coin->mining->currentHeight,
 					coin->mining->currentBaseTarget));
 				LeaveCriticalSection(&coin->locks->sharesLock);
-				printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Worker] DL found     : %s",
-					coin->mining->bests[acc].account_id, coin->coinname.c_str(), toWStr(coin->mining->bests[acc].DL, 11).c_str());
+
+				gui->printWorkerDeadlineFound(coin->mining->bests[acc].account_id, coin->coinname, coin->mining->bests[acc].DL);
 			}
 		}
 	}
@@ -414,8 +414,8 @@ void procscoop_avx_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 					coin->mining->currentHeight,
 					coin->mining->currentBaseTarget));
 				LeaveCriticalSection(&coin->locks->sharesLock);
-				printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Worker] DL found     : %s",
-					coin->mining->bests[acc].account_id, coin->coinname.c_str(), toWStr(coin->mining->bests[acc].DL, 11).c_str());
+
+				gui->printWorkerDeadlineFound(coin->mining->bests[acc].account_id, coin->coinname, coin->mining->bests[acc].DL);
 			}
 		}
 	}
@@ -620,8 +620,8 @@ void procscoop_avx2_fast(std::shared_ptr<t_coin_info> coin, unsigned long long c
 					coin->mining->currentHeight,
 					coin->mining->currentBaseTarget));
 				LeaveCriticalSection(&coin->locks->sharesLock);
-				printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Worker] DL found     : %s",
-					coin->mining->bests[acc].account_id, coin->coinname.c_str(), toWStr(coin->mining->bests[acc].DL, 11).c_str());
+
+				gui->printWorkerDeadlineFound(coin->mining->bests[acc].account_id, coin->coinname, coin->mining->bests[acc].DL);
 			}
 		}
 	}
@@ -922,8 +922,8 @@ void procscoop_avx512_fast(std::shared_ptr<t_coin_info> coin, unsigned long long
 					coin->mining->currentHeight,
 					coin->mining->currentBaseTarget));
 				LeaveCriticalSection(&coin->locks->sharesLock);
-				printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Worker] DL found     : %s",
-					coin->mining->bests[acc].account_id, coin->coinname.c_str(), toWStr(coin->mining->bests[acc].DL, 11).c_str());
+
+				gui->printWorkerDeadlineFound(coin->mining->bests[acc].account_id, coin->coinname, coin->mining->bests[acc].DL);
 			}
 		}
 	}

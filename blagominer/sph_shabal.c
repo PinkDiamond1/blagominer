@@ -546,4 +546,3 @@ void sph_shabal256_addbits_and_close(void *cc, unsigned ub, unsigned n, void *ds
 {
 	shabal_close(cc, ub, n, dst, 8);
 }
-

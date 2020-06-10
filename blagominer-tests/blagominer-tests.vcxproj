@@ -21,9 +21,9 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{7d18edee-1e08-4410-afbe-3f8b7509e765}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -33,6 +33,7 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <ItemGroup>
+    <ClCompile Include="config.tests.cpp" />
     <ClCompile Include="crash.0000.curl_easy_cleanup-doublecleanup.tests.cpp" />
     <ClCompile Include="crash.0001.curl_easy_recv-badpointer.tests.cpp" />
     <ClCompile Include="deadlines.felix.cpp" />
@@ -40,6 +41,7 @@
     <ClCompile Include="gensig.diskcoin.que.cpp" />
     <ClCompile Include="heapallocator.tests.cpp" />
     <ClCompile Include="hexstring.tests.cpp" />
+    <ClCompile Include="inout.tests.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="reference\burst\BurstMath.tests.cpp" />
     <ClCompile Include="test.cpp" />

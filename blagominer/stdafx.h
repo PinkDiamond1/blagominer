@@ -4,18 +4,23 @@
 //
 
 #pragma once
+#include "common-pragmas.h"
 
-#include "targetver.h"
 #include <string>
 #include <sstream>
 #include <iomanip>
 #include <vector>
 #include <map>
 #include <thread> 
-#include "ws2tcpip.h"
-#include <windows.h> 
 #include <stdio.h>
 #include <tchar.h>
+
+// network.cpp, updatechecker.cpp
+#include "ws2tcpip.h"
+#include <windows.h> 
+#include <urlmon.h>
+#pragma comment(lib,"Ws2_32.lib")
+#pragma comment(lib, "urlmon.lib")
 
 #define RAPIDJSON_NO_SIZETYPEDEFINE
 
