@@ -1710,6 +1710,7 @@ int wmain(int argc, wchar_t **argv) {
 				Log(L"Waiting for new round");
 
 				// Waiting for mining information
+				std::wstring prevConnQual;
 				bool newDataAvailable = false;
 				while (!exit_flag && !newDataAvailable && !testmodeConfig.isEnabled) {
 					switch (gui->bm_wgetchMain())
@@ -1725,6 +1726,25 @@ int wmain(int argc, wchar_t **argv) {
 					if (exit_flag) {
 						Log(L"Exitting miner.");
 						break;
+					}
+
+					std::wostringstream connQual;
+					bool pastfirst = false;
+					for (auto& coin : activecoins)
+					{
+						if (pastfirst) connQual << L'|';
+						connQual << std::setw(3) << getNetworkQuality(coin) << L'%';
+						pastfirst = true;
+					}
+
+					// we're busy-spinning, no UI updates happen
+					// print something out or else user won't be notified that network is down
+					// but try not spamming too much
+					std::wstring currConnQual = connQual.str();
+					if (prevConnQual != currConnQual)
+					{
+						prevConnQual = currConnQual;
+						gui->printConnQuality(activecoins.size(), connQual.str());
 					}
 
 					for (auto& c : coins) {
@@ -1801,7 +1821,11 @@ int wmain(int argc, wchar_t **argv) {
 			Log(L"Round size: %llu GB", round_size / 1024 / 1024 / 1024);
 
 			// Wait until signature changed or exit
-			while (!exit_flag && (!haveReceivedNewMiningInfo(coins) || !needToInterruptMining(coins, miningCoin, queue)))
+			// or current scanning is done (no point in busy-spinning here when all threads already have processed all their data)
+			while (!exit_flag 
+				&& miningCoin->mining->state == MINING
+				&& (!haveReceivedNewMiningInfo(coins) || !needToInterruptMining(coins, miningCoin, queue))
+			)
 			{
 				switch (gui->bm_wgetchMain())
 				{
@@ -1901,7 +1925,6 @@ int wmain(int argc, wchar_t **argv) {
 				}
 
 				// TODO: there doesn't seem to be a way for a 'miningcoin' to be 'not enabled'
-				// TODO: do we really NEED to call this each 50ms? even after the round ended and we're idling?
 				if (miningCoin->mining->enable && round_size > 0) {
 					gui->printScanProgress(activecoins.size(), connQual.str(),
 						bytesRead, round_size,
