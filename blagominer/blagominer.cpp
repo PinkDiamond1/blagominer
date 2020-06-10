@@ -1609,56 +1609,6 @@ int wmain(int argc, wchar_t **argv) {
 		}
 	}
 	else {
-		Log(L"Update mining info");
-		// Waiting for mining information
-		bool firstDataAvailable = false;
-		while (!firstDataAvailable && !testmodeConfig.isEnabled) {
-			for (auto& c : coins) {
-				if (c->mining->enable && getHeight(c) != 0) {
-					firstDataAvailable = getNewMiningInfo(coins, nullptr, queue);
-					break;
-				}
-			}
-			std::this_thread::yield();
-			std::this_thread::sleep_for(std::chrono::milliseconds(10));
-		}
-		if (testmodeConfig.isEnabled) {
-			// spoof COINQUEUE with multiple entries for the same coin! I'm pretty sure that only the UPDATER thread reorders entries and the main loop simply POPs!
-			auto const referenceSetup = std::find_if(allcoins.begin(), allcoins.end(), [](auto&& coin) { return coin->coinname == testmodeConfig.roundReplay.coinName; });
-
-			if (referenceSetup == allcoins.end())
-			{
-				gui->printToConsole(12, false, true, true, false, L"TestMode config error: coin %s not found in miner.conf", testmodeConfig.roundReplay.coinName.c_str());
-				system("pause > nul");
-				exit(-1);
-			}
-
-			// each round*test pair is a SEPARATE mining round that the testmode must execute
-			for(auto&& round : testmodeConfig.roundReplay.rounds)
-				for (auto&& test : round.tests)
-				{
-					auto newCoin = cloneCoinSetup(*referenceSetup);
-
-					newCoin->mining->height = round.height;
-
-					std::copy(round.signature.begin(), round.signature.end(), newCoin->mining->str_signature);
-
-					char sig[33];
-					size_t sigLen = xstr2strr(sig, 33, round.signature.c_str());
-					std::copy(sig, sig + 32, newCoin->mining->signature);
-
-					newCoin->mining->baseTarget = round.baseTarget;
-
-					newCoin->testround1 = &round;
-					newCoin->testround2 = &test;
-
-					queue.push_back(newCoin);
-				}
-		}
-
-		for (auto& coin : allcoins)
-			Log(L"%s height: %llu", coin->coinname.c_str(), getHeight(coin));
-
 		// Main loop
 		// Create Shabal Contexts
 #ifdef __AVX512F__
@@ -1705,6 +1655,59 @@ int wmain(int argc, wchar_t **argv) {
 		//context for signature calculation
 		sph_shabal256_init(&global_32);
 		memcpy(&local_32, &global_32, sizeof(global_32));
+
+		// first-time status update for any coin (whichever gets its first GMI first)
+		{
+			Log(L"Update mining info");
+			// Waiting for mining information
+			bool firstDataAvailable = false;
+			while (!firstDataAvailable && !testmodeConfig.isEnabled) {
+				for (auto& c : coins) {
+					if (c->mining->enable && getHeight(c) != 0) {
+						firstDataAvailable = getNewMiningInfo(coins, nullptr, queue);
+						break;
+					}
+				}
+				std::this_thread::yield();
+				std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			}
+			if (testmodeConfig.isEnabled) {
+				// spoof COINQUEUE with multiple entries for the same coin! I'm pretty sure that only the UPDATER thread reorders entries and the main loop simply POPs!
+				auto const referenceSetup = std::find_if(allcoins.begin(), allcoins.end(), [](auto&& coin) { return coin->coinname == testmodeConfig.roundReplay.coinName; });
+
+				if (referenceSetup == allcoins.end())
+				{
+					gui->printToConsole(12, false, true, true, false, L"TestMode config error: coin %s not found in miner.conf", testmodeConfig.roundReplay.coinName.c_str());
+					system("pause > nul");
+					exit(-1);
+				}
+
+				// each round*test pair is a SEPARATE mining round that the testmode must execute
+				for(auto&& round : testmodeConfig.roundReplay.rounds)
+					for (auto&& test : round.tests)
+					{
+						auto newCoin = cloneCoinSetup(*referenceSetup);
+
+						newCoin->mining->height = round.height;
+
+						std::copy(round.signature.begin(), round.signature.end(), newCoin->mining->str_signature);
+
+						char sig[33];
+						size_t sigLen = xstr2strr(sig, 33, round.signature.c_str());
+						std::copy(sig, sig + 32, newCoin->mining->signature);
+
+						newCoin->mining->baseTarget = round.baseTarget;
+
+						newCoin->testround1 = &round;
+						newCoin->testround2 = &test;
+
+						queue.push_back(newCoin);
+					}
+			}
+
+			for (auto& coin : allcoins)
+				Log(L"%s height: %llu", coin->coinname.c_str(), getHeight(coin));
+		}
 
 		std::shared_ptr<t_coin_info> miningCoin;
 		while (!exit_flag)
