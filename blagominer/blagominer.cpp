@@ -1658,19 +1658,6 @@ int wmain(int argc, wchar_t **argv) {
 
 		// first-time status update for any coin (whichever gets its first GMI first)
 		{
-			Log(L"Update mining info");
-			// Waiting for mining information
-			bool firstDataAvailable = false;
-			while (!firstDataAvailable && !testmodeConfig.isEnabled) {
-				for (auto& c : coins) {
-					if (c->mining->enable && getHeight(c) != 0) {
-						firstDataAvailable = getNewMiningInfo(coins, nullptr, queue);
-						break;
-					}
-				}
-				std::this_thread::yield();
-				std::this_thread::sleep_for(std::chrono::milliseconds(10));
-			}
 			if (testmodeConfig.isEnabled) {
 				// spoof COINQUEUE with multiple entries for the same coin! I'm pretty sure that only the UPDATER thread reorders entries and the main loop simply POPs!
 				auto const referenceSetup = std::find_if(allcoins.begin(), allcoins.end(), [](auto&& coin) { return coin->coinname == testmodeConfig.roundReplay.coinName; });
@@ -1704,9 +1691,6 @@ int wmain(int argc, wchar_t **argv) {
 						queue.push_back(newCoin);
 					}
 			}
-
-			for (auto& coin : allcoins)
-				Log(L"%s height: %llu", coin->coinname.c_str(), getHeight(coin));
 		}
 
 		std::shared_ptr<t_coin_info> miningCoin;
@@ -1720,6 +1704,42 @@ int wmain(int argc, wchar_t **argv) {
 
 			if(testmodeConfig.isEnabled)
 				Log(L"=== TestMode active ===");
+
+			if (!testmodeConfig.isEnabled && queue.empty())
+			{
+				Log(L"Waiting for new round");
+
+				// Waiting for mining information
+				bool newDataAvailable = false;
+				while (!exit_flag && !newDataAvailable && !testmodeConfig.isEnabled) {
+					switch (gui->bm_wgetchMain())
+					{
+					case 'q':
+						exit_flag = true;
+						break;
+					case 'f':
+						resetFileStats();
+						break;
+					}
+
+					if (exit_flag) {
+						Log(L"Exitting miner.");
+						break;
+					}
+
+					for (auto& c : coins) {
+						if (c->mining->enable && getHeight(c) != 0) {
+							newDataAvailable = getNewMiningInfo(coins, nullptr, queue);
+							break;
+						}
+					}
+					std::this_thread::yield();
+					std::this_thread::sleep_for(std::chrono::milliseconds(10));
+				}
+			}
+
+			for (auto& coin : allcoins)
+				Log(L"%s height: %llu", coin->coinname.c_str(), getHeight(coin));
 
 			std::wstring out = L"Coin queue: ";
 			for (auto& c : queue) {
@@ -1792,13 +1812,13 @@ int wmain(int argc, wchar_t **argv) {
 					resetFileStats();
 					break;
 				}
-				bytesRead = 0;
 
 				if (exit_flag) {
 					Log(L"Exitting miner.");
 					break;
 				}
 
+				bytesRead = 0;
 				int threads_running = 0;
 				for (auto it = worker_progress.begin(); it != worker_progress.end(); ++it)
 				{
