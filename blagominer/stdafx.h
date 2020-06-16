@@ -29,6 +29,7 @@ using namespace rapidjson;
 
 #pragma warning( push )
 #pragma warning( disable: 26812 )	// Warning C26812	"The enum type 'rapidjson::.....' is unscoped. Prefer 'enum class' over 'enum'"
+#pragma warning( disable: 4996 )	// Warning C4996	somehow _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING via compiler commandline didn't work?
 #include "rapidjson/document.h"		// rapidjson's DOM-style API
 #include "rapidjson/error/en.h"
 #include "rapidjson/writer.h"
