@@ -141,7 +141,8 @@ void Output_Curses::debugWorkerStats(
 
 	printToConsole(7, true, false, true, false, msgFormat,
 		directory.c_str(), work_time, (double)(files_size_per_thread) / work_time / 1024 / 1024 / 4096,
-		proc_time / work_time * 100);
+		proc_time / work_time * 100,
+		specialReadMode.c_str());
 }
 
 void Output_Curses::printWorkerDeadlineFound(
