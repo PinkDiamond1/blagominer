@@ -25,17 +25,28 @@ void Log(const wchar_t * format, Args ... args)
 	if (!loggingInitialized) {
 		return;
 	}
+
+	// TODO: extract, deduplicate
 	SYSTEMTIME cur_time;
 	GetLocalTime(&cur_time);
-	wchar_t timeBuff[13];
-	swprintf(timeBuff, sizeof(timeBuff), L"%02d:%02d:%02d.%03d", cur_time.wHour, cur_time.wMinute, cur_time.wSecond, cur_time.wMilliseconds);
-	std::wstring time = timeBuff;
+
+	std::wstring timeMil = (
+		std::wostringstream()
+		<< std::setw(2) << std::setfill(L'0') << cur_time.wHour
+		<< ':'
+		<< std::setw(2) << std::setfill(L'0') << cur_time.wMinute
+		<< ':'
+		<< std::setw(2) << std::setfill(L'0') << cur_time.wSecond
+		<< '.'
+		<< std::setw(3) << std::setfill(L'0') << cur_time.wMilliseconds
+		).str();
+	//-TODO: extract, deduplicate
 
 	int size = swprintf(nullptr, 0, format, args ...) + 1;
 	std::unique_ptr<wchar_t[]> buf(new wchar_t[size]);
 	swprintf(buf.get(), size, format, args ...);
 	{
 		std::lock_guard<std::mutex> lockGuard(mLog);
-		loggingQueue.push_back(time + L" " + std::wstring(buf.get(), buf.get() + size - 1));
+		loggingQueue.push_back(timeMil + L" " + std::wstring(buf.get(), buf.get() + size - 1));
 	}
 };

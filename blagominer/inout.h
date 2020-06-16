@@ -18,7 +18,9 @@ public:
 	~Output_Curses();
 	Output_Curses(short x, short y, bool lock);
 
+	// TODO: consider variadic template like logger.h:Log()
 	// TODO: add v-overload taking va_list
+	// TODO: RE:^ really, why a va_list?
 	void printToConsole(
 		int colorPair, bool printTimestamp, bool leadingNewLine,
 		bool trailingNewLine, bool fillLine, const wchar_t * format,

@@ -2,6 +2,7 @@
 
 #undef max
 #include <algorithm>
+#include <sstream>
 
 const std::string header = "File name                                             +DLs      -DLs       I/O";
 
@@ -19,6 +20,7 @@ Output_PlainText::Output_PlainText()
 	consoleWriter = std::thread(&Output_PlainText::_consoleWriter, this);
 }
 
+// TODO: consider variadic template like logger.h:Log()
 void Output_PlainText::printToConsole(
 	int colorPair, bool printTimestamp, bool leadingNewLine,
 	bool trailingNewLine, bool fillLine, const wchar_t * format,
@@ -26,18 +28,35 @@ void Output_PlainText::printToConsole(
 )
 {
 	std::wstring message;
+
+	// TODO: extract, deduplicate
 	SYSTEMTIME cur_time;
 	GetLocalTime(&cur_time);
-	wchar_t timeBuff[9];
-	wchar_t timeBuffMil[13];
-	swprintf(timeBuff, sizeof(timeBuff), L"%02d:%02d:%02d", cur_time.wHour, cur_time.wMinute, cur_time.wSecond);
-	swprintf(timeBuffMil, sizeof(timeBuff), L"%02d:%02d:%02d.%03d", cur_time.wHour, cur_time.wMinute, cur_time.wSecond, cur_time.wMilliseconds);
-	std::wstring time = timeBuff;
-	std::wstring timeMil = timeBuffMil;
+
+	std::wstring time = (
+		std::wostringstream()
+		<< std::setw(2) << std::setfill(L'0') << cur_time.wHour
+		<< ':'
+		<< std::setw(2) << std::setfill(L'0') << cur_time.wMinute
+		<< ':'
+		<< std::setw(2) << std::setfill(L'0') << cur_time.wSecond
+		).str();
+
+	std::wstring timeMil = (
+		std::wostringstream()
+		<< std::setw(2) << std::setfill(L'0') << cur_time.wHour
+		<< ':'
+		<< std::setw(2) << std::setfill(L'0') << cur_time.wMinute
+		<< ':'
+		<< std::setw(2) << std::setfill(L'0') << cur_time.wSecond
+		<< '.'
+		<< std::setw(3) << std::setfill(L'0') << cur_time.wMilliseconds
+		).str();
+	//-TODO: extract, deduplicate
 
 	if (printTimestamp) {
 
-		message = timeBuff;
+		message = time;
 		message += L" ";
 	}
 
