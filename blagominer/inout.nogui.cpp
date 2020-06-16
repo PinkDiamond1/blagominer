@@ -176,7 +176,7 @@ void Output_PlainText::printNetworkProxyDeadlineReceived(
 	unsigned long long account_id,
 	std::wstring const& coinName,
 	unsigned long long deadline,
-	char const (& const clientAddr)[22]
+	char const (&clientAddr)[22]
 )
 {
 	printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Proxy ] DL found     : %11llu {%S}",
@@ -188,7 +188,7 @@ void Output_PlainText::debugNetworkProxyDeadlineAcked(
 	unsigned long long account_id,
 	std::wstring const& coinName,
 	unsigned long long deadline,
-	char const (& const clientAddr)[22]
+	char const (&clientAddr)[22]
 )
 {
 	printToConsole(9, true, false, true, false, L"[%20llu|%-10s|Proxy ] DL ack'ed    : %11llu {%S}",

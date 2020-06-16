@@ -68,13 +68,13 @@ public:
 		unsigned long long account_id,
 		std::wstring const& coinName,
 		unsigned long long deadline,
-		char const (& const clientAddr)[22]
+		char const (&clientAddr)[22]
 	) override;
 	void debugNetworkProxyDeadlineAcked(
 		unsigned long long account_id,
 		std::wstring const& coinName,
 		unsigned long long deadline,
-		char const (& const clientAddr)[22]
+		char const (&clientAddr)[22]
 	) override;
 	void debugNetworkDeadlineDiscarded(
 		unsigned long long account_id,

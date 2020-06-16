@@ -363,13 +363,13 @@ struct IUserInterface
 		unsigned long long account_id,
 		std::wstring const& coinName,
 		unsigned long long deadline,
-		char const (& const clientAddr)[22]
+		char const (&clientAddr)[22]
 	) = 0;
 	virtual void debugNetworkProxyDeadlineAcked(
 		unsigned long long account_id,
 		std::wstring const& coinName,
 		unsigned long long deadline,
-		char const (& const clientAddr)[22]
+		char const (&clientAddr)[22]
 	) = 0;
 	virtual void debugNetworkDeadlineDiscarded(
 		unsigned long long account_id,
@@ -425,7 +425,7 @@ struct IUserInterface
 	{
 		printToConsole(12, true, false, true, false, message);
 	}
-	void testmodeSuccess(wchar_t const* const const message)
+	void testmodeSuccess(wchar_t const* const message)
 	{
 		printToConsole(10, true, false, true, false, message);
 	}
