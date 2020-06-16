@@ -529,7 +529,7 @@ static void shabal_close(void *cc, unsigned ub, unsigned n, void *dst, unsigned 
 		sph_enc32le_aligned(u.tmp_out + 56, BE);
 		sph_enc32le_aligned(u.tmp_out + 60, BF);
 
-	out_len = size_words << 2;
+	out_len = (size_t)size_words << 2;
 	memcpy(dst, u.tmp_out + (sizeof u.tmp_out) - out_len, out_len);
 	//sph_shabal256_init(sc, size_words << 5);
 }

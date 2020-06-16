@@ -322,7 +322,7 @@ void Output_Curses::printConnQuality(int ncoins, std::wstring const& connQualInf
 			leadingSpace94 = IUserInterface::make_leftpad_for_networkstats(94, ncoins);
 	}
 
-	size_t size = swprintf(nullptr, 0, L"%s%s", leadingSpace94.c_str(), connQualInfo.c_str()) + 1;
+	size_t size = swprintf(nullptr, 0, L"%s%s", leadingSpace94.c_str(), connQualInfo.c_str()) + 1llu;
 	std::unique_ptr<wchar_t[]> buf(new wchar_t[size]);
 	swprintf(buf.get(), size, L"%s%s", leadingSpace94.c_str(), connQualInfo.c_str());
 
@@ -348,15 +348,15 @@ void Output_Curses::printScanProgress(int ncoins, std::wstring const& connQualIn
 
 	size_t size = swprintf(nullptr, 0, L"%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c %s%s",
 		(bytesRead * 4096 * 100 / std::max(1ull, round_size)), sepChar,
-		(((double)bytesRead) / (256 * 1024 * 1024)), sepChar,
+		(((double)bytesRead) / (256llu * 1024 * 1024)), sepChar,
 		thread_time, sepChar,
 		threads_speed, sepChar,
 		(deadline == 0) ? L"          -" : toWStr(deadline, 11).c_str(), sepChar,
-		leadingSpace94.c_str(), connQualInfo.c_str()) + 1;
+		leadingSpace94.c_str(), connQualInfo.c_str()) + 1llu;
 	std::unique_ptr<wchar_t[]> buf(new wchar_t[size]);
 	swprintf(buf.get(), size, L"%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c %s%s",
 		(bytesRead * 4096 * 100 / std::max(1ull, round_size)), sepChar,
-		(((double)bytesRead) / (256 * 1024 * 1024)), sepChar,
+		(((double)bytesRead) / (256llu * 1024 * 1024)), sepChar,
 		thread_time, sepChar,
 		threads_speed, sepChar,
 		(deadline == 0) ? L"          -" : toWStr(deadline, 11).c_str(), sepChar,
