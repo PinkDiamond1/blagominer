@@ -60,7 +60,7 @@ void init_mining_info(std::shared_ptr<t_coin_info> coin, std::wstring name, size
 
 	coin->mining->miner_mode = 1;
 	coin->mining->priority = priority;
-	coin->mining->state = DONE;
+	coin->mining->state = MiningState::DONE;
 	coin->mining->baseTarget = 0;
 	coin->mining->height = 0;
 	coin->mining->deadline = 0;
@@ -1008,7 +1008,7 @@ void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& currentQueue, st
 		if (newCoin == (*it)) {
 			Log(L"Coin %s already in queue. No action needed", newCoin->coinname.c_str());
 			inserted = true;
-			if (coinCurrentlyMining && coinCurrentlyMining->mining->state == MINING) {
+			if (coinCurrentlyMining && coinCurrentlyMining->mining->state == MiningState::MINING) {
 				gui->printBlockEnqueued(newCoin->mining->height, newCoin->coinname, false, false);
 			}
 			break;
@@ -1016,7 +1016,7 @@ void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& currentQueue, st
 	}
 	if (!inserted) {
 		Log(L"Adding %s to the end of the queue.", newCoin->coinname.c_str());
-		if (coinCurrentlyMining && coinCurrentlyMining->mining->state == MINING &&
+		if (coinCurrentlyMining && coinCurrentlyMining->mining->state == MiningState::MINING &&
 			newCoin != coinCurrentlyMining &&
 			newCoin->mining->priority >= coinCurrentlyMining->mining->priority) {
 			gui->printBlockEnqueued(newCoin->mining->height, newCoin->coinname, true, false);
@@ -1069,7 +1069,7 @@ void newRound(std::shared_ptr<t_coin_info > coinCurrentlyMining) {
 	updateCurrentMiningInfo(coinCurrentlyMining);
 	coinCurrentlyMining->mining->deadline = 0;
 
-	if (coinCurrentlyMining->mining->enable && coinCurrentlyMining->mining->state == QUEUED) {
+	if (coinCurrentlyMining->mining->enable && coinCurrentlyMining->mining->state == MiningState::QUEUED) {
 		resetDirs(coinCurrentlyMining);
 	}
 
@@ -1119,7 +1119,7 @@ bool getNewMiningInfo(const std::vector<std::shared_ptr<t_coin_info>>& allCoins,
 			if (pt->mining->enable) {
 				// Setting interrupted to false in case the coin with changed signature has been
 				// scheduled for continuing.
-				pt->mining->state = QUEUED;
+				pt->mining->state = MiningState::QUEUED;
 				Log(L"Inserting %s into queue.", pt->coinname.c_str());
 				insertIntoQueue(currentQueue, pt, coinCurrentlyMining);
 				newInfoAvailable = true;
@@ -1140,7 +1140,7 @@ bool needToInterruptMining(const std::vector<std::shared_ptr<t_coin_info>>& allC
 		// Checking only the first element, since it has already the highest priority (but lowest value).
 		if (currentQueue.front()->mining->enable) {
 			if (currentQueue.front()->mining->priority < coinCurrentlyMining->mining->priority) {
-				if (coinCurrentlyMining->mining->state == MINING) {
+				if (coinCurrentlyMining->mining->state == MiningState::MINING) {
 					Log(L"Interrupting current mining progress. %s has a higher priority than %s.",
 						currentQueue.front()->coinname.c_str(), coinCurrentlyMining->coinname.c_str());
 				}
@@ -1781,11 +1781,11 @@ int wmain(int argc, wchar_t **argv) {
 
 			// TODO: there doesn't seem to be a way for a 'miningcoin' to be 'not enabled'
 			if (miningCoin->mining->enable) {
-				auto verb = (miningCoin->mining->state == INTERRUPTED) ? L"Continuing" : L"New";
+				auto verb = (miningCoin->mining->state == MiningState::INTERRUPTED) ? L"Continuing" : L"New";
 				Log(L"------------------------    %s %s block: %llu", verb, miningCoin->coinname.c_str(), miningCoin->mining->currentHeight);
 
 				// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
-				gui->printRoundChangeInfo(miningCoin->mining->state == INTERRUPTED,
+				gui->printRoundChangeInfo(miningCoin->mining->state == MiningState::INTERRUPTED,
 					miningCoin->mining->currentHeight,
 					miningCoin->coinname,
 					miningCoin->mining->currentBaseTarget,
@@ -1814,21 +1814,21 @@ int wmain(int argc, wchar_t **argv) {
 
 			unsigned long long round_size = 0;
 
-			if (miningCoin->mining->state == INTERRUPTED) {
+			if (miningCoin->mining->state == MiningState::INTERRUPTED) {
 				round_size = getPlotFilesSize(miningCoin->mining->dirs);
 			}
 			else {
 				round_size = getPlotFilesSize(roundDirectories, false);
 			}
 
-			miningCoin->mining->state = MINING;
+			miningCoin->mining->state = MiningState::MINING;
 			Log(L"Directories in this round: %zu", roundDirectories.size());
 			Log(L"Round size: %llu GB", round_size / 1024 / 1024 / 1024);
 
 			// Wait until signature changed or exit
 			// or current scanning is done (no point in busy-spinning here when all threads already have processed all their data)
 			while (!exit_flag 
-				&& miningCoin->mining->state == MINING
+				&& miningCoin->mining->state == MiningState::MINING
 				&& (!haveReceivedNewMiningInfo(coins) || !needToInterruptMining(coins, miningCoin, queue))
 			)
 			{
@@ -1875,10 +1875,10 @@ int wmain(int argc, wchar_t **argv) {
 					}
 					*/
 					//Work Done! Cleanup / Prepare
-					if (miningCoin->mining->state == MINING) {
+					if (miningCoin->mining->state == MiningState::MINING) {
 						Log(L"Round done.");
 						Log(L"Bytes read: %llu", bytesRead);
-						miningCoin->mining->state = DONE; // NTS: it seems FINE to not synchronize write here, as all writes to STATE seem to occur on WMAIN thread
+						miningCoin->mining->state = MiningState::DONE; // NTS: it seems FINE to not synchronize write here, as all writes to STATE seem to occur on WMAIN thread
 						//Display total round time
 						QueryPerformanceCounter((LARGE_INTEGER*)&end_threads_time);
 						thread_time = (double)(end_threads_time - start_threads_time) / pcFreq;
@@ -1963,14 +1963,14 @@ int wmain(int argc, wchar_t **argv) {
 			Log(L"All worker threads shut down.");
 
 
-			if (miningCoin->mining->state == MINING) {
-				// Checking if all directories are done for the rare case that workers finished mining
+			if (miningCoin->mining->state == MiningState::MINING) {
+				// Checking if all directories are done for the rare case that workers finished minMiningState::ing
 				// in the same loop iteration as they have been interrupted. In that case mining has been
 				// finished.
 				if (allDirsDone(miningCoin)) {
 					Log(L"Round done.");
 					Log(L"Bytes read: %llu", bytesRead);
-					miningCoin->mining->state = DONE;
+					miningCoin->mining->state = MiningState::DONE;
 					//Display total round time
 					QueryPerformanceCounter((LARGE_INTEGER*)&end_threads_time);
 					thread_time = (double)(end_threads_time - start_threads_time) / pcFreq;
@@ -1986,7 +1986,7 @@ int wmain(int argc, wchar_t **argv) {
 					memcpy(&local_32, &global_32, sizeof(global_32));
 				}
 				else {
-					miningCoin->mining->state = INTERRUPTED;
+					miningCoin->mining->state = MiningState::INTERRUPTED;
 					Log(L"Mining %s has been interrupted by a coin with higher priority.", miningCoin->coinname.c_str());
 					gui->printRoundInterrupt(miningCoin->mining->currentHeight, miningCoin->coinname);
 					// Queuing the interrupted coin.
@@ -1999,11 +1999,11 @@ int wmain(int argc, wchar_t **argv) {
 
 			// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
 			if (!testmodeConfig.isEnabled)
-				std::thread{ Csv_Submitted,  miningCoin, miningCoin->mining->currentHeight, miningCoin->mining->currentBaseTarget, 4398046511104 / 240 / miningCoin->mining->currentBaseTarget, thread_time, miningCoin->mining->state == DONE, miningCoin->mining->deadline }.detach();
+				std::thread{ Csv_Submitted,  miningCoin, miningCoin->mining->currentHeight, miningCoin->mining->currentBaseTarget, 4398046511104 / 240 / miningCoin->mining->currentBaseTarget, thread_time, miningCoin->mining->state == MiningState::DONE, miningCoin->mining->deadline }.detach();
 
 			//TODO: why 'if not yet done'? where is it done? why only _32 here? why not all?
 			//prepare for next round if not yet done
-			if (!exit_flag && miningCoin->mining->state != DONE) memcpy(&local_32, &global_32, sizeof(global_32));
+			if (!exit_flag && miningCoin->mining->state != MiningState::DONE) memcpy(&local_32, &global_32, sizeof(global_32));
 
 			if (testmodeConfig.isEnabled)
 			{

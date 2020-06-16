@@ -419,6 +419,7 @@ void __impl__send_i__curl(std::vector<char, heap_allocator<char>>& buffer, std::
 		curl_easy_setopt(curl.get(), CURLOPT_CONNECT_ONLY, 1L);
 		curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT_MS, coinInfo->network->submitTimeout);
 
+#pragma warning ( suppress: 26812 ) // Warning C26812 "The enum type 'CURLcode' is unscoped. Prefer 'enum class' over 'enum'"
 		CURLcode res = curl_easy_perform(curl.get());
 
 		curl_socket_t sockfd;

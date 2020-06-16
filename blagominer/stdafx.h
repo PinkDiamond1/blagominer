@@ -27,9 +27,12 @@
 namespace rapidjson { typedef size_t SizeType; }
 using namespace rapidjson;
 
+#pragma warning( push )
+#pragma warning( disable: 26812 )	// Warning C26812	"The enum type 'rapidjson::.....' is unscoped. Prefer 'enum class' over 'enum'"
 #include "rapidjson/document.h"		// rapidjson's DOM-style API
 #include "rapidjson/error/en.h"
 #include "rapidjson/writer.h"
+#pragma warning( pop )
 
 
 // TODO: Hier auf zusätzliche Header, die das Programm erfordert, verweisen.

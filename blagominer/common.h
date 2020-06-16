@@ -24,7 +24,7 @@ extern volatile bool exit_flag;							// true if miner is to be exited
 extern HANDLE hHeap;							//heap
 extern heap_allocator<char> theHeap;
 
-enum MiningState {
+enum class MiningState {
 	QUEUED,
 	MINING,
 	DONE,
@@ -218,7 +218,7 @@ extern std::vector<std::shared_ptr<t_coin_info>> coins;
 extern t_logging loggingConfig;
 
 struct t_roundreplay_round_test {
-	enum RoundTestMode { RMT_UNKNOWN = 0, RMT_NORMAL = 1, RMT_OFFLINE = 2 };
+	enum class RoundTestMode { RMT_UNKNOWN = 0, RMT_NORMAL = 1, RMT_OFFLINE = 2 };
 	RoundTestMode mode;
 
 	unsigned long long assume_account;
