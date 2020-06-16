@@ -141,9 +141,9 @@ public:
 private:
 
 	struct ConsoleOutput {
-		int colorPair;
-		bool leadingNewLine, trailingNewLine;
-		bool fillLine;
+		int colorPair = 0;
+		bool leadingNewLine = false, trailingNewLine = false;
+		bool fillLine = false;
 		std::wstring message;
 	};
 

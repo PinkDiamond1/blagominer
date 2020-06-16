@@ -547,6 +547,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		else {
 			Log(L"[%zu] Close file: %S (%S)", local_num, iter->Name.c_str(), path_loc_str.c_str());
 		}
+#pragma warning( suppress: 6001 )	// Warning C6001	"Using uninitialized memory *ifile" - most probably a bug in analyzer, handle is initialized to INVALID_HANDLE, *handle is not used
 		CloseHandle(ifile);
 		}
 		Log(L"[%zu] Freeing caches.", local_num);

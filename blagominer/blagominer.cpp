@@ -880,7 +880,7 @@ size_t GetFiles(std::string str, std::vector <t_files> *p_files, bool* bfsDetect
 								unsigned long long key, nonce, nonces, stagger;
 								if (sscanf_s(FindFileData.cFileName, "%llu_%llu_%llu_%llu", &key, &nonce, &nonces, &stagger) == 4)
 								{
-									long long volpos;
+									long long volpos = 0;
 									if (forActualFileReading && useSmartFileOrdering)
 									{
 										std::string tmp = *iter + FindFileData.cFileName;

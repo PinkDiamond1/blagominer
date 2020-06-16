@@ -984,7 +984,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 
 		const unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
 		
-		unsigned long long ndeadline;
+		unsigned long long ndeadline = -1; // TODO: handle case when the pool forgets to provide this
 		unsigned long long naccountId = 0;
 		unsigned long long ntargetDeadline = 0;
 

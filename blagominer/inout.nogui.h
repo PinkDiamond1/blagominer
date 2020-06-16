@@ -132,8 +132,8 @@ public:
 private:
 
 	struct ConsoleOutput {
-		bool leadingNewLine, trailingNewLine;
-		bool fillLine;
+		bool leadingNewLine = false, trailingNewLine = false;
+		bool fillLine = false;
 		std::wstring message;
 	};
 
