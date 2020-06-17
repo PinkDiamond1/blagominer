@@ -35,12 +35,12 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		SetThreadIdealProcessor(GetCurrentThread(), (DWORD)(local_num % std::thread::hardware_concurrency()));
 	}
 
-	std::string const path_loc_str = directory->dir;
+	std::wstring const path_loc_str = directory->dir;
 
 	unsigned long long files_size_per_thread = 0;
 
 	if (!testmodeIgnoresPlotfiles)
-	Log(L"Start thread: [%zu] %S", local_num, path_loc_str.c_str());
+	Log(L"Start thread: [%zu] %s", local_num, path_loc_str.c_str());
 	else
 	Log(L"Start thread: [%zu] testmode:offline", local_num);
 
@@ -68,12 +68,12 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		if (stopThreads)
 		{
 			worker_progress[local_num].isAlive = false;
-			Log(L"[%zu] Reading directory: %S interrupted", local_num, directory->dir.c_str());
+			Log(L"[%zu] Reading directory: %s interrupted", local_num, directory->dir.c_str());
 			return;
 		}
 
 		if (iter->done) {
-			Log(L"Skipping file %S, since it has already been processed in the interrupted run.", iter->Name.c_str());
+			Log(L"Skipping file %s, since it has already been processed in the interrupted run.", iter->Name.c_str());
 			continue;
 		}
 
@@ -83,18 +83,18 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		{
 			if (iter->Key != coinInfo->testround2->assume_account)
 			{
-				Log(L"TESTMODE: account mismatch, skipping file: %S (%S)", iter->Name.c_str(), iter->Path.c_str());
+				Log(L"TESTMODE: account mismatch, skipping file: %s (%s)", iter->Name.c_str(), iter->Path.c_str());
 				continue;
 			}
 			if (!(iter->StartNonce <= coinInfo->testround2->assume_nonce && (iter->StartNonce + iter->Nonces) > coinInfo->testround2->assume_nonce))
 			{
-				Log(L"TESTMODE: nonce range mismatch, skipping file: %S (%S)", iter->Name.c_str(), iter->Path.c_str());
+				Log(L"TESTMODE: nonce range mismatch, skipping file: %s (%s)", iter->Name.c_str(), iter->Path.c_str());
 				continue;
 			}
 		}
 
 		//Log("[%zu] Beginning main loop over files.", local_num);
-		std::string filename;
+		std::wstring filename;
 		unsigned long long key, nonce, nonces, stagger, offset, tail;
 		bool p2, bfs;
 		QueryPerformanceCounter((LARGE_INTEGER*)&start_time_read);
@@ -114,8 +114,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		if ((double)(nonces % stagger) > DBL_EPSILON && !bfs && !testmodeIgnoresPlotfiles)
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
-			Log(L"File %S (%S) wrong stagger?", iter->Name.c_str(), iter->Path.c_str());
-			gui->printToConsole(12, true, false, true, false, L"File %S wrong stagger?", iter->Name.c_str());
+			Log(L"File %s (%s) wrong stagger?", iter->Name.c_str(), iter->Path.c_str());
+			gui->printToConsole(12, true, false, true, false, L"File %s wrong stagger?", iter->Name.c_str());
 		}
 
 		// in testmode, updateCurrentMiningInfo from blagominer.cpp makes sure the `scoop` is properly set up
@@ -131,8 +131,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		if (nonces != (iter->Size) / (4096 * 64))
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
-			Log(L"File %S (%S) name/size mismatch.", iter->Name.c_str(), iter->Path.c_str());
-			gui->printToConsole(12, true, false, true, false, L"File \"%S\" name/size mismatch", iter->Name.c_str());
+			Log(L"File %s (%s) name/size mismatch.", iter->Name.c_str(), iter->Path.c_str());
+			gui->printToConsole(12, true, false, true, false, L"File \"%s\" name/size mismatch", iter->Name.c_str());
 			if (nonces != stagger)
 				nonces = (((iter->Size) / (4096 * 64)) / stagger) * stagger; //we cut the plot to size and stagger
 			else {
@@ -146,7 +146,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 
 		//get sector information, set to 4096 for BFS
 		if (!bfs) {
-			if (!GetDiskFreeSpaceA((iter->Path).c_str(), &sectorsPerCluster, &bytesPerSector, &numberOfFreeClusters, &totalNumberOfClusters))
+			if (!GetDiskFreeSpace((iter->Path).c_str(), &sectorsPerCluster, &bytesPerSector, &numberOfFreeClusters, &totalNumberOfClusters))
 			{
 				gui->printToConsole(12, true, false, true, false, L"GetDiskFreeSpace failed"); //BFS
 				continue;
@@ -161,8 +161,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		if ((stagger * 64) < bytesPerSector)
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
-			Log(L"File %S (%S): Stagger (%llu) must be >= %llu", iter->Name.c_str(), iter->Path.c_str(), stagger, bytesPerSector / 64);
-			gui->printToConsole(12, true, false, true, false, L"Stagger (%llu) must be >= %llu", stagger, bytesPerSector / 64);
+			Log(L"File %s (%s): Stagger (%llu) must be >= %llu", iter->Name.c_str(), iter->Path.c_str(), stagger, bytesPerSector / 64);
+			gui->printToConsole(12, true, false, true, false, L"File \"%s\" stagger (%llu) must be >= %llu", iter->Name.c_str(), stagger, bytesPerSector / 64);
 			continue;
 		}
 
@@ -170,8 +170,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		if ((nonces * 64) < bytesPerSector)
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
-			Log(L"File %S (%S): Nonces(%llu) must be >= %llu", iter->Name.c_str(), iter->Path.c_str(), nonces, bytesPerSector / 64);
-			gui->printToConsole(12, true, false, true, false, L"Nonces (%llu) must be >= %llu", nonces, bytesPerSector / 64);
+			Log(L"File %s (%s): Nonces(%llu) must be >= %llu", iter->Name.c_str(), iter->Path.c_str(), nonces, bytesPerSector / 64);
+			gui->printToConsole(12, true, false, true, false, L"File \"%s\" nonces (%llu) must be >= %llu", iter->Name.c_str(), nonces, bytesPerSector / 64);
 			continue;
 		}
 
@@ -179,8 +179,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		if ((stagger % (bytesPerSector / 64)) != 0)
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
-			Log(L"File %S (%S): Stagger (%llu) must be a multiple of %llu", iter->Name.c_str(), iter->Path.c_str(), stagger, bytesPerSector / 64);
-			gui->printToConsole(12, true, false, true, false, L"Stagger (%llu) must be a multiple of %llu", stagger, bytesPerSector / 64);
+			Log(L"File %s (%s): Stagger (%llu) must be a multiple of %llu", iter->Name.c_str(), iter->Path.c_str(), stagger, bytesPerSector / 64);
+			gui->printToConsole(12, true, false, true, false, L"File \"%s\" stagger (%llu) must be a multiple of %llu", iter->Name.c_str(), stagger, bytesPerSector / 64);
 			continue;
 		}
 
@@ -225,7 +225,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			nonce = coinInfo->testround2->assume_nonce;
 			nonces = 1;
 			stagger = 1;
-			filename = "offline";
+			filename = L"offline";
 		}
 
 		size_t cache_size_local_backup = cache_size_local;
@@ -245,25 +245,25 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		if (cache2 == nullptr) ShowMemErrorExit();
 
 		if (!testmodeIgnoresPlotfiles)
-		Log(L"[%zu] Read file : %S", local_num, iter->Name.c_str());
+		Log(L"[%zu] Read file : %s", local_num, iter->Name.c_str());
 		else
 		Log(L"[%zu] Generating nonce : %llu", local_num, coinInfo->testround2->assume_nonce);
 
-		//wprintw(win_main, "%S \n", str2wstr(iter->Path + iter->Name).c_str());
+		//wprintw(win_main, "%s \n", str2wstr(iter->Path + iter->Name).c_str());
 		HANDLE ifile = INVALID_HANDLE_VALUE;
 		if (!testmodeIgnoresPlotfiles)
 		{
 		if (bfs) {
-			ifile = CreateFileA((iter->Path).c_str(), GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_FLAG_NO_BUFFERING, nullptr);
+			ifile = CreateFile((iter->Path).c_str(), GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_FLAG_NO_BUFFERING, nullptr);
 		}
 		else {
-			ifile = CreateFileA((iter->Path + iter->Name).c_str(), GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_FLAG_NO_BUFFERING, nullptr);
+			ifile = CreateFile((iter->Path + iter->Name).c_str(), GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_FLAG_NO_BUFFERING, nullptr);
 		}
 		if (ifile == INVALID_HANDLE_VALUE)
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
-			Log(L"File %S (%S): Error opening. code = %lu", iter->Name.c_str(), iter->Path.c_str(), GetLastError());
-			gui->printToConsole(12, true, false, true, false, L"File \"%S\\%S\" error opening. code = %lu", iter->Path.c_str(), iter->Name.c_str(), GetLastError());
+			Log(L"File %s (%s): Error opening. code = %lu", iter->Name.c_str(), iter->Path.c_str(), GetLastError());
+			gui->printToConsole(12, true, false, true, false, L"File \"%s\\%s\" error opening. code = %lu", iter->Path.c_str(), iter->Name.c_str(), GetLastError());
 			VirtualFree(cache, 0, MEM_RELEASE);
 			VirtualFree(cache2, 0, MEM_RELEASE); //Cleanup Thread 2
 			if (p2 != POC2) VirtualFree(MirrorCache, 0, MEM_RELEASE); //PoC2 Cleanup
@@ -291,7 +291,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				worker_progress[local_num].isAlive = false;
 				if (!testmodeIgnoresPlotfiles)
 				{
-				Log(L"[%zu] Reading file: %S interrupted", local_num, iter->Name.c_str());
+				Log(L"[%zu] Reading file: %s interrupted", local_num, iter->Name.c_str());
 				CloseHandle(ifile);
 				}
 				Log(L"[%zu] Freeing caches.", local_num);
@@ -406,7 +406,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				if (stopThreads)
 				{
 					worker_progress[local_num].isAlive = false;
-					Log(L"[%zu] Reading file: %S interrupted", local_num, iter->Name.c_str());
+					Log(L"[%zu] Reading file: %s interrupted", local_num, iter->Name.c_str());
 					CloseHandle(ifile);
 					Log(L"[%zu] Freeing caches.", local_num);
 					VirtualFree(cache, 0, MEM_RELEASE); //Cleanup Thread 1
@@ -428,8 +428,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				if (bytes != cache_size_local * 64)
 				{
 					std::thread{ increaseReadError, iter->Name.c_str() }.detach();
-					Log(L"File %S (%S): Unexpected end of file.", iter->Name.c_str(), iter->Path.c_str());
-					gui->printToConsole(12, true, false, true, false, L"Unexpected end of file %S", iter->Name.c_str());
+					Log(L"File %s (%s): Unexpected end of file.", iter->Name.c_str(), iter->Path.c_str());
+					gui->printToConsole(12, true, false, true, false, L"Unexpected end of file %s", iter->Name.c_str());
 					err = true;
 					break;
 				}
@@ -510,8 +510,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				if (bytes != cache_size_local * 64 && !testmodeIgnoresPlotfiles)
 				{
 					std::thread{ increaseReadError, iter->Name.c_str() }.detach();
-					Log(L"Unexpected end of file %S (%S)", iter->Name.c_str(), path_loc_str.c_str());
-					gui->printToConsole(12, true, false, true, false, L"Unexpected end of file %S", iter->Name.c_str());
+					Log(L"Unexpected end of file %s (%s)", iter->Name.c_str(), path_loc_str.c_str());
+					gui->printToConsole(12, true, false, true, false, L"Unexpected end of file %s", iter->Name.c_str());
 					err = true;
 				}
 			}
@@ -534,18 +534,18 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			if (!SetFilePointerEx(ifile, liDistanceToMove, nullptr, FILE_BEGIN))
 			{
 				std::thread{ increaseReadError, iter->Name.c_str() }.detach();
-				Log(L"BFS seek optimisation: error SetFilePointerEx. code = %lu. File: %S (%S)", GetLastError(), iter->Name.c_str(), path_loc_str.c_str());
-				gui->printToConsole(12, true, false, true, false, L"BFS seek optimisation: error SetFilePointerEx. code = %lu", GetLastError());
+				Log(L"BFS seek optimisation: error SetFilePointerEx. code = %lu. File: %s (%s)", GetLastError(), iter->Name.c_str(), path_loc_str.c_str());
+				gui->printToConsole(12, true, false, true, false, L"File \"%s\" BFS seek optimisation: error SetFilePointerEx. code = %lu", iter->Name.c_str(), GetLastError());
 			}
 		}
 		iter->done = true;
 		if (!testmodeIgnoresPlotfiles)
 		{
 		if (pcFreq != 0) {
-			Log(L"[%zu] Close file: %S (%S) [@ %llu ms]", local_num, iter->Name.c_str(), path_loc_str.c_str(), (long long unsigned)((double)(end_time_read - start_time_read) * 1000 / pcFreq));
+			Log(L"[%zu] Close file: %s (%s) [@ %llu ms]", local_num, iter->Name.c_str(), path_loc_str.c_str(), (long long unsigned)((double)(end_time_read - start_time_read) * 1000 / pcFreq));
 		}
 		else {
-			Log(L"[%zu] Close file: %S (%S)", local_num, iter->Name.c_str(), path_loc_str.c_str());
+			Log(L"[%zu] Close file: %s (%s)", local_num, iter->Name.c_str(), path_loc_str.c_str());
 		}
 #pragma warning( suppress: 6001 )	// Warning C6001	"Using uninitialized memory *ifile" - most probably a bug in analyzer, handle is initialized to INVALID_HANDLE, *handle is not used
 		CloseHandle(ifile);
@@ -582,7 +582,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 	}
 	directory->done = true;
 	if (!testmodeIgnoresPlotfiles)
-	Log(L"[%zu] Finished directory %S.", local_num, path_loc_str.c_str());
+	Log(L"[%zu] Finished directory %s.", local_num, path_loc_str.c_str());
 	else
 	Log(L"[%zu] Finished testmode:offline.", local_num);
 	return;
@@ -679,7 +679,7 @@ readend:
 	}
 }
 
-void th_hash(std::shared_ptr<t_coin_info> coin, std::string const& filename, double * const sum_time_proc, const size_t &local_num, unsigned long long const bytes, size_t const cache_size_local, unsigned long long const i, unsigned long long const nonce, unsigned long long const n, char const * const cache, size_t const acc) {
+void th_hash(std::shared_ptr<t_coin_info> coin, std::wstring const& filename, double * const sum_time_proc, const size_t &local_num, unsigned long long const bytes, size_t const cache_size_local, unsigned long long const i, unsigned long long const nonce, unsigned long long const n, char const * const cache, size_t const acc) {
 	LARGE_INTEGER li;
 	LARGE_INTEGER start_time_proc;
 	QueryPerformanceCounter(&start_time_proc);

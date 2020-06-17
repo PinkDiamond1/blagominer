@@ -5,8 +5,8 @@ bool existsFile(const std::wstring& name) {
 	return (_wstat(name.c_str(), &buffer) == 0);
 }
 
-static const char* headersFail = "Timestamp epoch;Timestamp local;Height;File;baseTarget;Network difficulty;Nonce;Deadline sent;Deadline confirmed;Response\n";
-static const char* headersSubmitted = "Timestamp epoch;Timestamp local;Height;baseTarget;Network difficulty;Round time;Completed round; Deadline\n";
+static const wchar_t* headersFail = L"Timestamp epoch;Timestamp local;Height;File;baseTarget;Network difficulty;Nonce;Deadline sent;Deadline confirmed;Response\n";
+static const wchar_t* headersSubmitted = L"Timestamp epoch;Timestamp local;Height;baseTarget;Network difficulty;Round time;Completed round; Deadline\n";
 
 void Csv_initFilenames(
 	LogFileInfo& coinlogfileinfo,
@@ -18,22 +18,22 @@ void Csv_initFilenames(
 
 void Csv_logFileInit(
 	std::shared_ptr<t_coin_info> coin, LogFileInfo& coinlogfileinfo,
-	const char* headers)
+	const wchar_t* headers)
 {
 	if ((coin->mining->enable || coin->network->enable_proxy) && !existsFile(coinlogfileinfo.filename))
 	{
 		std::lock_guard<std::mutex> lockGuard(coinlogfileinfo.mutex);
-		Log(L"Writing headers to %S", coinlogfileinfo.filename.c_str());
+		Log(L"Writing headers to %s", coinlogfileinfo.filename.c_str());
 		FILE * pFile;
 		_wfopen_s(&pFile, coinlogfileinfo.filename.c_str(), L"a+t");
 		if (pFile != nullptr)
 		{
-			fprintf(pFile, headers);
+			fwprintf_s(pFile, L"%s", headers);
 			fclose(pFile);
 		}
 		else
 		{
-			Log(L"Failed to open %S", coinlogfileinfo.filename.c_str());
+			Log(L"Failed to open %s", coinlogfileinfo.filename.c_str());
 		}
 	}
 }
@@ -58,7 +58,7 @@ void Csv_Init()
 void Csv_logFailed(
 	std::shared_ptr<t_coin_info> coin, CoinLogFiles& coinlog,
 	std::time_t rawtime, char* timeDate,
-	const unsigned long long height, const std::string& file, const unsigned long long baseTarget,
+	const unsigned long long height, const std::wstring& file, const unsigned long long baseTarget,
 	const unsigned long long netDiff, const unsigned long long nonce, const unsigned long long deadlineSent,
 	const unsigned long long deadlineConfirmed, const std::string& response)
 {
@@ -69,14 +69,14 @@ void Csv_logFailed(
 		_wfopen_s(&pFile, coinlog.failed.filename.c_str(), L"a+t");
 		if (pFile != nullptr)
 		{
-			fprintf(pFile, "%llu;%s;%llu;%s;%llu;%llu;%llu;%llu;%llu;%s\n", (unsigned long long)rawtime, timeDate, height, file.c_str(), baseTarget, netDiff,
+			fwprintf_s(pFile, L"%llu;%S;%llu;%s;%llu;%llu;%llu;%llu;%llu;%S\n", (unsigned long long)rawtime, timeDate, height, file.c_str(), baseTarget, netDiff,
 				nonce, deadlineSent, deadlineConfirmed, response.c_str());
 			fclose(pFile);
 			return;
 		}
 		else
 		{
-			Log(L"Failed to open %S", coinlog.failed.filename.c_str());
+			Log(L"Failed to open %s", coinlog.failed.filename.c_str());
 			return;
 		}
 	}
@@ -84,7 +84,7 @@ void Csv_logFailed(
 
 void Csv_Fail(
 	std::shared_ptr<t_coin_info> coin,
-	const unsigned long long height, const std::string& file, const unsigned long long baseTarget,
+	const unsigned long long height, const std::wstring& file, const unsigned long long baseTarget,
 	const unsigned long long netDiff, const unsigned long long nonce, const unsigned long long deadlineSent,
 	const unsigned long long deadlineConfirmed, const std::string& response)
 {
@@ -115,14 +115,14 @@ void Csv_logSubmitted(
 		_wfopen_s(&pFile, coinlog.submitted.filename.c_str(), L"a+t");
 		if (pFile != nullptr)
 		{
-			fprintf(pFile, "%llu;%s;%llu;%llu;%llu;%.1f;%s;%llu\n", (unsigned long long)rawtime, timeDate, height, baseTarget,
-				netDiff, roundTime, completedRound ? "true" : "false", deadline);
+			fwprintf_s(pFile, L"%llu;%S;%llu;%llu;%llu;%.1f;%s;%llu\n", (unsigned long long)rawtime, timeDate, height, baseTarget,
+				netDiff, roundTime, completedRound ? L"true" : L"false", deadline);
 			fclose(pFile);
 			return;
 		}
 		else
 		{
-			Log(L"Failed to open %S", coinlog.submitted.filename.c_str());
+			Log(L"Failed to open %s", coinlog.submitted.filename.c_str());
 			return;
 		}
 	}

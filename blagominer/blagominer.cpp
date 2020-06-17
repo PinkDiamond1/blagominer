@@ -46,7 +46,7 @@ bool proxyOnly = false;
 
  std::map<size_t, t_worker_progress> worker_progress;
 
-std::vector<std::string> paths_dir; // paths
+std::vector<std::wstring> paths_dir; // paths
 
 sph_shabal_context  local_32;
 
@@ -364,7 +364,7 @@ int load_config(Document const& document)
 			for (SizeType i = 0; i < Paths.Size(); i++)
 			{
 				paths_dir.push_back(Paths[i].GetString());
-				Log(L"Path: %S", paths_dir[i].c_str());
+				Log(L"Path: %s", paths_dir[i].c_str());
 			}
 		}
 
@@ -597,7 +597,7 @@ bool load_testmode_config(wchar_t const *const filename)
 										if (tmp == "offline") { hasMode = true; test.mode = t_roundreplay_round_test::RoundTestMode::RMT_OFFLINE; }
 									}
 									if (hasMode)
-										Log(L"mode: %S", test.mode == t_roundreplay_round_test::RoundTestMode::RMT_NORMAL ? "normal" : "offline");
+										Log(L"mode: %s", test.mode == t_roundreplay_round_test::RoundTestMode::RMT_NORMAL ? L"normal" : L"offline");
 									else
 									{
 										Log(L"ERROR: missing or invalid RoundReplay.rounds[%zu].tests[%zu].mode", idx_round, idx_test);
@@ -791,27 +791,27 @@ void GetPass(std::shared_ptr<t_coin_info> coin, wchar_t const *const p_strFolder
 
 
 
-size_t GetFiles(std::string str, std::vector <t_files> *p_files, bool* bfsDetected, bool forActualFileReading)
+size_t GetFiles(std::wstring str, std::vector <t_files> *p_files, bool* bfsDetected, bool forActualFileReading)
 {
 	HANDLE hFile = INVALID_HANDLE_VALUE;
-	WIN32_FIND_DATAA   FindFileData;
+	WIN32_FIND_DATA   FindFileData;
 	size_t count = 0;
-	std::vector<std::string> path;
+	std::vector<std::wstring> path;
 	size_t first = 0;
 	size_t last = 0;
 
-	bool useSmartFileOrdering = str.size() > 0 && str[0] == '@';
+	bool useSmartFileOrdering = str.size() > 0 && str[0] == L'@';
 	if (useSmartFileOrdering) str = str.substr(1);
 
 	//parse path info
 	do {
 		//check for sequential paths and process path by path
-		last = str.find("+", first);
+		last = str.find(L"+", first);
 		if (last == -1) last = str.length();
-		std::string str2(str.substr(first, last - first));
+		std::wstring str2(str.substr(first, last - first));
 		//check if path ends with backslash and append if not
 		//but dont append backslash if path starts with backslash (BFS)
-		if ((str2.rfind("\\") < str2.length() - 1 && str2.find("\\") != 0)) str2 = str2 + "\\";  //dont append BFS
+		if ((str2.rfind(L"\\") < str2.length() - 1 && str2.find(L"\\") != 0)) str2 = str2 + L"\\";  //dont append BFS
 		path.push_back(str2); 
 		first = last + 1;
 	} while (last != str.length());
@@ -820,7 +820,7 @@ size_t GetFiles(std::string str, std::vector <t_files> *p_files, bool* bfsDetect
 	for (auto iter = path.begin(); iter != path.end(); ++iter)
 	{
 		//check if BFS
-		if (((std::string)*iter).find("\\\\.") == 0)
+		if ((*iter).find(L"\\\\.") == 0)
 		{
 			*bfsDetected = true;
 
@@ -844,7 +844,7 @@ size_t GetFiles(std::string str, std::vector <t_files> *p_files, bool* bfsDetect
 					p_files->push_back({
 						false,
 						*path.begin(),
-						"FILE_"+std::to_string(i),
+						L"FILE_"+std::to_wstring(i),
 						0, // TODO?
 						(unsigned long long)bfsTOC.plotFiles[i].nonces * 4096 *64,
 						bfsTOC.id, bfsTOC.plotFiles[i].startNonce, bfsTOC.plotFiles[i].nonces, bfsTOC.diskspace/64, bfsTOC.plotFiles[i].startPos, true, true
@@ -862,29 +862,28 @@ size_t GetFiles(std::string str, std::vector <t_files> *p_files, bool* bfsDetect
 		}
 		else 
 		{
-			hFile = FindFirstFileA(LPCSTR((*iter + "*").c_str()), &FindFileData);
+			hFile = FindFirstFile((*iter + L"*").c_str(), &FindFileData);
 			if (INVALID_HANDLE_VALUE != hFile)
 			{
 				do
 				{
 					if (FILE_ATTRIBUTE_DIRECTORY & FindFileData.dwFileAttributes) continue; //Skip directories
-					char* ekey = strstr(FindFileData.cFileName, "_");
+					wchar_t* ekey = wcsstr(FindFileData.cFileName, L"_");
 					if (ekey != nullptr)
 					{
-						char* estart = strstr(ekey + 1, "_");
+						wchar_t* estart = wcsstr(ekey + 1, L"_");
 						if (estart != nullptr)
 						{
-							char* enonces = strstr(estart + 1, "_");
+							wchar_t* enonces = wcsstr(estart + 1, L"_");
 							if (enonces != nullptr)
 							{
 								unsigned long long key, nonce, nonces, stagger;
-								if (sscanf_s(FindFileData.cFileName, "%llu_%llu_%llu_%llu", &key, &nonce, &nonces, &stagger) == 4)
+								if (swscanf_s(FindFileData.cFileName, L"%llu_%llu_%llu_%llu", &key, &nonce, &nonces, &stagger) == 4)
 								{
 									long long volpos = 0;
 									if (forActualFileReading && useSmartFileOrdering)
 									{
-										std::string tmp = *iter + FindFileData.cFileName;
-										std::wstring wide = std::wstring(tmp.begin(), tmp.end());
+										std::wstring wide = *iter + FindFileData.cFileName;
 										std::wstring drive = wide.size() > 2 && wide[1] == L':' ? wide.substr(0, 2) : L"";
 										if (drive.empty() || 0 != determineNtfsFilePosition(volpos, drive, wide))
 											volpos = 0;
@@ -906,13 +905,12 @@ size_t GetFiles(std::string str, std::vector <t_files> *p_files, bool* bfsDetect
 							}
 							//POC2 FILE
 							unsigned long long key, nonce, nonces;
-							if (sscanf_s(FindFileData.cFileName, "%llu_%llu_%llu", &key, &nonce, &nonces) == 3)
+							if (swscanf_s(FindFileData.cFileName, L"%llu_%llu_%llu", &key, &nonce, &nonces) == 3)
 							{
 								long long volpos = 0;
 								if (forActualFileReading && useSmartFileOrdering)
 								{
-									std::string tmp = *iter + FindFileData.cFileName;
-									std::wstring wide = std::wstring(tmp.begin(), tmp.end());
+									std::wstring wide = *iter + FindFileData.cFileName;
 									std::wstring drive = wide.size() > 2 && wide[1] == L':' ? wide.substr(0, 2) : L"";
 									if (drive.empty() || 0 != determineNtfsFilePosition(volpos, drive, wide))
 										volpos = 0;
@@ -932,7 +930,7 @@ size_t GetFiles(std::string str, std::vector <t_files> *p_files, bool* bfsDetect
 
 						}
 					}
-				} while (FindNextFileA(hFile, &FindFileData));
+				} while (FindNextFile(hFile, &FindFileData));
 				FindClose(hFile);
 			}
 		}
@@ -1159,7 +1157,7 @@ bool needToInterruptMining(const std::vector<std::shared_ptr<t_coin_info>>& allC
 	return false;
 }
 
-unsigned long long getPlotFilesSize(std::vector<std::string>& directories, bool log, std::vector<t_files>& all_files, bool& bfsDetected) {
+unsigned long long getPlotFilesSize(std::vector<std::wstring>& directories, bool log, std::vector<t_files>& all_files, bool& bfsDetected) {
 	unsigned long long size = 0;
 	for (auto iter = directories.begin(); iter != directories.end(); ++iter) {
 		std::vector<t_files> files;
@@ -1171,14 +1169,14 @@ unsigned long long getPlotFilesSize(std::vector<std::string>& directories, bool 
 			all_files.push_back(*it);
 		}
 		if (log) {
-			gui->printPlotsInfo(iter->c_str(), files.size(), tot_size / 1024 / 1024 / 1024);
+			gui->printPlotsInfo(*iter, files.size(), tot_size / 1024 / 1024 / 1024);
 		}
 		size += tot_size;
 	}
 	return size;
 }
 
-unsigned long long getPlotFilesSize(std::vector<std::string>& directories, bool log) {
+unsigned long long getPlotFilesSize(std::vector<std::wstring>& directories, bool log) {
 	bool dummyvar;
 	std::vector<t_files> dump;
 	return getPlotFilesSize(directories, log, dump, dummyvar);
@@ -1453,7 +1451,7 @@ int wmain(int argc, wchar_t **argv) {
 	Csv_Init();
 
 	Log(L"Miner path: %s", p_minerPath.data());
-	Log(L"Miner process elevation: %S", IsElevated() ? "active" : "inactive");
+	Log(L"Miner process elevation: %s", IsElevated() ? L"active" : L"inactive");
 
 	Gui_init();
 
@@ -1526,13 +1524,13 @@ int wmain(int argc, wchar_t **argv) {
 			if (all_files[cy].Key == all_files[cx].Key)
 				if (all_files[cy].StartNonce >= all_files[cx].StartNonce) {
 					if (all_files[cy].StartNonce < all_files[cx].StartNonce + all_files[cx].Nonces) {
-						gui->printToConsole(12, false, true, true, false, L"WARNING: %S%S and \n%S%S are overlapped",
+						gui->printToConsole(12, false, true, true, false, L"WARNING: %s%s and \n%s%s are overlapped",
 							all_files[cx].Path.c_str(), all_files[cx].Name.c_str(), all_files[cy].Path.c_str(), all_files[cy].Name.c_str());
 					}
 				}
 				else
 					if (all_files[cy].StartNonce + all_files[cy].Nonces > all_files[cx].StartNonce) {
-						gui->printToConsole(12, false, true, true, false, L"WARNING: %S%S and \n%S%S are overlapped",
+						gui->printToConsole(12, false, true, true, false, L"WARNING: %s%s and \n%s%s are overlapped",
 							all_files[cx].Path.c_str(), all_files[cx].Name.c_str(), all_files[cy].Path.c_str(), all_files[cy].Name.c_str());
 					}
 		}
@@ -1797,14 +1795,14 @@ int wmain(int argc, wchar_t **argv) {
 			double threads_speed = 0;
 
 			// Run worker threads
-			std::vector<std::string> roundDirectories;
+			std::vector<std::wstring> roundDirectories;
 			// in offline test mode, we dont need parallel workers to read many plot files, it's one specific nonce/scoop generated on the fly
 			size_t workersNeeded = testmodeConfig.isEnabled && miningCoin->testround2->mode == t_roundreplay_round_test::RoundTestMode::RMT_OFFLINE ? 1 : miningCoin->mining->dirs.size();
 			for (size_t i = 0; i < workersNeeded; i++)
 			{
 				if (miningCoin->mining->dirs.at(i)->done) {
 					// This directory has already been processed. Skipping.
-					Log(L"Skipping directory %S", miningCoin->mining->dirs.at(i)->dir.c_str());
+					Log(L"Skipping directory %s", miningCoin->mining->dirs.at(i)->dir.c_str());
 					continue;
 				}
 				worker_progress[i] = { i, 0, true };
@@ -1814,6 +1812,10 @@ int wmain(int argc, wchar_t **argv) {
 
 			unsigned long long round_size = 0;
 
+			// TODO: isn't this check swapped?
+			// 'roundDirectories' seems to be filtered by 'done' and miningCoin->mining->dirs seems to be all of them?
+			// but getPlotFilesSize also filters by f.done
+			// then, WHY do we have this IF at all? at first glance, both of them seem to be bound to return identical results
 			if (miningCoin->mining->state == MiningState::INTERRUPTED) {
 				round_size = getPlotFilesSize(miningCoin->mining->dirs);
 			}

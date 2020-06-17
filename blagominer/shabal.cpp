@@ -16,7 +16,7 @@ mshabal512_context_fast global_512_fast;
 
 //ALL CPUs
 //scratchpad memory: 64b = 1nonce/scoop; size of input DATA array must be at least N*scratchpad
-void procscoop_sph(std::shared_ptr<t_coin_info> coin, const unsigned long long nonce, const unsigned long long n, char const *const data, const size_t acc, const std::string &file_name) {
+void procscoop_sph(std::shared_ptr<t_coin_info> coin, const unsigned long long nonce, const unsigned long long n, char const *const data, const size_t acc, const std::wstring &file_name) {
 	char const *cache;
 	char sig[32 + 128];
 	cache = data;
@@ -54,7 +54,7 @@ void procscoop_sph(std::shared_ptr<t_coin_info> coin, const unsigned long long n
 
 						if (!testresult)
 						{
-							Log(L"TESTMODE: CHECK ERROR: SPH: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %S",
+							Log(L"TESTMODE: CHECK ERROR: SPH: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %s",
 								dlForNonce, coin->testround2->check_deadline.value(),
 								(nonce + v), coin->mining->currentBaseTarget, coin->mining->currentHeight, file_name.c_str());
 							Log(L"SIG: %llu <= %S", dlForNonce,
@@ -70,7 +70,7 @@ void procscoop_sph(std::shared_ptr<t_coin_info> coin, const unsigned long long n
 		{
 			if (*wertung < coin->mining->bests[acc].best)
 			{
-				Log(L"SPH-: found deadline=%llu scoop=%lu nonce=%llu base=%llu height=%llu for account: %llu file: %S", deadline, coin->mining->scoop, nonce + v, coin->mining->baseTarget, coin->mining->height, coin->mining->bests[acc].account_id, file_name.c_str());
+				Log(L"SPH-: found deadline=%llu scoop=%lu nonce=%llu base=%llu height=%llu for account: %llu file: %s", deadline, coin->mining->scoop, nonce + v, coin->mining->baseTarget, coin->mining->height, coin->mining->bests[acc].account_id, file_name.c_str());
 				Log(L"SIG: %llu <= %02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx", deadline,
 					coin->mining->currentSignature[ 0], coin->mining->currentSignature[ 1], coin->mining->currentSignature[ 2], coin->mining->currentSignature[ 3], coin->mining->currentSignature[ 4], coin->mining->currentSignature[ 5], coin->mining->currentSignature[ 6], coin->mining->currentSignature[ 7], coin->mining->currentSignature[ 8], coin->mining->currentSignature[ 9],
 					coin->mining->currentSignature[10], coin->mining->currentSignature[11], coin->mining->currentSignature[12], coin->mining->currentSignature[13], coin->mining->currentSignature[14], coin->mining->currentSignature[15], coin->mining->currentSignature[16], coin->mining->currentSignature[17], coin->mining->currentSignature[18], coin->mining->currentSignature[19],
@@ -109,7 +109,7 @@ void procscoop_sph(std::shared_ptr<t_coin_info> coin, const unsigned long long n
 
 //SSE fast
 //scratchpad memory: 256b = 4nonces/scoops; size of input DATA array must be at least N*scratchpad
-void procscoop_sse_fast(std::shared_ptr<t_coin_info> coin, unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
+void procscoop_sse_fast(std::shared_ptr<t_coin_info> coin, unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::wstring &file_name) {
 	char const *cache;
 	char sig0[32];
 	char end0[32];
@@ -195,7 +195,7 @@ void procscoop_sse_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 
 						if (!testresult)
 						{
-							Log(L"TESTMODE: CHECK ERROR: SSE: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %S",
+							Log(L"TESTMODE: CHECK ERROR: SSE: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %s",
 								dlForNonce, coin->testround2->check_deadline.value(),
 								(nonce + v + idx), coin->mining->currentBaseTarget, coin->mining->currentHeight, file_name.c_str());
 							Log(L"SIG: %llu <= %S", dlForNonce,
@@ -227,7 +227,7 @@ void procscoop_sse_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 		{
 			if (*wertung < coin->mining->bests[acc].best)
 			{
-				Log(L"SSEF: found deadline=%llu scoop=%lu nonce=%llu base=%llu height=%llu for account: %llu file: %S", deadline, coin->mining->scoop, nonce + v + posn, coin->mining->baseTarget, coin->mining->height, coin->mining->bests[acc].account_id, file_name.c_str());
+				Log(L"SSEF: found deadline=%llu scoop=%lu nonce=%llu base=%llu height=%llu for account: %llu file: %s", deadline, coin->mining->scoop, nonce + v + posn, coin->mining->baseTarget, coin->mining->height, coin->mining->bests[acc].account_id, file_name.c_str());
 				Log(L"SIG: %llu <= %02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx", deadline,
 					coin->mining->currentSignature[ 0], coin->mining->currentSignature[ 1], coin->mining->currentSignature[ 2], coin->mining->currentSignature[ 3], coin->mining->currentSignature[ 4], coin->mining->currentSignature[ 5], coin->mining->currentSignature[ 6], coin->mining->currentSignature[ 7], coin->mining->currentSignature[ 8], coin->mining->currentSignature[ 9],
 					coin->mining->currentSignature[10], coin->mining->currentSignature[11], coin->mining->currentSignature[12], coin->mining->currentSignature[13], coin->mining->currentSignature[14], coin->mining->currentSignature[15], coin->mining->currentSignature[16], coin->mining->currentSignature[17], coin->mining->currentSignature[18], coin->mining->currentSignature[19],
@@ -266,7 +266,7 @@ void procscoop_sse_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 
 //AVX fast
 //scratchpad memory: 256b = 4nonces/scoops; size of input DATA array must be at least N*scratchpad
-void procscoop_avx_fast(std::shared_ptr<t_coin_info> coin, unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
+void procscoop_avx_fast(std::shared_ptr<t_coin_info> coin, unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::wstring &file_name) {
 	char const *cache;
 	char sig0[32];
 	char end0[32];
@@ -352,7 +352,7 @@ void procscoop_avx_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 
 						if (!testresult)
 						{
-							Log(L"TESTMODE: CHECK ERROR: AVX: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %S",
+							Log(L"TESTMODE: CHECK ERROR: AVX: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %s",
 								dlForNonce, coin->testround2->check_deadline.value(),
 								(nonce + v + idx), coin->mining->currentBaseTarget, coin->mining->currentHeight, file_name.c_str());
 							Log(L"SIG: %llu <= %S", dlForNonce,
@@ -384,7 +384,7 @@ void procscoop_avx_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 		{
 			if (*wertung < coin->mining->bests[acc].best)
 			{
-				Log(L"AVX0: found deadline=%llu scoop=%lu nonce=%llu base=%llu height=%llu for account: %llu file: %S", deadline, coin->mining->scoop, nonce + v + posn, coin->mining->baseTarget, coin->mining->height, coin->mining->bests[acc].account_id, file_name.c_str());
+				Log(L"AVX0: found deadline=%llu scoop=%lu nonce=%llu base=%llu height=%llu for account: %llu file: %s", deadline, coin->mining->scoop, nonce + v + posn, coin->mining->baseTarget, coin->mining->height, coin->mining->bests[acc].account_id, file_name.c_str());
 				Log(L"SIG: %llu <= %02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx", deadline,
 					coin->mining->currentSignature[ 0], coin->mining->currentSignature[ 1], coin->mining->currentSignature[ 2], coin->mining->currentSignature[ 3], coin->mining->currentSignature[ 4], coin->mining->currentSignature[ 5], coin->mining->currentSignature[ 6], coin->mining->currentSignature[ 7], coin->mining->currentSignature[ 8], coin->mining->currentSignature[ 9],
 					coin->mining->currentSignature[10], coin->mining->currentSignature[11], coin->mining->currentSignature[12], coin->mining->currentSignature[13], coin->mining->currentSignature[14], coin->mining->currentSignature[15], coin->mining->currentSignature[16], coin->mining->currentSignature[17], coin->mining->currentSignature[18], coin->mining->currentSignature[19],
@@ -423,7 +423,7 @@ void procscoop_avx_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 
 //AVX2 fast
 //scratchpad memory: 512b = 8nonces/scoops; size of input DATA array must be at least N*scratchpad
-void procscoop_avx2_fast(std::shared_ptr<t_coin_info> coin, unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
+void procscoop_avx2_fast(std::shared_ptr<t_coin_info> coin, unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::wstring &file_name) {
 	char const *cache;
 	char sig0[32];
 	char end0[32];
@@ -538,7 +538,7 @@ void procscoop_avx2_fast(std::shared_ptr<t_coin_info> coin, unsigned long long c
 
 						if (!testresult)
 						{
-							Log(L"TESTMODE: CHECK ERROR: AVX2: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %S",
+							Log(L"TESTMODE: CHECK ERROR: AVX2: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %s",
 								dlForNonce, coin->testround2->check_deadline.value(),
 								(nonce + v + idx), coin->mining->currentBaseTarget, coin->mining->currentHeight, file_name.c_str());
 							Log(L"SIG: %llu <= %S", dlForNonce,
@@ -590,7 +590,7 @@ void procscoop_avx2_fast(std::shared_ptr<t_coin_info> coin, unsigned long long c
 		{
 			if (*wertung < coin->mining->bests[acc].best)
 			{
-				Log(L"AVX2: found deadline=%llu scoop=%lu nonce=%llu base=%llu height=%llu for account: %llu file: %S", deadline, coin->mining->scoop, nonce + v + posn, coin->mining->baseTarget, coin->mining->height, coin->mining->bests[acc].account_id, file_name.c_str());
+				Log(L"AVX2: found deadline=%llu scoop=%lu nonce=%llu base=%llu height=%llu for account: %llu file: %s", deadline, coin->mining->scoop, nonce + v + posn, coin->mining->baseTarget, coin->mining->height, coin->mining->bests[acc].account_id, file_name.c_str());
 				Log(L"SIG: %llu <= %02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx", deadline,
 					coin->mining->currentSignature[ 0], coin->mining->currentSignature[ 1], coin->mining->currentSignature[ 2], coin->mining->currentSignature[ 3], coin->mining->currentSignature[ 4], coin->mining->currentSignature[ 5], coin->mining->currentSignature[ 6], coin->mining->currentSignature[ 7], coin->mining->currentSignature[ 8], coin->mining->currentSignature[ 9],
 					coin->mining->currentSignature[10], coin->mining->currentSignature[11], coin->mining->currentSignature[12], coin->mining->currentSignature[13], coin->mining->currentSignature[14], coin->mining->currentSignature[15], coin->mining->currentSignature[16], coin->mining->currentSignature[17], coin->mining->currentSignature[18], coin->mining->currentSignature[19],
@@ -629,7 +629,7 @@ void procscoop_avx2_fast(std::shared_ptr<t_coin_info> coin, unsigned long long c
 
 //AVX512 fast
 //scratchpad memory: 1024b = 16nonces/scoops; size of input DATA array must be at least N*scratchpad
-void procscoop_avx512_fast(std::shared_ptr<t_coin_info> coin, unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
+void procscoop_avx512_fast(std::shared_ptr<t_coin_info> coin, unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::wstring &file_name) {
 	char const *cache;
 	char sig0[32];
 	char end0[32];
@@ -800,7 +800,7 @@ void procscoop_avx512_fast(std::shared_ptr<t_coin_info> coin, unsigned long long
 
 						if (!testresult)
 						{
-							Log(L"TESTMODE: CHECK ERROR: SSE: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %S",
+							Log(L"TESTMODE: CHECK ERROR: SSE: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %s",
 								dlForNonce, coin->testround2->check_deadline.value(),
 								(nonce + v + idx), coin->mining->currentBaseTarget, coin->mining->currentHeight, file_name.c_str());
 							Log(L"SIG: %llu <= %S", dlForNonce,
@@ -892,7 +892,7 @@ void procscoop_avx512_fast(std::shared_ptr<t_coin_info> coin, unsigned long long
 		{
 			if (*wertung < coin->mining->bests[acc].best)
 			{
-				Log(L"AVX5: found deadline=%llu scoop=%lu nonce=%llu base=%llu height=%llu for account: %llu file: %S", deadline, coin->mining->scoop, nonce + v + posn, coin->mining->baseTarget, coin->mining->height, coin->mining->bests[acc].account_id, file_name.c_str());
+				Log(L"AVX5: found deadline=%llu scoop=%lu nonce=%llu base=%llu height=%llu for account: %llu file: %s", deadline, coin->mining->scoop, nonce + v + posn, coin->mining->baseTarget, coin->mining->height, coin->mining->bests[acc].account_id, file_name.c_str());
 				Log(L"SIG: %llu <= %02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx", deadline,
 					coin->mining->currentSignature[ 0], coin->mining->currentSignature[ 1], coin->mining->currentSignature[ 2], coin->mining->currentSignature[ 3], coin->mining->currentSignature[ 4], coin->mining->currentSignature[ 5], coin->mining->currentSignature[ 6], coin->mining->currentSignature[ 7], coin->mining->currentSignature[ 8], coin->mining->currentSignature[ 9],
 					coin->mining->currentSignature[10], coin->mining->currentSignature[11], coin->mining->currentSignature[12], coin->mining->currentSignature[13], coin->mining->currentSignature[14], coin->mining->currentSignature[15], coin->mining->currentSignature[16], coin->mining->currentSignature[17], coin->mining->currentSignature[18], coin->mining->currentSignature[19],

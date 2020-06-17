@@ -995,7 +995,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 		else
 			failedOrNoData = __impl__confirm_i__sockets(buffer, coinInfo, answ, find, nonJsonSuccessDetected, session);
 
-		t_session sessionX_(NULL, -1, t_shares("", 0, 0, 0, 0, 0, 0));
+		t_session sessionX_(NULL, -1, t_shares(L"", 0, 0, 0, 0, 0, 0));
 		t_session* sessionX = &sessionX_;
 		if (!failedOrNoData)
 			if (coinInfo->network->usehttps) {

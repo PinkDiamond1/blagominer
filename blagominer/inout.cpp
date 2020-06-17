@@ -125,10 +125,10 @@ void Output_Curses::printPlotsStart()
 	printToConsole(15, false, false, true, false, L"Using plots:");
 }
 
-void Output_Curses::printPlotsInfo(char const* const directory, size_t nfiles, unsigned long long size)
+void Output_Curses::printPlotsInfo(std::wstring const& directory, size_t nfiles, unsigned long long size)
 {
-	printToConsole(-1, false, false, true, false, L"%S\tfiles: %4llu\t size: %7llu GiB",
-		directory, nfiles, size / 1024 / 1024 / 1024);
+	printToConsole(-1, false, false, true, false, L"%s\tfiles: %4llu\t size: %7llu GiB",
+		directory.c_str(), nfiles, size / 1024 / 1024 / 1024);
 }
 
 void Output_Curses::printPlotsEnd(unsigned long long total_size)
@@ -148,14 +148,14 @@ void Output_Curses::printThreadActivity(
 
 void Output_Curses::debugWorkerStats(
 	std::wstring const& specialReadMode,
-	std::string const& directory,
+	std::wstring const& directory,
 	double proc_time, double work_time,
 	unsigned long long files_size_per_thread
 )
 {
 	auto msgFormat = !specialReadMode.empty()
-		? L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (%s)"
-		: L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%%%s"; // note that the last %s is always empty, it is there just to keep the same number of placeholders
+		? L"Thread \"%s\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (%s)"
+		: L"Thread \"%s\" @ %.1f sec (%.1f MB/s) CPU %.2f%%%s"; // note that the last %s is always empty, it is there just to keep the same number of placeholders
 
 	printToConsole(7, true, false, true, false, msgFormat,
 		directory.c_str(), work_time, (double)(files_size_per_thread) / work_time / 1024 / 1024 / 4096,
@@ -824,7 +824,7 @@ void Output_Curses::boxCorrupted() {
 	wattroff(win_corrupted, COLOR_PAIR(4));
 }
 
-void Output_Curses::printFileStats(std::map<std::string, t_file_stats>const& fileStats) {
+void Output_Curses::printFileStats(std::map<std::wstring, t_file_stats>const& fileStats) {
 	std::lock_guard lockGuardConsoleWindow(mConsoleWindow);
 	int lineCount = 0;
 	for (auto& element : fileStats) {
@@ -861,7 +861,7 @@ void Output_Curses::printFileStats(std::map<std::string, t_file_stats>const& fil
 		if (element.second.conflictingDeadlines > 0 || element.second.readErrors > 0) {
 			bm_wattronC(14);
 			bm_wmoveC(lineCount, 1);
-			bm_wprintwC("%s %s", toStr(element.first, 46).c_str(), toStr(element.second.matchingDeadlines, 11).c_str(), 0);
+			bm_wprintwC("%S %s", toWStr(element.first, 46).c_str(), toStr(element.second.matchingDeadlines, 11).c_str(), 0);
 			if (element.second.conflictingDeadlines > 0) {
 				bm_wattronC(4);
 			}

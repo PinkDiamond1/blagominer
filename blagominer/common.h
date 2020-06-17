@@ -34,12 +34,12 @@ enum class MiningState {
 };
 
 struct t_shares {
-	t_shares(std::string file_name, unsigned long long account_id, unsigned long long best,
+	t_shares(std::wstring const& file_name, unsigned long long account_id, unsigned long long best,
 		unsigned long long nonce, unsigned long long deadline, unsigned long long height,
 		unsigned long long baseTarget) :
 		file_name(file_name), account_id(account_id), best(best), nonce(nonce), deadline(deadline),
 		height(height), baseTarget(baseTarget) {}
-	std::string file_name;
+	std::wstring file_name;
 	unsigned long long account_id;// = 0;
 	// This is the best Target, not Deadline.
 	unsigned long long best;// = 0;
@@ -72,8 +72,8 @@ struct t_session2 {
 
 struct t_files {
 	bool done;
-	std::string Path;
-	std::string Name;
+	std::wstring Path;
+	std::wstring Name;
 	long long positionOnNtfsVolume;
 	unsigned long long Size;
 	unsigned long long Key;
@@ -86,8 +86,8 @@ struct t_files {
 };
 
 struct t_directory_info {
-	t_directory_info(std::string dir, bool done, std::vector<t_files> files) : dir(dir), done(done), files(files) {}
-	std::string dir;
+	t_directory_info(std::wstring dir, bool done, std::vector<t_files> files) : dir(dir), done(done), files(files) {}
+	std::wstring dir;
 	bool done;
 	std::vector<t_files> files;
 };
@@ -337,7 +337,7 @@ struct IUserInterface
 	) = 0;
 
 	virtual void printPlotsStart() = 0;
-	virtual void printPlotsInfo(char const* const directory, size_t nfiles, unsigned long long size) = 0;
+	virtual void printPlotsInfo(std::wstring const& directory, size_t nfiles, unsigned long long size) = 0;
 	virtual void printPlotsEnd(unsigned long long total_size) = 0;
 
 	virtual void printThreadActivity(
@@ -348,7 +348,7 @@ struct IUserInterface
 
 	virtual void debugWorkerStats(
 		std::wstring const& specialReadMode,
-		std::string const& directory,
+		std::wstring const& directory,
 		double proc_time, double work_time,
 		unsigned long long files_size_per_thread
 	) = 0;
@@ -459,7 +459,7 @@ struct IUserInterface
 
 	virtual void showNewVersion(std::string version) = 0;
 
-	virtual void printFileStats(std::map<std::string, t_file_stats>const& fileStats) = 0;
+	virtual void printFileStats(std::map<std::wstring, t_file_stats>const& fileStats) = 0;
 
 	// ---
 
