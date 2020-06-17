@@ -37,5 +37,6 @@ using namespace rapidjson;
 #include "rapidjson/writer.h"
 #pragma warning( pop )
 
+#undef max
 
 // TODO: Hier auf zusätzliche Header, die das Programm erfordert, verweisen.

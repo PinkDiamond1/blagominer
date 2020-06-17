@@ -9,6 +9,7 @@
 #include <optional>
 #include <string>
 #include <map>
+#include <algorithm>
 
 #include "heapallocator.h"
 #include "logger.h"
@@ -452,7 +453,7 @@ struct IUserInterface
 
 	static std::wstring make_filled_string(int nspaces, wchar_t filler)
 	{
-		return std::wstring(max(0, nspaces), filler);
+		return std::wstring(std::max(0, nspaces), filler);
 	}
 
 	static std::wstring make_leftpad_for_networkstats(int availablespace, size_t nactivecoins)

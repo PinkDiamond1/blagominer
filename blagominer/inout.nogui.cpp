@@ -1,6 +1,5 @@
 ﻿#include "inout.nogui.h"
 
-#undef max
 #include <algorithm>
 #include <sstream>
 

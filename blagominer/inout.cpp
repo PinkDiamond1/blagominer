@@ -1,6 +1,5 @@
 ﻿#include "inout.h"
 
-#undef max
 #include <algorithm>
 #include <sstream>
 
