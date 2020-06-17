@@ -40,7 +40,7 @@ public:
 	) override;
 
 	void printPlotsStart() override;
-	void printPlotsInfo(char const* const directory, unsigned nfiles, unsigned long long size) override;
+	void printPlotsInfo(char const* const directory, size_t nfiles, unsigned long long size) override;
 	void printPlotsEnd(unsigned long long total_size) override;
 
 	void printThreadActivity(
@@ -61,7 +61,7 @@ public:
 		unsigned long long deadline
 	) override;
 	void printScanProgress(
-		int ncoins, std::wstring const& connQualInfo,
+		size_t ncoins, std::wstring const& connQualInfo,
 		unsigned long long bytesRead, unsigned long long round_size,
 		double thread_time, double threads_speed,
 		unsigned long long deadline
@@ -110,7 +110,7 @@ public:
 		unsigned long long targetDeadline
 	) override;
 	void printConnQuality(
-		int ncoins, std::wstring const& connQualInfo
+		size_t ncoins, std::wstring const& connQualInfo
 	) override;
 
 	void debugRoundTime(
@@ -159,10 +159,10 @@ private:
 	std::list<ConsoleOutput> consoleQueue;
 	std::list<std::wstring> progressQueue;
 
-	int prevNCoins21 = 0;
+	size_t prevNCoins21 = 0;
 	std::wstring leadingSpace21 = IUserInterface::make_leftpad_for_networkstats(21, 0);
 
-	int prevNCoins94 = 0;
+	size_t prevNCoins94 = 0;
 	std::wstring leadingSpace94 = IUserInterface::make_leftpad_for_networkstats(94, 0);
 
 	std::mutex mLog;

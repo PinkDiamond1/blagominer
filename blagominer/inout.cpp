@@ -126,9 +126,9 @@ void Output_Curses::printPlotsStart()
 	printToConsole(15, false, false, true, false, L"Using plots:");
 }
 
-void Output_Curses::printPlotsInfo(char const* const directory, unsigned nfiles, unsigned long long size)
+void Output_Curses::printPlotsInfo(char const* const directory, size_t nfiles, unsigned long long size)
 {
-	printToConsole(-1, false, false, true, false, L"%S\tfiles: %4u\t size: %7llu GiB",
+	printToConsole(-1, false, false, true, false, L"%S\tfiles: %4llu\t size: %7llu GiB",
 		directory, nfiles, size / 1024 / 1024 / 1024);
 }
 
@@ -332,7 +332,7 @@ void Output_Curses::printRoundChangeInfo(bool isResumingInterrupted,
 		isPoc2Round ? 2 : 1);
 }
 
-void Output_Curses::printConnQuality(int ncoins, std::wstring const& connQualInfo)
+void Output_Curses::printConnQuality(size_t ncoins, std::wstring const& connQualInfo)
 {
 	if (ncoins != prevNCoins94)
 	{
@@ -352,7 +352,7 @@ void Output_Curses::printConnQuality(int ncoins, std::wstring const& connQualInf
 	}
 }
 
-void Output_Curses::printScanProgress(int ncoins, std::wstring const& connQualInfo,
+void Output_Curses::printScanProgress(size_t ncoins, std::wstring const& connQualInfo,
 	unsigned long long bytesRead, unsigned long long round_size,
 	double thread_time, double threads_speed,
 	unsigned long long deadline

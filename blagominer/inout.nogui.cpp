@@ -130,9 +130,9 @@ void Output_PlainText::printPlotsStart()
 	printToConsole(15, false, false, true, false, L"Using plots:");
 }
 
-void Output_PlainText::printPlotsInfo(char const* const directory, unsigned nfiles, unsigned long long size)
+void Output_PlainText::printPlotsInfo(char const* const directory, size_t nfiles, unsigned long long size)
 {
-	printToConsole(-1, false, false, true, false, L"%S\tfiles: %4u\t size: %7llu GiB",
+	printToConsole(-1, false, false, true, false, L"%S\tfiles: %4llu\t size: %7llu GiB",
 		directory, nfiles, size / 1024 / 1024 / 1024);
 }
 
@@ -341,7 +341,7 @@ void Output_PlainText::printRoundChangeInfo(bool isResumingInterrupted,
 // throttled in some way
 // also, to be able to guarantee that end-of-round 100% will be displayed
 // the parameters must be changed from format+... to specific data
-void Output_PlainText::printConnQuality(int ncoins, std::wstring const& connQualInfo)
+void Output_PlainText::printConnQuality(size_t ncoins, std::wstring const& connQualInfo)
 {
 	if (ncoins != prevNCoins94)
 	{
@@ -364,7 +364,7 @@ void Output_PlainText::printConnQuality(int ncoins, std::wstring const& connQual
 	}
 }
 
-void Output_PlainText::printScanProgress(int ncoins, std::wstring const& connQualInfo,
+void Output_PlainText::printScanProgress(size_t ncoins, std::wstring const& connQualInfo,
 	unsigned long long bytesRead, unsigned long long round_size,
 	double thread_time, double threads_speed,
 	unsigned long long deadline

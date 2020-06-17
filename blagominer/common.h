@@ -324,7 +324,7 @@ struct IUserInterface
 	) = 0;
 
 	virtual void printPlotsStart() = 0;
-	virtual void printPlotsInfo(char const* const directory, unsigned nfiles, unsigned long long size) = 0;
+	virtual void printPlotsInfo(char const* const directory, size_t nfiles, unsigned long long size) = 0;
 	virtual void printPlotsEnd(unsigned long long total_size) = 0;
 
 	virtual void printThreadActivity(
@@ -345,7 +345,7 @@ struct IUserInterface
 		unsigned long long deadline
 	) = 0;
 	virtual void printScanProgress(
-		int ncoins, std::wstring const& connQualInfo,
+		size_t ncoins, std::wstring const& connQualInfo,
 		unsigned long long bytesRead, unsigned long long round_size,
 		double thread_time, double threads_speed,
 		unsigned long long deadline
@@ -394,7 +394,7 @@ struct IUserInterface
 		unsigned long long targetDeadline
 	) = 0;
 	virtual void printConnQuality(
-		int ncoins, std::wstring const& connQualInfo
+		size_t ncoins, std::wstring const& connQualInfo
 	) = 0;
 
 	virtual void debugRoundTime(
@@ -455,7 +455,7 @@ struct IUserInterface
 		return std::wstring(max(0, nspaces), filler);
 	}
 
-	static std::wstring make_leftpad_for_networkstats(int availablespace, int nactivecoins)
+	static std::wstring make_leftpad_for_networkstats(int availablespace, size_t nactivecoins)
 	{
 		const int remainingspace = availablespace - (nactivecoins * 4) - (nactivecoins - 1);
 		return make_filled_string(remainingspace, L' ');

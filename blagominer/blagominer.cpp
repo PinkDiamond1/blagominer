@@ -296,7 +296,7 @@ std::vector<char, heap_allocator<char>> load_config_file(wchar_t const *const fi
 	// TODO: leaving it on the heap for now to retain zero-memory effect
 	// it's actually somewhat helpful due to the data size mismatch induced by "rt" fopen flags
 	std::vector<char, heap_allocator<char>> json_(size + 1, theHeap);
-	int bytesread = fread_s(json_.data(), size, 1, size, pFile);
+	size_t bytesread = fread_s(json_.data(), size, 1, size, pFile);
 	json_[bytesread] = 0;
 	guardPFile.reset();
 
@@ -480,7 +480,7 @@ bool load_testmode_config(wchar_t const *const filename)
 	// TODO: leaving it on the heap for now to retain zero-memory effect
 	// it's actually somewhat helpful due to the data size mismatch induced by "rt" fopen flags
 	std::vector<char, heap_allocator<char>> json_(size + 1, theHeap);
-	int bytesread = fread_s(json_.data(), size, 1, size, pFile);
+	size_t bytesread = fread_s(json_.data(), size, 1, size, pFile);
 	json_[bytesread] = 0;
 	guardPFile.reset();
 

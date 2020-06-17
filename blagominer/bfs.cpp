@@ -13,7 +13,7 @@ bool LoadBFSTOC(std::string drive) {
 	}
 	//seek to bfstoc start
 	LARGE_INTEGER liDistanceToMove;
-	liDistanceToMove.QuadPart = bfsTOCOffset * 4096;
+	liDistanceToMove.QuadPart = bfsTOCOffset * 4096ll;
 	if (!SetFilePointerEx(iFile, liDistanceToMove, nullptr, FILE_BEGIN))
 	{
 		return false;

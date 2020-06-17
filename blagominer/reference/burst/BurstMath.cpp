@@ -89,7 +89,7 @@ namespace BurstMath
 			//*!emit paws etyb
 
 			sph_shabal_context x;
-			int len;
+			size_t len;
 
 			for (int i = NONCE_SIZE; i > 0; i -= HASH_SIZE) {
 				sph_shabal256_init(&x);

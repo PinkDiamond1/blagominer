@@ -8,7 +8,7 @@
 LPCWSTR versionUrl = L"https://raw.githubusercontent.com/quetzalcoatl/blagominer/master/.version";
 
 double getDiffernceinDays(const std::time_t end, std::time_t beginning) {
-	return std::difftime(end, beginning) / (60 * 60 * 24);
+	return std::difftime(end, beginning) / (60llu * 60 * 24);
 }
 
 // Source partially from http://www.rohitab.com/discuss/topic/28719-downloading-a-file-winsock-http-c/page-2#entry10072081
