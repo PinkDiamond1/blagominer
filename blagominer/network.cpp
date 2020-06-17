@@ -694,7 +694,6 @@ bool __impl__confirm_i__sockets(std::vector<char, heap_allocator<char>>& buffer,
 				else find = buffer.data();
 			}
 
-			unsigned long long ndeadline;
 			unsigned long long naccountId = 0;
 			unsigned long long ntargetDeadline = 0;
 
@@ -906,7 +905,6 @@ bool __impl__confirm_i__curl(std::vector<char, heap_allocator<char>>& buffer, st
 				else find = buffer.data();
 			}
 
-			unsigned long long ndeadline;
 			unsigned long long naccountId = 0;
 			unsigned long long ntargetDeadline = 0;
 
@@ -973,7 +971,6 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 	const wchar_t* coinName = coinInfo->coinname.c_str();
 	Log(L"Confirmer %s: started thread", coinName);
 
-	SOCKET ConnectSocket;
 	int iResult = 0;
 	std::vector<char, heap_allocator<char>> buffer(1000, theHeap);
 

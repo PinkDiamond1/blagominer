@@ -44,7 +44,6 @@ int determineNtfsFilePosition(LONGLONG& result, std::wstring drive, std::wstring
 	DWORD dwClusterSizeInBytes;
 
 	STARTING_VCN_INPUT_BUFFER StartingPointInputBuffer;
-	LARGE_INTEGER FileOffstFromBegDisk;
 	VOLUME_LOGICAL_OFFSET VolumeLogicalOffset;
 	LARGE_INTEGER  PhysicalOffsetReturnValue;
 	VOLUME_PHYSICAL_OFFSETS VolumePhysicalOffsets;
