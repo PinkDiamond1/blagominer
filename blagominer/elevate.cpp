@@ -23,6 +23,8 @@ bool RestartWithElevation(int argc, wchar_t **argv) {
 		params.c_str(),
 		NULL,
 		SW_SHOWNORMAL
+#pragma warning( suppress: 4302 )	// Warning C4302	'type cast': truncation from 'HINSTANCE' to 'int'
+#pragma warning( suppress: 4311 )	// Warning C4311	'type cast': pointer truncation from 'HINSTANCE' to 'int'
 	);
 
 	if (result > 32) {
@@ -122,7 +124,7 @@ Environment:
 		CommandLine.push_back(L'"');
 
 		for (auto It = Argument.begin(); ; ++It) {
-			unsigned NumberBackslashes = 0;
+			size_t NumberBackslashes = 0;
 
 			while (It != Argument.end() && *It == L'\\') {
 				++It;
