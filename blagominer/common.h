@@ -107,7 +107,7 @@ struct t_logging {
 };
 
 struct LogFileInfo {
-	std::string filename;
+	std::wstring filename;
 	std::mutex mutex;
 };
 

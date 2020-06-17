@@ -1,8 +1,8 @@
 #include "loggerCsv.h"
 
-bool existsFile(const std::string& name) {
-	struct stat buffer;
-	return (stat(name.c_str(), &buffer) == 0);
+bool existsFile(const std::wstring& name) {
+	struct _stat64i32 buffer;
+	return (_wstat(name.c_str(), &buffer) == 0);
 }
 
 static const char* headersFail = "Timestamp epoch;Timestamp local;Height;File;baseTarget;Network difficulty;Nonce;Deadline sent;Deadline confirmed;Response\n";
@@ -10,11 +10,10 @@ static const char* headersSubmitted = "Timestamp epoch;Timestamp local;Height;ba
 
 void Csv_initFilenames(
 	LogFileInfo& coinlogfileinfo,
-	const char* prefix, const wchar_t* coinName)
+	const wchar_t* prefix, const wchar_t* coinName)
 {
 	std::wstring nameW(coinName);
-	std::string name(nameW.begin(), nameW.end());
-	coinlogfileinfo.filename = prefix + ("-" + name) + ".csv";
+	coinlogfileinfo.filename = prefix + (L"-" + nameW) + L".csv";
 }
 
 void Csv_logFileInit(
@@ -26,7 +25,7 @@ void Csv_logFileInit(
 		std::lock_guard<std::mutex> lockGuard(coinlogfileinfo.mutex);
 		Log(L"Writing headers to %S", coinlogfileinfo.filename.c_str());
 		FILE * pFile;
-		fopen_s(&pFile, coinlogfileinfo.filename.c_str(), "a+t");
+		_wfopen_s(&pFile, coinlogfileinfo.filename.c_str(), L"a+t");
 		if (pFile != nullptr)
 		{
 			fprintf(pFile, headers);
@@ -48,8 +47,8 @@ void Csv_Init()
 
 	for (auto& coin : allcoins)
 	{
-		Csv_initFilenames(coin->logging.failed, "fail", coin->coinname.c_str());
-		Csv_initFilenames(coin->logging.submitted, "stat", coin->coinname.c_str());
+		Csv_initFilenames(coin->logging.failed, L"fail", coin->coinname.c_str());
+		Csv_initFilenames(coin->logging.submitted, L"stat", coin->coinname.c_str());
 
 		Csv_logFileInit(coin, coin->logging.failed, headersFail);
 		Csv_logFileInit(coin, coin->logging.submitted, headersSubmitted);
@@ -67,7 +66,7 @@ void Csv_logFailed(
 	{
 		std::lock_guard<std::mutex> lockGuard(coinlog.failed.mutex);
 		FILE* pFile;
-		fopen_s(&pFile, coinlog.failed.filename.c_str(), "a+t");
+		_wfopen_s(&pFile, coinlog.failed.filename.c_str(), L"a+t");
 		if (pFile != nullptr)
 		{
 			fprintf(pFile, "%llu;%s;%llu;%s;%llu;%llu;%llu;%llu;%llu;%s\n", (unsigned long long)rawtime, timeDate, height, file.c_str(), baseTarget, netDiff,
@@ -113,7 +112,7 @@ void Csv_logSubmitted(
 	{
 		std::lock_guard<std::mutex> lockGuard(coinlog.submitted.mutex);
 		FILE* pFile;
-		fopen_s(&pFile, coinlog.submitted.filename.c_str(), "a+t");
+		_wfopen_s(&pFile, coinlog.submitted.filename.c_str(), L"a+t");
 		if (pFile != nullptr)
 		{
 			fprintf(pFile, "%llu;%s;%llu;%llu;%llu;%.1f;%s;%llu\n", (unsigned long long)rawtime, timeDate, height, baseTarget,

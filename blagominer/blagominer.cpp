@@ -34,7 +34,7 @@ std::vector<std::shared_ptr<t_coin_info>> coins;
 
 t_testmode_config testmodeConfig;
 
-std::vector<char> p_minerPath; // TODO: use std::(w)str
+std::vector<wchar_t> p_minerPath; // TODO: use std::wstring
 unsigned long long total_size = 0;
 volatile bool stopThreads = false;				// only applicable to WORKER threads
 bool use_wakeup = false;						// wakeup HDDs if true
@@ -738,17 +738,17 @@ hwinfo GetCPUInfo(void)
 }
 
 
-void GetPass(std::shared_ptr<t_coin_info> coin, char const *const p_strFolderPath)
+void GetPass(std::shared_ptr<t_coin_info> coin, wchar_t const *const p_strFolderPath)
 {
 	Log(L"Reading passphrase.");
 	FILE * pFile;
 	size_t len_pass;
 	// TODO: get rid of ancient MAX_PATH, test it for long paths afterwards
-	std::vector<char> filename(MAX_PATH);
-	sprintf_s(filename.data(), filename.size(), "%s%s%S%s", p_strFolderPath, "solosecret-", coin->coinname.c_str(), ".txt");
+	std::vector<wchar_t> filename(MAX_PATH);
+	swprintf_s(filename.data(), filename.size(), L"%s%s%s%s", p_strFolderPath, L"solosecret-", coin->coinname.c_str(), L".txt");
 
 	//  printf_s("\npass from: %s\n",filename);
-	fopen_s(&pFile, filename.data(), "rt");
+	_wfopen_s(&pFile, filename.data(), L"rt");
 	std::unique_ptr<FILE, void(*)(FILE*)> guardPFile(pFile, [](FILE* f) { fclose(f); });
 
 	if (pFile == nullptr)
@@ -1368,10 +1368,10 @@ int wmain(int argc, wchar_t **argv) {
 	// TODO: make it std::(w)str, use sstream, use better path ops
 	// TODO: get rid of ancient MAX_PATH, test it for long paths afterwards
 	//get application path
-	size_t const cwdsz = GetCurrentDirectoryA(0, 0);
+	size_t const cwdsz = GetCurrentDirectory(0, 0);
 	p_minerPath.resize(cwdsz + 2);
-	GetCurrentDirectoryA(DWORD(cwdsz), p_minerPath.data());
-	strcat_s(p_minerPath.data(), cwdsz + 2, "\\");
+	GetCurrentDirectory(DWORD(cwdsz), p_minerPath.data());
+	wcscat_s(p_minerPath.data(), cwdsz + 2, L"\\");
 
 
 	// init 3rd party libs
@@ -1392,14 +1392,14 @@ int wmain(int argc, wchar_t **argv) {
 		//config-file: check -config flag or default to miner.conf
 		if ((argc >= 4) && (wcscmp(argv[3], L"-config") == 0)) {
 			if (wcsstr(argv[4], L":\\")) swprintf_s(conf_filename.data(), conf_filename.size(), L"%s", argv[4]);
-			else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath.data(), argv[4]);
+			else swprintf_s(conf_filename.data(), conf_filename.size(), L"%s%s", p_minerPath.data(), argv[4]);
 		}
 		else
 		if ((argc >= 2) && (wcscmp(argv[1], L"-config") == 0)) {
 			if (wcsstr(argv[2], L":\\")) swprintf_s(conf_filename.data(), conf_filename.size(), L"%s", argv[2]);
-			else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath.data(), argv[2]);
+			else swprintf_s(conf_filename.data(), conf_filename.size(), L"%s%s", p_minerPath.data(), argv[2]);
 		}
-		else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath.data(), L"miner.conf");
+		else swprintf_s(conf_filename.data(), conf_filename.size(), L"%s%s", p_minerPath.data(), L"miner.conf");
 
 		auto buff = load_config_file(conf_filename.data());
 		auto doc = load_config_json(buff);
@@ -1415,14 +1415,14 @@ int wmain(int argc, wchar_t **argv) {
 		//config-file: check -config flag or default to miner.conf
 		if ((argc >= 4) && (wcscmp(argv[3], L"-testconfig") == 0)) {
 			if (wcsstr(argv[4], L":\\")) swprintf_s(conf_filename.data(), conf_filename.size(), L"%s", argv[4]);
-			else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath.data(), argv[4]);
+			else swprintf_s(conf_filename.data(), conf_filename.size(), L"%s%s", p_minerPath.data(), argv[4]);
 		}
 		else
 		if ((argc >= 2) && (wcscmp(argv[1], L"-testconfig") == 0)) {
 			if (wcsstr(argv[2], L":\\")) swprintf_s(conf_filename.data(), conf_filename.size(), L"%s", argv[2]);
-			else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath.data(), argv[2]);
+			else swprintf_s(conf_filename.data(), conf_filename.size(), L"%s%s", p_minerPath.data(), argv[2]);
 		}
-		else swprintf_s(conf_filename.data(), conf_filename.size(), L"%S%s", p_minerPath.data(), L"testmode.conf");
+		else swprintf_s(conf_filename.data(), conf_filename.size(), L"%s%s", p_minerPath.data(), L"testmode.conf");
 
 		if (!load_testmode_config(conf_filename.data()))
 		{
@@ -1452,7 +1452,7 @@ int wmain(int argc, wchar_t **argv) {
 
 	Csv_Init();
 
-	Log(L"Miner path: %S", p_minerPath.data());
+	Log(L"Miner path: %s", p_minerPath.data());
 	Log(L"Miner process elevation: %S", IsElevated() ? "active" : "inactive");
 
 	Gui_init();
