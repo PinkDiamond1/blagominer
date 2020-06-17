@@ -9,6 +9,7 @@
 #include <optional>
 #include <string>
 #include <map>
+#include <stdexcept>
 #include <algorithm>
 
 #include "heapallocator.h"
@@ -291,6 +292,17 @@ std::wstring toWStr(std::string str, const unsigned short length);
 std::string toStr(unsigned long long number, const unsigned short length);
 std::string toStr(std::string str, const unsigned short length);
 
+// TODO: find/invent something better for statically detecting narrowing overflows on constexprs
+// https://stackoverflow.com/a/46229281/717732
+template<class Target, class Source>
+Target narrow_cast(Source v)
+{
+	auto r = static_cast<Target>(v);
+	if (static_cast<Source>(r) != v)
+		throw std::runtime_error("narrow_cast<>() failed");
+	return r;
+}
+
 struct IUserInterface;
 
 extern std::unique_ptr<IUserInterface> gui;
@@ -458,7 +470,8 @@ struct IUserInterface
 
 	static std::wstring make_leftpad_for_networkstats(int availablespace, size_t nactivecoins)
 	{
-		const int remainingspace = availablespace - (nactivecoins * 4) - (nactivecoins - 1);
+		int const todisplay = narrow_cast<int, size_t>(nactivecoins);
+		int const remainingspace = availablespace - (todisplay * 4) - (todisplay - 1);
 		return make_filled_string(remainingspace, L' ');
 	}
 };
