@@ -304,6 +304,36 @@ Target narrow_cast(Source v)
 	return r;
 }
 
+template<typename T>
+class span {
+	T* _data;
+	size_t _size;
+public:
+	span(T* data, size_t size) :_data(data), _size(size) {}
+	T* data() const { return _data; }
+	size_t size() const { return _size; }
+};
+
+template<unsigned parseFlags, typename T>
+DocumentUTF16LE parseJsonData(T const& source)
+{
+	MemoryStream bis(source.data(), source.size());
+	AutoUTFInputStream<unsigned, MemoryStream> eis(bis);
+
+	DocumentUTF16LE document;
+	document.ParseStream<parseFlags, AutoUTF<unsigned>>(eis);
+	return document;
+}
+
+template<unsigned parseFlags, typename T>
+DocumentUTF16LE& parseJsonData(DocumentUTF16LE& document, T const& source)
+{
+	MemoryStream bis(source.data(), source.size());
+	AutoUTFInputStream<unsigned, MemoryStream> eis(bis);
+	return document.ParseStream<parseFlags, AutoUTF<unsigned>>(eis);
+}
+
+
 struct IUserInterface;
 
 extern std::unique_ptr<IUserInterface> gui;

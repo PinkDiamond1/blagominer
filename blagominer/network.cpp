@@ -588,7 +588,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 }
 
 
-bool __impl__confirm_i__sockets(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, DocumentUTF16LE& output, char*& find, bool& nonJsonSuccessDetected, std::shared_ptr<t_session>& session) {
+bool __impl__confirm_i__sockets(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, DocumentUTF16LE& output, char const*& find, bool& nonJsonSuccessDetected, std::shared_ptr<t_session>& session) {
 	bool failed = false;
 
 	const wchar_t* confirmerName = coinInfo->coinname.c_str();
@@ -698,7 +698,8 @@ bool __impl__confirm_i__sockets(std::vector<char, heap_allocator<char>>& buffer,
 			unsigned long long ntargetDeadline = 0;
 
 			DocumentUTF16LE& answ = output;
-			if (answ.Parse<0, UTF8<>>(find).HasParseError())
+			parseJsonData<kParseNoFlags>(answ, span{ find, buffer.size() - (find - buffer.data()) });
+			if (answ.HasParseError())
 			{
 				if (strstr(find, "Received share") != nullptr)
 				{
@@ -784,7 +785,7 @@ static int wait_on_socket(curl_socket_t sockfd, int for_recv, long timeout_ms)
 	return res;
 }
 
-bool __impl__confirm_i__curl(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, DocumentUTF16LE& output, char*& find, bool& nonJsonSuccessDetected, std::shared_ptr<t_session2>& session) {
+bool __impl__confirm_i__curl(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, DocumentUTF16LE& output, char const*& find, bool& nonJsonSuccessDetected, std::shared_ptr<t_session2>& session) {
 	bool failed = false;
 
 	const wchar_t* confirmerName = coinInfo->coinname.c_str();
@@ -909,7 +910,8 @@ bool __impl__confirm_i__curl(std::vector<char, heap_allocator<char>>& buffer, st
 			unsigned long long ntargetDeadline = 0;
 
 			DocumentUTF16LE& answ = output;
-			if (answ.Parse<0, UTF8<>>(find).HasParseError())
+			parseJsonData<kParseNoFlags>(answ, span{ find, buffer.size() - (find - buffer.data()) });
+			if (answ.HasParseError())
 			{
 				if (strstr(find, "Received share") != nullptr)
 				{
@@ -985,7 +987,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 		unsigned long long naccountId = 0;
 		unsigned long long ntargetDeadline = 0;
 
-		char* find;
+		char const* find;
 		bool nonJsonSuccessDetected;
 		DocumentUTF16LE answ;
 		bool failedOrNoData;
@@ -1226,11 +1228,11 @@ bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, DocumentU
 							Log(L"*! GMI %s: error message from pool: %S", updaterName, Log_server(buffer.data()).c_str());
 							failed = true;
 						}
-						else if (loggingConfig.logAllGetMiningInfos && gmi.Parse<0, rapidjson::UTF8<>>(find).HasParseError()) {
+						else if (loggingConfig.logAllGetMiningInfos && parseJsonData<kParseNoFlags>(gmi, span{ find, buffer.size() - (find - buffer.data()) }).HasParseError()) {
 							Log(L"*! GMI %s: error parsing JSON message from pool", updaterName);
 							failed = true;
 						}
-						else if (!loggingConfig.logAllGetMiningInfos && gmi.Parse<0, rapidjson::UTF8<>>(find).HasParseError()) {
+						else if (!loggingConfig.logAllGetMiningInfos && parseJsonData<kParseNoFlags>(gmi, span{ find, buffer.size() - (find - buffer.data()) }).HasParseError()) {
 							Log(L"*! GMI %s: error parsing JSON message from pool: %S", updaterName, Log_server(buffer.data()).c_str());
 							failed = true;
 						}
@@ -1325,11 +1327,11 @@ bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, DocumentUTF1
 
 			rawResponse.assign(chunk.begin(), chunk.end()); // TODO: not so 'raw', that's just the response BODY with no headers
 			DocumentUTF16LE& gmi = output;
-			if (loggingConfig.logAllGetMiningInfos && gmi.Parse<0, rapidjson::UTF8<>>(chunk.data(), chunk.size()).HasParseError()) {
+			if (loggingConfig.logAllGetMiningInfos && parseJsonData<kParseNoFlags>(gmi, chunk).HasParseError()) {
 				Log(L"*! GMI %s: error parsing JSON message from pool", updaterName);
 				failed = true;
 			}
-			else if (!loggingConfig.logAllGetMiningInfos && gmi.Parse<0, rapidjson::UTF8<>>(chunk.data(), chunk.size()).HasParseError()) {
+			else if (!loggingConfig.logAllGetMiningInfos && parseJsonData<kParseNoFlags>(gmi, chunk).HasParseError()) {
 				Log(L"*! GMI %s: error parsing JSON message from pool: %S", updaterName, Log_server(chunk.data()).c_str());
 				failed = true;
 			}

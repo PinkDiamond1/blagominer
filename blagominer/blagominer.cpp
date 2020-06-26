@@ -306,8 +306,8 @@ std::vector<char, heap_allocator<char>> load_config_file(wchar_t const *const fi
 
 DocumentUTF16LE load_config_json(std::vector<char, heap_allocator<char>> const& json_)
 {
-	DocumentUTF16LE document;	// Default template parameter uses UTF8 and MemoryPoolAllocator.
-	if (document.Parse<kParseCommentsFlag, UTF8<>>(json_.data()).HasParseError()) {
+	DocumentUTF16LE document = parseJsonData<kParseCommentsFlag>(json_);
+	if (document.HasParseError()) {
 		fprintf(stderr, "\nJSON format error (offset %u) check miner.conf\n%s\n", (unsigned)document.GetErrorOffset(), GetParseError_En(document.GetParseError())); //(offset %s  %s", (unsigned)document.GetErrorOffset(), (char*)document.GetParseError());
 		system("pause > nul");
 		exit(-1);
@@ -485,8 +485,8 @@ bool load_testmode_config(wchar_t const *const filename)
 	json_[bytesread] = 0;
 	guardPFile.reset();
 
-	DocumentUTF16LE document;	// Default template parameter uses UTF8 and MemoryPoolAllocator.
-	if (document.Parse<kParseCommentsFlag, UTF8<>>(json_.data()).HasParseError()) {
+	DocumentUTF16LE document = parseJsonData<kParseCommentsFlag>(json_);
+	if (document.HasParseError()) {
 		fprintf(stderr, "\nJSON format error (offset %u) check testmode.conf\n%s\n", (unsigned)document.GetErrorOffset(), GetParseError_En(document.GetParseError())); //(offset %s  %s", (unsigned)document.GetErrorOffset(), (char*)document.GetParseError());
 		system("pause > nul");
 		exit(-1);

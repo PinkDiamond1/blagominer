@@ -20,18 +20,19 @@ void checkForUpdate() {
 		if (getDiffernceinDays(std::time(nullptr), lastChecked) > checkForUpdateInterval) {
 			Log(L"UPDATE CHECKER: Checking for new version.");
 			LPSTR lpResult = NULL;
+			DWORD dwSize = 0;
 			LPSTREAM lpStream;
 			if (SUCCEEDED(URLOpenBlockingStream(NULL, versionUrl, &lpStream, 0, NULL))) {
 				STATSTG statStream;
 				if (SUCCEEDED(lpStream->Stat(&statStream, STATFLAG_NONAME))) {
-					DWORD dwSize = statStream.cbSize.LowPart + 1;
-					lpResult = (LPSTR)malloc(dwSize);
+					dwSize = statStream.cbSize.LowPart;
+					lpResult = (LPSTR)malloc(dwSize + 1); // TODO: LPRESULT seem to be never free'd
 					if (lpResult) {
 						LARGE_INTEGER liPos;
 						ZeroMemory(&liPos, sizeof(liPos));
-						ZeroMemory(lpResult, dwSize);
+						ZeroMemory(lpResult, dwSize + 1);
 						lpStream->Seek(liPos, STREAM_SEEK_SET, NULL);
-						lpStream->Read(lpResult, dwSize - 1, NULL);
+						lpStream->Read(lpResult, dwSize, NULL);
 					}
 					else {
 						Log(L"UPDATE CHECKER: Error allocating memory.");
@@ -51,8 +52,8 @@ void checkForUpdate() {
 			}
 
 			if (!error) {
-				DocumentUTF16LE document;	// Default template parameter uses UTF8 and MemoryPoolAllocator.
-				if (document.Parse<0, UTF8<>>(lpResult).HasParseError()) {
+				DocumentUTF16LE document = parseJsonData<kParseNoFlags>(span{ (char const*)lpResult, dwSize });
+				if (document.HasParseError()) {
 					Log(L"UPDATE CHECKER: Error (offset %u) parsing retrieved data: %S", (unsigned)document.GetErrorOffset(), GetParseError_En(document.GetParseError()));
 				}
 				else {
