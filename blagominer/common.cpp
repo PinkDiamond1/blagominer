@@ -1,7 +1,11 @@
 #include "stdafx.h"
 #include "common.h"
 
+#pragma warning( push )
+#pragma warning( disable: 26451 )	// Warning C26451	"Arithmetic overflow: Using operator '-' on a 4 byte value and then casting the result to a 8 byte value"
+#pragma warning( disable: 26812 )	// Warning C26812	"The enum type 'rapidjson::.....' is unscoped. Prefer 'enum class' over 'enum'"
 #include "line_noise_convert_utf.h"
+#pragma warning( pop )
 
 const wchar_t sepChar = 0x00B7;
 
