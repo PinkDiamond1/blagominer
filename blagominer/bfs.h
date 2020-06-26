@@ -30,4 +30,4 @@ struct BFSTOC
 extern BFSTOC bfsTOC;							// BFS Table of Contents
 extern unsigned int bfsTOCOffset;				// 4k address of BFSTOC on harddisk. default = 5
 
-bool LoadBFSTOC(std::string drive);				//read BFSTOC from drive
+bool LoadBFSTOC(std::wstring drive);				//read BFSTOC from drive

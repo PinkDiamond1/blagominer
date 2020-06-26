@@ -5,8 +5,8 @@
 
 extern bool showCorruptedPlotFiles;
 
-void increaseMatchingDeadline(std::string file);
-void increaseConflictingDeadline(std::shared_ptr<t_coin_info> coin, unsigned long long height, std::string file);
-void increaseReadError(std::string file);
+void increaseMatchingDeadline(std::wstring file);
+void increaseConflictingDeadline(std::shared_ptr<t_coin_info> coin, unsigned long long height, std::wstring file);
+void increaseReadError(std::wstring file);
 void resetFileStats();
 void printFileStats();

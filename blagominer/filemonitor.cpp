@@ -2,12 +2,12 @@
 
 std::mutex mFileStats;
 
-std::map<std::string, t_file_stats> fileStats = std::map<std::string, t_file_stats>();
+std::map<std::wstring, t_file_stats> fileStats = std::map<std::wstring, t_file_stats>();
 bool showCorruptedPlotFiles = true;
 
 bool statsChanged = false;
 
-void increaseMatchingDeadline(std::string file) {
+void increaseMatchingDeadline(std::wstring file) {
 	if (!showCorruptedPlotFiles) {
 		return;
 	}
@@ -16,7 +16,7 @@ void increaseMatchingDeadline(std::string file) {
 	++fileStats[file].matchingDeadlines;
 }
 
-void increaseConflictingDeadline(std::shared_ptr<t_coin_info> coin, unsigned long long height, std::string file) {
+void increaseConflictingDeadline(std::shared_ptr<t_coin_info> coin, unsigned long long height, std::wstring file) {
 	if (!showCorruptedPlotFiles) {
 		return;
 	}
@@ -42,7 +42,7 @@ void increaseConflictingDeadline(std::shared_ptr<t_coin_info> coin, unsigned lon
 	}
 }
 
-void increaseReadError(std::string file) {
+void increaseReadError(std::wstring file) {
 	if (!showCorruptedPlotFiles) {
 		return;
 	}

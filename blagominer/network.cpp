@@ -190,7 +190,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 							}
 							EnterCriticalSection(&coinInfo->locks->sharesLock);
 							coinInfo->mining->shares.push_back(std::make_shared<t_shares>(
-								client_address_str, get_accountId, get_deadline, get_nonce, get_deadline, coinInfo->mining->currentHeight, coinInfo->mining->currentBaseTarget));
+								toWStr(client_address_str), get_accountId, get_deadline, get_nonce, get_deadline, coinInfo->mining->currentHeight, coinInfo->mining->currentBaseTarget));
 							LeaveCriticalSection(&coinInfo->locks->sharesLock);
 
 							auto scaledDL = get_deadline / coinInfo->mining->currentBaseTarget;
@@ -222,11 +222,11 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 				{
 					if (strstr(buffer.data(), "getMiningInfo") != nullptr)
 					{
-						char* str_signature = getCurrentStrSignature(coinInfo);
+						std::wstring str_signature = getCurrentStrSignature(coinInfo);
 
 						RtlSecureZeroMemory(buffer.data(), buffer.size());
-						int bytes = sprintf_s(buffer.data(), buffer.size(), "HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n{\"baseTarget\":\"%llu\",\"height\":\"%llu\",\"generationSignature\":\"%s\",\"targetDeadline\":%llu}", coinInfo->mining->currentBaseTarget, coinInfo->mining->currentHeight, str_signature, targetDeadlineInfo);
-						delete[] str_signature;
+						int bytes = sprintf_s(buffer.data(), buffer.size(), "HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n{\"baseTarget\":\"%llu\",\"height\":\"%llu\",\"generationSignature\":\"%S\",\"targetDeadline\":%llu}", coinInfo->mining->currentBaseTarget, coinInfo->mining->currentHeight, str_signature.c_str(), targetDeadlineInfo);
+
 						iResult = send(ClientSocket, buffer.data(), bytes, 0);
 						if (iResult == SOCKET_ERROR)
 						{
@@ -588,7 +588,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 }
 
 
-bool __impl__confirm_i__sockets(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, char*& find, bool& nonJsonSuccessDetected, std::shared_ptr<t_session>& session) {
+bool __impl__confirm_i__sockets(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, DocumentUTF16LE& output, char const*& find, bool& nonJsonSuccessDetected, std::shared_ptr<t_session>& session) {
 	bool failed = false;
 
 	const wchar_t* confirmerName = coinInfo->coinname.c_str();
@@ -697,8 +697,9 @@ bool __impl__confirm_i__sockets(std::vector<char, heap_allocator<char>>& buffer,
 			unsigned long long naccountId = 0;
 			unsigned long long ntargetDeadline = 0;
 
-			rapidjson::Document& answ = output;
-			if (answ.Parse<0>(find).HasParseError())
+			DocumentUTF16LE& answ = output;
+			parseJsonData<kParseNoFlags>(answ, span{ find, buffer.size() - (find - buffer.data()) });
+			if (answ.HasParseError())
 			{
 				if (strstr(find, "Received share") != nullptr)
 				{
@@ -784,7 +785,7 @@ static int wait_on_socket(curl_socket_t sockfd, int for_recv, long timeout_ms)
 	return res;
 }
 
-bool __impl__confirm_i__curl(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, char*& find, bool& nonJsonSuccessDetected, std::shared_ptr<t_session2>& session) {
+bool __impl__confirm_i__curl(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, DocumentUTF16LE& output, char const*& find, bool& nonJsonSuccessDetected, std::shared_ptr<t_session2>& session) {
 	bool failed = false;
 
 	const wchar_t* confirmerName = coinInfo->coinname.c_str();
@@ -908,8 +909,9 @@ bool __impl__confirm_i__curl(std::vector<char, heap_allocator<char>>& buffer, st
 			unsigned long long naccountId = 0;
 			unsigned long long ntargetDeadline = 0;
 
-			rapidjson::Document& answ = output;
-			if (answ.Parse<0>(find).HasParseError())
+			DocumentUTF16LE& answ = output;
+			parseJsonData<kParseNoFlags>(answ, span{ find, buffer.size() - (find - buffer.data()) });
+			if (answ.HasParseError())
 			{
 				if (strstr(find, "Received share") != nullptr)
 				{
@@ -985,9 +987,9 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 		unsigned long long naccountId = 0;
 		unsigned long long ntargetDeadline = 0;
 
-		char* find;
+		char const* find;
 		bool nonJsonSuccessDetected;
-		rapidjson::Document answ;
+		DocumentUTF16LE answ;
 		bool failedOrNoData;
 
 		if (coinInfo->network->usehttps)
@@ -995,7 +997,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 		else
 			failedOrNoData = __impl__confirm_i__sockets(buffer, coinInfo, answ, find, nonJsonSuccessDetected, session);
 
-		t_session sessionX_(NULL, -1, t_shares("", 0, 0, 0, 0, 0, 0));
+		t_session sessionX_(NULL, -1, t_shares(L"", 0, 0, 0, 0, 0, 0));
 		t_session* sessionX = &sessionX_;
 		if (!failedOrNoData)
 			if (coinInfo->network->usehttps) {
@@ -1014,21 +1016,21 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 		{
 			if (answ.IsObject())
 			{
-				if (answ.HasMember("deadline")) {
-					if (answ["deadline"].IsString())	ndeadline = _strtoui64(answ["deadline"].GetString(), 0, 10);
+				if (answ.HasMember(L"deadline")) {
+					if (answ[L"deadline"].IsString())	ndeadline = _wcstoui64(answ[L"deadline"].GetString(), 0, 10);
 					else
-						if (answ["deadline"].IsInt64()) ndeadline = answ["deadline"].GetInt64();
+						if (answ[L"deadline"].IsInt64()) ndeadline = answ[L"deadline"].GetInt64();
 					Log(L"Confirmer %s: confirmed deadline: %llu", coinName, ndeadline);
 
-					if (answ.HasMember("targetDeadline")) {
-						if (answ["targetDeadline"].IsString())	ntargetDeadline = _strtoui64(answ["targetDeadline"].GetString(), 0, 10);
+					if (answ.HasMember(L"targetDeadline")) {
+						if (answ[L"targetDeadline"].IsString())	ntargetDeadline = _wcstoui64(answ[L"targetDeadline"].GetString(), 0, 10);
 						else
-							if (answ["targetDeadline"].IsInt64()) ntargetDeadline = answ["targetDeadline"].GetInt64();
+							if (answ[L"targetDeadline"].IsInt64()) ntargetDeadline = answ[L"targetDeadline"].GetInt64();
 					}
-					if (answ.HasMember("accountId")) {
-						if (answ["accountId"].IsString())	naccountId = _strtoui64(answ["accountId"].GetString(), 0, 10);
+					if (answ.HasMember(L"accountId")) {
+						if (answ[L"accountId"].IsString())	naccountId = _wcstoui64(answ[L"accountId"].GetString(), 0, 10);
 						else
-							if (answ["accountId"].IsInt64()) naccountId = answ["accountId"].GetInt64();
+							if (answ[L"accountId"].IsInt64()) naccountId = answ[L"accountId"].GetInt64();
 					}
 
 					if ((naccountId != 0) && (ntargetDeadline != 0))
@@ -1078,7 +1080,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 					}
 				}
 				else {
-					if (answ.HasMember("errorDescription")) {
+					if (answ.HasMember(L"errorDescription")) {
 						// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
 						Log(L"Confirmer %s: Deadline %llu sent with error: %S", coinName, sessionX->deadline, find);
 						std::thread{ Csv_Fail, coinInfo, sessionX->body.height, sessionX->body.file_name, sessionX->body.baseTarget,
@@ -1090,20 +1092,20 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 								L"----Fast block or corrupted file?----\n%s sent deadline:\t%llu\nTarget deadline:\t%llu \n----",
 								coinName, sessionX->deadline, targetDeadlineInfo);
 						}
-						if (answ["errorCode"].IsInt()) {
-							gui->printToConsole(15, true, false, true, false, L"[ERROR %i] %s: %S", answ["errorCode"].GetInt(), coinName, answ["errorDescription"].GetString());
-							if (answ["errorCode"].GetInt() == 1004) {
+						if (answ[L"errorCode"].IsInt()) {
+							gui->printToConsole(15, true, false, true, false, L"[ERROR %i] %s: %s", answ[L"errorCode"].GetInt(), coinName, answ[L"errorDescription"].GetString());
+							if (answ[L"errorCode"].GetInt() == 1004) {
 								gui->printToConsole(12, true, false, true, false, L"%s: You need change reward assignment and wait 4 blocks (~16 minutes)", coinName); //error 1004
 							}
 						}
-						else if (answ["errorCode"].IsString()) {
-							gui->printToConsole(15, true, false, true, false, L"[ERROR %S] %s: %S", answ["errorCode"].GetString(), coinName, answ["errorDescription"].GetString());
-							if (answ["errorCode"].GetString() == "1004") {
+						else if (answ[L"errorCode"].IsString()) {
+							gui->printToConsole(15, true, false, true, false, L"[ERROR %s] %s: %s", answ[L"errorCode"].GetString(), coinName, answ[L"errorDescription"].GetString());
+							if (answ[L"errorCode"].GetString() == L"1004") {
 								gui->printToConsole(12, true, false, true, false, L"%s: You need change reward assignment and wait 4 blocks (~16 minutes)", coinName); //error 1004
 							}
 						}
 						else {
-							gui->printToConsole(15, true, false, true, false, L"[ERROR] %s: %S", coinName, answ["errorDescription"].GetString());
+							gui->printToConsole(15, true, false, true, false, L"[ERROR] %s: %s", coinName, answ[L"errorDescription"].GetString());
 						}
 					}
 					else {
@@ -1145,7 +1147,7 @@ void updater_i(std::shared_ptr<t_coin_info> coinInfo)
 	}
 }
 
-bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, std::string& rawResponse) {
+bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, DocumentUTF16LE& output, std::string& rawResponse) {
 	bool failed = false;
 
 	const wchar_t* updaterName = coinInfo->coinname.c_str();
@@ -1218,7 +1220,7 @@ bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, rapidjson
 						}
 
 						rawResponse = { buffer.begin(), buffer.end() };
-						rapidjson::Document& gmi = output;
+						DocumentUTF16LE& gmi = output;
 
 						// locate HTTP header
 						char const* find = strstr(buffer.data(), "\r\n\r\n");
@@ -1226,11 +1228,11 @@ bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, rapidjson
 							Log(L"*! GMI %s: error message from pool: %S", updaterName, Log_server(buffer.data()).c_str());
 							failed = true;
 						}
-						else if (loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(find).HasParseError()) {
+						else if (loggingConfig.logAllGetMiningInfos && parseJsonData<kParseNoFlags>(gmi, span{ find, buffer.size() - (find - buffer.data()) }).HasParseError()) {
 							Log(L"*! GMI %s: error parsing JSON message from pool", updaterName);
 							failed = true;
 						}
-						else if (!loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(find).HasParseError()) {
+						else if (!loggingConfig.logAllGetMiningInfos && parseJsonData<kParseNoFlags>(gmi, span{ find, buffer.size() - (find - buffer.data()) }).HasParseError()) {
 							Log(L"*! GMI %s: error parsing JSON message from pool: %S", updaterName, Log_server(buffer.data()).c_str());
 							failed = true;
 						}
@@ -1258,7 +1260,7 @@ static size_t __impl__pollLocal__curl__readcallback(void *contents, size_t size,
 
 	return delta;
 }
-bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, std::string& rawResponse) {
+bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, DocumentUTF16LE& output, std::string& rawResponse) {
 	bool failed = false;
 
 	const wchar_t* updaterName = coinInfo->coinname.c_str();
@@ -1324,12 +1326,12 @@ bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 			}
 
 			rawResponse.assign(chunk.begin(), chunk.end()); // TODO: not so 'raw', that's just the response BODY with no headers
-			rapidjson::Document& gmi = output;
-			if (loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(chunk.data(), chunk.size()).HasParseError()) {
+			DocumentUTF16LE& gmi = output;
+			if (loggingConfig.logAllGetMiningInfos && parseJsonData<kParseNoFlags>(gmi, chunk).HasParseError()) {
 				Log(L"*! GMI %s: error parsing JSON message from pool", updaterName);
 				failed = true;
 			}
-			else if (!loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(chunk.data(), chunk.size()).HasParseError()) {
+			else if (!loggingConfig.logAllGetMiningInfos && parseJsonData<kParseNoFlags>(gmi, chunk).HasParseError()) {
 				Log(L"*! GMI %s: error parsing JSON message from pool: %S", updaterName, Log_server(chunk.data()).c_str());
 				failed = true;
 			}
@@ -1344,7 +1346,7 @@ bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 
 bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 	std::string rawResponse;
-	rapidjson::Document gmi;
+	DocumentUTF16LE gmi;
 	bool failed;
 
 	if (coinInfo->network->usehttps)
@@ -1358,23 +1360,23 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 	const wchar_t* updaterName = coinInfo->coinname.c_str();
 	bool newBlock = false;
 
-	if (gmi.HasMember("baseTarget")) {
-		if (gmi["baseTarget"].IsString())	coinInfo->mining->baseTarget = _strtoui64(gmi["baseTarget"].GetString(), 0, 10);
+	if (gmi.HasMember(L"baseTarget")) {
+		if (gmi[L"baseTarget"].IsString())	coinInfo->mining->baseTarget = _wcstoui64(gmi[L"baseTarget"].GetString(), 0, 10);
 		else
-			if (gmi["baseTarget"].IsInt64())coinInfo->mining->baseTarget = gmi["baseTarget"].GetInt64();
+			if (gmi[L"baseTarget"].IsInt64())coinInfo->mining->baseTarget = gmi[L"baseTarget"].GetInt64();
 	}
 
 	uint64_t height = INTMAX_MAX;
-	if (gmi.HasMember("height")) {
-		if (gmi["height"].IsString())	setHeight(coinInfo, height = _strtoui64(gmi["height"].GetString(), 0, 10));
+	if (gmi.HasMember(L"height")) {
+		if (gmi[L"height"].IsString())	setHeight(coinInfo, height = _wcstoui64(gmi[L"height"].GetString(), 0, 10));
 		else
-			if (gmi["height"].IsInt64()) setHeight(coinInfo, height = gmi["height"].GetInt64());
+			if (gmi[L"height"].IsInt64()) setHeight(coinInfo, height = gmi[L"height"].GetInt64());
 	}
 
-	if (gmi.HasMember("generationSignature")) {
-		setStrSignature(coinInfo, gmi["generationSignature"].GetString());
+	if (gmi.HasMember(L"generationSignature")) {
+		setStrSignature(coinInfo, gmi[L"generationSignature"].GetString());
 		char sig[33];
-		size_t sigLen = xstr2strr(sig, 33, gmi["generationSignature"].GetString());
+		size_t sigLen = xstr2strr(sig, 33, gmi[L"generationSignature"].GetString());
 
 		if (coinInfo->mining->enableDiskcoinGensigs) {
 			std::array<uint8_t, 32> tmp;
@@ -1396,13 +1398,13 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 			}
 		}
 	}
-	if (gmi.HasMember("targetDeadline")) {
+	if (gmi.HasMember(L"targetDeadline")) {
 		unsigned long long newTargetDeadlineInfo = 0;
-		if (gmi["targetDeadline"].IsString()) {
-			newTargetDeadlineInfo = _strtoui64(gmi["targetDeadline"].GetString(), 0, 10);
+		if (gmi[L"targetDeadline"].IsString()) {
+			newTargetDeadlineInfo = _wcstoui64(gmi[L"targetDeadline"].GetString(), 0, 10);
 		}
 		else {
-			newTargetDeadlineInfo = gmi["targetDeadline"].GetInt64();
+			newTargetDeadlineInfo = gmi[L"targetDeadline"].GetInt64();
 		}
 		if (loggingConfig.logAllGetMiningInfos || newBlock) {
 			Log(L"*! GMI %s: newTargetDeadlineInfo: %llu", updaterName, newTargetDeadlineInfo);
@@ -1443,7 +1445,7 @@ int xdigit(char const digit) {
 size_t xstr2strr(char *buf, size_t const bufsize, const char *const in) {
 	if (!in) return 0; // missing input string
 
-	size_t inlen = (size_t)strlen(in);
+	size_t inlen = strlen(in);
 	if (inlen % 2 != 0) inlen--; // hex string must even sized
 
 	size_t i, j;
@@ -1453,6 +1455,34 @@ size_t xstr2strr(char *buf, size_t const bufsize, const char *const in) {
 	if (!buf || bufsize<inlen / 2 + 1) return 0; // no buffer or too small
 
 	for (i = 0, j = 0; i<inlen; i += 2, j++)
+		buf[j] = xdigit(in[i]) * 16 + xdigit(in[i + 1]);
+
+	buf[inlen / 2] = '\0';
+	return inlen / 2 + 1;
+}
+
+int xdigit(wchar_t const digit) {
+	int val;
+	if (L'0' <= digit && digit <= L'9') val = digit - L'0';
+	else if (L'a' <= digit && digit <= L'f') val = digit - L'a' + 10;
+	else if (L'A' <= digit && digit <= L'F') val = digit - L'A' + 10;
+	else val = -1;
+	return val;
+}
+
+size_t xstr2strr(char* buf, size_t const bufsize, const wchar_t* const in) {
+	if (!in) return 0; // missing input string
+
+	size_t inlen = wcslen(in);
+	if (inlen % 2 != 0) inlen--; // hex string must even sized
+
+	size_t i, j;
+	for (i = 0; i < inlen; i++)
+		if (xdigit(in[i]) < 0) return 0; // bad character in hex string
+
+	if (!buf || bufsize < inlen / 2 + 1) return 0; // no buffer or too small
+
+	for (i = 0, j = 0; i < inlen; i += 2, j++)
 		buf[j] = xdigit(in[i]) * 16 + xdigit(in[i + 1]);
 
 	buf[inlen / 2] = '\0';

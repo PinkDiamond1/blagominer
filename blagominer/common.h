@@ -34,12 +34,12 @@ enum class MiningState {
 };
 
 struct t_shares {
-	t_shares(std::string file_name, unsigned long long account_id, unsigned long long best,
+	t_shares(std::wstring const& file_name, unsigned long long account_id, unsigned long long best,
 		unsigned long long nonce, unsigned long long deadline, unsigned long long height,
 		unsigned long long baseTarget) :
 		file_name(file_name), account_id(account_id), best(best), nonce(nonce), deadline(deadline),
 		height(height), baseTarget(baseTarget) {}
-	std::string file_name;
+	std::wstring file_name;
 	unsigned long long account_id;// = 0;
 	// This is the best Target, not Deadline.
 	unsigned long long best;// = 0;
@@ -72,8 +72,8 @@ struct t_session2 {
 
 struct t_files {
 	bool done;
-	std::string Path;
-	std::string Name;
+	std::wstring Path;
+	std::wstring Name;
 	long long positionOnNtfsVolume;
 	unsigned long long Size;
 	unsigned long long Key;
@@ -86,8 +86,8 @@ struct t_files {
 };
 
 struct t_directory_info {
-	t_directory_info(std::string dir, bool done, std::vector<t_files> files) : dir(dir), done(done), files(files) {}
-	std::string dir;
+	t_directory_info(std::wstring dir, bool done, std::vector<t_files> files) : dir(dir), done(done), files(files) {}
+	std::wstring dir;
 	bool done;
 	std::vector<t_files> files;
 };
@@ -107,7 +107,7 @@ struct t_logging {
 };
 
 struct LogFileInfo {
-	std::string filename;
+	std::wstring filename;
 	std::mutex mutex;
 };
 
@@ -153,7 +153,7 @@ struct t_mining_info {
 
 	// Values for current mining process
 	char currentSignature[33];
-	char current_str_signature[65];
+	std::wstring current_str_signature;
 	unsigned long long currentHeight = 0;
 	unsigned long long currentBaseTarget = 0;
 	std::vector<t_best> bests;
@@ -162,7 +162,7 @@ struct t_mining_info {
 	// Values for new mining info check
 	char signature[33];						// signature of current block
 	char oldSignature[33];					// signature of last block
-	char str_signature[65];
+	std::wstring str_signature;
 };
 
 struct t_network_info {
@@ -227,12 +227,12 @@ struct t_roundreplay_round_test {
 	unsigned long long assume_nonce;
 
 	std::optional<unsigned int> assume_scoop;
-	std::optional<std::string> assume_scoop_low;
-	std::optional<std::string> assume_scoop_high;
+	std::optional<std::wstring> assume_scoop_low;
+	std::optional<std::wstring> assume_scoop_high;
 
 	std::optional<unsigned int> check_scoop;
-	std::optional<std::string> check_scoop_low;
-	std::optional<std::string> check_scoop_high;
+	std::optional<std::wstring> check_scoop_low;
+	std::optional<std::wstring> check_scoop_high;
 	std::optional<unsigned long long> check_deadline;
 
 	std::optional<bool> passed_scoop;
@@ -243,7 +243,7 @@ struct t_roundreplay_round_test {
 
 struct t_roundreplay_round {
 	unsigned long long height;
-	std::string signature;
+	std::wstring signature;
 	unsigned long long baseTarget;
 
 	std::optional<bool> assume_POC2; // TODO: since it's round X test, move that to the TEST // obvious in OFFLINE, and in ONLINE remember the mode is SHORT not FULL!
@@ -271,9 +271,9 @@ void setHeight(std::shared_ptr<t_coin_info> coin, const unsigned long long heigh
 unsigned long long getTargetDeadlineInfo(std::shared_ptr<t_coin_info> coin);
 void setTargetDeadlineInfo(std::shared_ptr<t_coin_info> coin, const unsigned long long targetDeadlineInfo);
 char* getSignature(std::shared_ptr<t_coin_info> coin);
-char* getCurrentStrSignature(std::shared_ptr<t_coin_info> coin);
+std::wstring getCurrentStrSignature(std::shared_ptr<t_coin_info> coin);
 void setSignature(std::shared_ptr<t_coin_info> coin, const char* signature);
-void setStrSignature(std::shared_ptr<t_coin_info> coin, const char* signature);
+void setStrSignature(std::shared_ptr<t_coin_info> coin, std::wstring const& signature);
 void updateOldSignature(std::shared_ptr<t_coin_info> coin);
 void updateCurrentStrSignature(std::shared_ptr<t_coin_info> coin);
 bool signaturesDiffer(std::shared_ptr<t_coin_info> coin);
@@ -287,10 +287,11 @@ void getLocalDateTime(const std::time_t &rawtime, char* local, const std::string
 std::wstring toWStr(int number, const unsigned short length);
 std::wstring toWStr(unsigned long long number, const unsigned short length);
 std::wstring toWStr(std::wstring str, const unsigned short length);
-std::wstring toWStr(std::string str, const unsigned short length);
+std::wstring toWStr(std::string str);
 
 std::string toStr(unsigned long long number, const unsigned short length);
 std::string toStr(std::string str, const unsigned short length);
+std::string toStr(std::wstring str);
 
 // TODO: find/invent something better for statically detecting narrowing overflows on constexprs
 // https://stackoverflow.com/a/46229281/717732
@@ -302,6 +303,36 @@ Target narrow_cast(Source v)
 		throw std::runtime_error("narrow_cast<>() failed");
 	return r;
 }
+
+template<typename T>
+class span {
+	T* _data;
+	size_t _size;
+public:
+	span(T* data, size_t size) :_data(data), _size(size) {}
+	T* data() const { return _data; }
+	size_t size() const { return _size; }
+};
+
+template<unsigned parseFlags, typename T>
+DocumentUTF16LE parseJsonData(T const& source)
+{
+	MemoryStream bis(source.data(), source.size());
+	AutoUTFInputStream<unsigned, MemoryStream> eis(bis);
+
+	DocumentUTF16LE document;
+	document.ParseStream<parseFlags, AutoUTF<unsigned>>(eis);
+	return document;
+}
+
+template<unsigned parseFlags, typename T>
+DocumentUTF16LE& parseJsonData(DocumentUTF16LE& document, T const& source)
+{
+	MemoryStream bis(source.data(), source.size());
+	AutoUTFInputStream<unsigned, MemoryStream> eis(bis);
+	return document.ParseStream<parseFlags, AutoUTF<unsigned>>(eis);
+}
+
 
 struct IUserInterface;
 
@@ -337,7 +368,7 @@ struct IUserInterface
 	) = 0;
 
 	virtual void printPlotsStart() = 0;
-	virtual void printPlotsInfo(char const* const directory, size_t nfiles, unsigned long long size) = 0;
+	virtual void printPlotsInfo(std::wstring const& directory, size_t nfiles, unsigned long long size) = 0;
 	virtual void printPlotsEnd(unsigned long long total_size) = 0;
 
 	virtual void printThreadActivity(
@@ -348,7 +379,7 @@ struct IUserInterface
 
 	virtual void debugWorkerStats(
 		std::wstring const& specialReadMode,
-		std::string const& directory,
+		std::wstring const& directory,
 		double proc_time, double work_time,
 		unsigned long long files_size_per_thread
 	) = 0;
@@ -459,7 +490,7 @@ struct IUserInterface
 
 	virtual void showNewVersion(std::string version) = 0;
 
-	virtual void printFileStats(std::map<std::string, t_file_stats>const& fileStats) = 0;
+	virtual void printFileStats(std::map<std::wstring, t_file_stats>const& fileStats) = 0;
 
 	// ---
 

@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <sstream>
 
-const std::string header = "File name                                             +DLs      -DLs       I/O";
+const std::wstring header = L"File name                                             +DLs      -DLs       I/O";
 
 Output_PlainText::~Output_PlainText()
 {
@@ -129,10 +129,10 @@ void Output_PlainText::printPlotsStart()
 	printToConsole(15, false, false, true, false, L"Using plots:");
 }
 
-void Output_PlainText::printPlotsInfo(char const* const directory, size_t nfiles, unsigned long long size)
+void Output_PlainText::printPlotsInfo(std::wstring const& directory, size_t nfiles, unsigned long long size)
 {
-	printToConsole(-1, false, false, true, false, L"%S\tfiles: %4llu\t size: %7llu GiB",
-		directory, nfiles, size / 1024 / 1024 / 1024);
+	printToConsole(-1, false, false, true, false, L"%s\tfiles: %4llu\t size: %7llu GiB",
+		directory.c_str(), nfiles, size / 1024 / 1024 / 1024);
 }
 
 void Output_PlainText::printPlotsEnd(unsigned long long total_size)
@@ -152,18 +152,19 @@ void Output_PlainText::printThreadActivity(
 
 void Output_PlainText::debugWorkerStats(
 	std::wstring const& specialReadMode,
-	std::string const& directory,
+	std::wstring const& directory,
 	double proc_time, double work_time,
 	unsigned long long files_size_per_thread
 )
 {
 	auto msgFormat = !specialReadMode.empty()
-		? L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (%s)"
-		: L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%%%s"; // note that the last %s is always empty, it is there just to keep the same number of placeholders
+		? L"Thread \"%s\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (%s)"
+		: L"Thread \"%s\" @ %.1f sec (%.1f MB/s) CPU %.2f%%%s"; // note that the last %s is always empty, it is there just to keep the same number of placeholders
 
 	printToConsole(7, true, false, true, false, msgFormat,
 		directory.c_str(), work_time, (double)(files_size_per_thread) / work_time / 1024 / 1024 / 4096,
-		proc_time / work_time * 100);
+		proc_time / work_time * 100,
+		specialReadMode.c_str());
 }
 
 void Output_PlainText::printWorkerDeadlineFound(
@@ -456,7 +457,7 @@ void Output_PlainText::showNewVersion(std::string version) {
 	printToConsole(0, false, true, true, false, std::wstring(tmp.begin(), tmp.end()).c_str());
 }
 
-void Output_PlainText::printFileStats(std::map<std::string, t_file_stats>const& fileStats) {
+void Output_PlainText::printFileStats(std::map<std::wstring, t_file_stats>const& fileStats) {
 	int lineCount = 0;
 	for (auto& element : fileStats)
 		if (element.second.conflictingDeadlines > 0 || element.second.readErrors > 0)
@@ -465,26 +466,26 @@ void Output_PlainText::printFileStats(std::map<std::string, t_file_stats>const& 
 	if (lineCount == 0)
 		return;
 
-	std::string tmp = header;
-	tmp += "\n";
+	std::wstring tmp = header;
+	tmp += L"\n";
 
 	for (auto& element : fileStats)
 		if (element.second.conflictingDeadlines > 0 || element.second.readErrors > 0) {
-			tmp += toStr(element.first, 46);
-			tmp += " ";
-			tmp += toStr(element.second.matchingDeadlines, 11);
+			tmp += toWStr(element.first, 46);
+			tmp += L" ";
+			tmp += toWStr(element.second.matchingDeadlines, 11);
 			//if (element.second.conflictingDeadlines > 0) {
 			//	bm_wattronC(4);
 			//}
-			tmp += " ";
-			tmp += toStr(element.second.conflictingDeadlines, 9);
+			tmp += L" ";
+			tmp += toWStr(element.second.conflictingDeadlines, 9);
 			//if (element.second.readErrors > 0) {
 			//	bm_wattronC(4);
 			//}
-			tmp += " ";
-			tmp += toStr(element.second.readErrors, 9);
-			tmp += "\n";
+			tmp += L" ";
+			tmp += toWStr(element.second.readErrors, 9);
+			tmp += L"\n";
 		}
 
-	printToConsole(0, false, true, true, false, std::wstring(tmp.begin(), tmp.end()).c_str());
+	printToConsole(0, false, true, true, false, L"%s", tmp.c_str());
 }

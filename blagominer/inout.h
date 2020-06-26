@@ -40,7 +40,7 @@ public:
 	) override;
 
 	void printPlotsStart() override;
-	void printPlotsInfo(char const* const directory, size_t nfiles, unsigned long long size) override;
+	void printPlotsInfo(std::wstring const& directory, size_t nfiles, unsigned long long size) override;
 	void printPlotsEnd(unsigned long long total_size) override;
 
 	void printThreadActivity(
@@ -51,7 +51,7 @@ public:
 
 	void debugWorkerStats(
 		std::wstring const& specialReadMode,
-		std::string const& directory,
+		std::wstring const& directory,
 		double proc_time, double work_time,
 		unsigned long long files_size_per_thread
 	) override;
@@ -133,7 +133,7 @@ public:
 		bool isPoc2Round
 	) override;
 
-	void printFileStats(std::map<std::string, t_file_stats> const & fileStats);
+	void printFileStats(std::map<std::wstring, t_file_stats> const & fileStats);
 
 	bool currentlyDisplayingCorruptedPlotFiles();
 	void showNewVersion(std::string version);
