@@ -1169,7 +1169,7 @@ unsigned long long getPlotFilesSize(std::vector<std::wstring>& directories, bool
 			all_files.push_back(*it);
 		}
 		if (log) {
-			gui->printPlotsInfo(*iter, files.size(), tot_size / 1024 / 1024 / 1024);
+			gui->printPlotsInfo(*iter, files.size(), tot_size);
 		}
 		size += tot_size;
 	}
