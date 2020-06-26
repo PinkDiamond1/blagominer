@@ -54,7 +54,7 @@ void checkForUpdate() {
 			if (!error) {
 				DocumentUTF16LE document = parseJsonData<kParseNoFlags>(span{ (char const*)lpResult, dwSize });
 				if (document.HasParseError()) {
-					Log(L"UPDATE CHECKER: Error (offset %u) parsing retrieved data: %S", (unsigned)document.GetErrorOffset(), GetParseError_En(document.GetParseError()));
+					Log(L"UPDATE CHECKER: Error (offset %zu) parsing retrieved data: %S", document.GetErrorOffset(), GetParseError_En(document.GetParseError()));
 				}
 				else {
 					if (document.IsObject()) {

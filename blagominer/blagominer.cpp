@@ -308,7 +308,7 @@ DocumentUTF16LE load_config_json(std::vector<char, heap_allocator<char>> const& 
 {
 	DocumentUTF16LE document = parseJsonData<kParseCommentsFlag>(json_);
 	if (document.HasParseError()) {
-		fprintf(stderr, "\nJSON format error (offset %u) check miner.conf\n%s\n", (unsigned)document.GetErrorOffset(), GetParseError_En(document.GetParseError())); //(offset %s  %s", (unsigned)document.GetErrorOffset(), (char*)document.GetParseError());
+		fprintf(stderr, "\nJSON format error (offset %zu) check miner.conf\n%s\n", document.GetErrorOffset(), GetParseError_En(document.GetParseError())); //(offset %s  %s", (unsigned)document.GetErrorOffset(), (char*)document.GetParseError());
 		system("pause > nul");
 		exit(-1);
 	}
@@ -487,7 +487,7 @@ bool load_testmode_config(wchar_t const *const filename)
 
 	DocumentUTF16LE document = parseJsonData<kParseCommentsFlag>(json_);
 	if (document.HasParseError()) {
-		fprintf(stderr, "\nJSON format error (offset %u) check testmode.conf\n%s\n", (unsigned)document.GetErrorOffset(), GetParseError_En(document.GetParseError())); //(offset %s  %s", (unsigned)document.GetErrorOffset(), (char*)document.GetParseError());
+		fprintf(stderr, "\nJSON format error (offset %zu) check testmode.conf\n%s\n", document.GetErrorOffset(), GetParseError_En(document.GetParseError())); //(offset %s  %s", (unsigned)document.GetErrorOffset(), (char*)document.GetParseError());
 		system("pause > nul");
 		exit(-1);
 	}
