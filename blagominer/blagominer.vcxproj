@@ -731,6 +731,7 @@
     <ClInclude Include="hexstring.h" />
     <ClInclude Include="inout.nogui.h" />
     <ClInclude Include="InstructionSet.h" />
+    <ClInclude Include="line_noise_convert_utf.h" />
     <ClInclude Include="logger.h" />
     <ClInclude Include="loggerCsv.h" />
     <ClInclude Include="mshabal.h" />

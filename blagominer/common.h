@@ -153,7 +153,7 @@ struct t_mining_info {
 
 	// Values for current mining process
 	char currentSignature[33];
-	char current_str_signature[65];
+	std::wstring current_str_signature;
 	unsigned long long currentHeight = 0;
 	unsigned long long currentBaseTarget = 0;
 	std::vector<t_best> bests;
@@ -162,7 +162,7 @@ struct t_mining_info {
 	// Values for new mining info check
 	char signature[33];						// signature of current block
 	char oldSignature[33];					// signature of last block
-	char str_signature[65];
+	std::wstring str_signature;
 };
 
 struct t_network_info {
@@ -227,12 +227,12 @@ struct t_roundreplay_round_test {
 	unsigned long long assume_nonce;
 
 	std::optional<unsigned int> assume_scoop;
-	std::optional<std::string> assume_scoop_low;
-	std::optional<std::string> assume_scoop_high;
+	std::optional<std::wstring> assume_scoop_low;
+	std::optional<std::wstring> assume_scoop_high;
 
 	std::optional<unsigned int> check_scoop;
-	std::optional<std::string> check_scoop_low;
-	std::optional<std::string> check_scoop_high;
+	std::optional<std::wstring> check_scoop_low;
+	std::optional<std::wstring> check_scoop_high;
 	std::optional<unsigned long long> check_deadline;
 
 	std::optional<bool> passed_scoop;
@@ -243,7 +243,7 @@ struct t_roundreplay_round_test {
 
 struct t_roundreplay_round {
 	unsigned long long height;
-	std::string signature;
+	std::wstring signature;
 	unsigned long long baseTarget;
 
 	std::optional<bool> assume_POC2; // TODO: since it's round X test, move that to the TEST // obvious in OFFLINE, and in ONLINE remember the mode is SHORT not FULL!
@@ -271,9 +271,9 @@ void setHeight(std::shared_ptr<t_coin_info> coin, const unsigned long long heigh
 unsigned long long getTargetDeadlineInfo(std::shared_ptr<t_coin_info> coin);
 void setTargetDeadlineInfo(std::shared_ptr<t_coin_info> coin, const unsigned long long targetDeadlineInfo);
 char* getSignature(std::shared_ptr<t_coin_info> coin);
-char* getCurrentStrSignature(std::shared_ptr<t_coin_info> coin);
+std::wstring getCurrentStrSignature(std::shared_ptr<t_coin_info> coin);
 void setSignature(std::shared_ptr<t_coin_info> coin, const char* signature);
-void setStrSignature(std::shared_ptr<t_coin_info> coin, const char* signature);
+void setStrSignature(std::shared_ptr<t_coin_info> coin, std::wstring const& signature);
 void updateOldSignature(std::shared_ptr<t_coin_info> coin);
 void updateCurrentStrSignature(std::shared_ptr<t_coin_info> coin);
 bool signaturesDiffer(std::shared_ptr<t_coin_info> coin);
@@ -287,10 +287,11 @@ void getLocalDateTime(const std::time_t &rawtime, char* local, const std::string
 std::wstring toWStr(int number, const unsigned short length);
 std::wstring toWStr(unsigned long long number, const unsigned short length);
 std::wstring toWStr(std::wstring str, const unsigned short length);
-std::wstring toWStr(std::string str, const unsigned short length);
+std::wstring toWStr(std::string str);
 
 std::string toStr(unsigned long long number, const unsigned short length);
 std::string toStr(std::string str, const unsigned short length);
+std::string toStr(std::wstring str);
 
 // TODO: find/invent something better for statically detecting narrowing overflows on constexprs
 // https://stackoverflow.com/a/46229281/717732

@@ -363,31 +363,31 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 					if (coinInfo->testround2->check_scoop_low.has_value())
 					{
 						auto expected = coinInfo->testround2->check_scoop_low.value();
-						auto scooplow = HexString::string(std::vector<uint8_t>(cache + nonceOffsetInCache + 0, cache + nonceOffsetInCache + 32));
+						auto scooplow = HexString::wstring(std::vector<uint8_t>(cache + nonceOffsetInCache + 0, cache + nonceOffsetInCache + 32));
 						auto testresult = scooplow == expected;
 						coinInfo->testround2->passed_scoop_low = testresult && coinInfo->testround2->passed_scoop_low.value_or(true);
 
 						if (!testresult)
 						{
-							Log(L"TESTMODE: CHECK ERROR: scoop high chunk differs, nonce: %llu, scoop: %u, file: %S",
+							Log(L"TESTMODE: CHECK ERROR: scoop high chunk differs, nonce: %llu, scoop: %u, file: %s",
 								coinInfo->testround2->assume_nonce, scoop, filename.c_str());
-							Log(L"SCP: low expected: %S", expected.c_str());
-							Log(L"SCP: low actual:   %S", scooplow.c_str());
+							Log(L"SCP: low expected: %s", expected.c_str());
+							Log(L"SCP: low actual:   %s", scooplow.c_str());
 						}
 					}
 					if (coinInfo->testround2->check_scoop_high.has_value())
 					{
 						auto expected = coinInfo->testround2->check_scoop_high.value();
-						auto scoophigh = HexString::string(std::vector<uint8_t>(cache + nonceOffsetInCache + 32, cache + nonceOffsetInCache + 64));
+						auto scoophigh = HexString::wstring(std::vector<uint8_t>(cache + nonceOffsetInCache + 32, cache + nonceOffsetInCache + 64));
 						auto testresult = scoophigh == expected;
 						coinInfo->testround2->passed_scoop_high = testresult && coinInfo->testround2->passed_scoop_high.value_or(true);
 
 						if (!testresult)
 						{
-							Log(L"TESTMODE: CHECK ERROR: scoop high chunk differs, nonce: %llu, scoop: %u, file: %S",
+							Log(L"TESTMODE: CHECK ERROR: scoop high chunk differs, nonce: %llu, scoop: %u, file: %s",
 								coinInfo->testround2->assume_nonce, scoop, filename.c_str());
-							Log(L"SCP: high expected: %S", expected.c_str());
-							Log(L"SCP: high actual:   %S", scoophigh.c_str());
+							Log(L"SCP: high expected: %s", expected.c_str());
+							Log(L"SCP: high actual:   %s", scoophigh.c_str());
 						}
 					}
 				}
@@ -469,31 +469,31 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 						if (coinInfo->testround2->check_scoop_low.has_value())
 						{
 							auto expected = coinInfo->testround2->check_scoop_low.value();
-							auto scooplow = HexString::string(std::vector<uint8_t>(cache + nonceOffsetInCache + 0, cache + nonceOffsetInCache + 32));
+							auto scooplow = HexString::wstring(std::vector<uint8_t>(cache + nonceOffsetInCache + 0, cache + nonceOffsetInCache + 32));
 							auto testresult = scooplow == expected;
 							coinInfo->testround2->passed_scoop_low = testresult && coinInfo->testround2->passed_scoop_low.value_or(true);
 
 							if (!testresult)
 							{
-								Log(L"TESTMODE: CHECK ERROR: scoop high chunk differs, nonce: %llu, scoop: %u, file: %S",
+								Log(L"TESTMODE: CHECK ERROR: scoop high chunk differs, nonce: %llu, scoop: %u, file: %s",
 									coinInfo->testround2->assume_nonce, scoop, filename.c_str());
-								Log(L"SCP: low expected: %S", expected.c_str());
-								Log(L"SCP: low actual:   %S", scooplow.c_str());
+								Log(L"SCP: low expected: %s", expected.c_str());
+								Log(L"SCP: low actual:   %s", scooplow.c_str());
 							}
 						}
 						if (coinInfo->testround2->check_scoop_high.has_value())
 						{
 							auto expected = coinInfo->testround2->check_scoop_high.value();
-							auto scoophigh = HexString::string(std::vector<uint8_t>(cache + nonceOffsetInCache + 32, cache + nonceOffsetInCache + 64));
+							auto scoophigh = HexString::wstring(std::vector<uint8_t>(cache + nonceOffsetInCache + 32, cache + nonceOffsetInCache + 64));
 							auto testresult = scoophigh == expected;
 							coinInfo->testround2->passed_scoop_high = testresult && coinInfo->testround2->passed_scoop_high.value_or(true);
 
 							if (!testresult)
 							{
-								Log(L"TESTMODE: CHECK ERROR: scoop high chunk differs, nonce: %llu, scoop: %u, file: %S",
+								Log(L"TESTMODE: CHECK ERROR: scoop high chunk differs, nonce: %llu, scoop: %u, file: %s",
 									coinInfo->testround2->assume_nonce, scoop, filename.c_str());
-								Log(L"SCP: high expected: %S", expected.c_str());
-								Log(L"SCP: high actual:   %S", scoophigh.c_str());
+								Log(L"SCP: high expected: %s", expected.c_str());
+								Log(L"SCP: high actual:   %s", scoophigh.c_str());
 							}
 						}
 					}

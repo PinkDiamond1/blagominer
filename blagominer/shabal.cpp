@@ -57,11 +57,11 @@ void procscoop_sph(std::shared_ptr<t_coin_info> coin, const unsigned long long n
 							Log(L"TESTMODE: CHECK ERROR: SPH: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %s",
 								dlForNonce, coin->testround2->check_deadline.value(),
 								(nonce + v), coin->mining->currentBaseTarget, coin->mining->currentHeight, file_name.c_str());
-							Log(L"SIG: %llu <= %S", dlForNonce,
-								HexString::string(std::vector<uint8_t>(sig + 0, sig + 32)).c_str());
-							Log(L"SCP: %llu <= %S %S", dlForNonce,
-								HexString::string(std::vector<uint8_t>(cache + (v + idx) * 64 + 0, cache + (v + idx) * 64 + 32)).c_str(),
-								HexString::string(std::vector<uint8_t>(cache + (v + idx) * 64 + 32, cache + (v + idx) * 64 + 63)).c_str());
+							Log(L"SIG: %llu <= %s", dlForNonce,
+								HexString::wstring(std::vector<uint8_t>(sig + 0, sig + 32)).c_str());
+							Log(L"SCP: %llu <= %s %s", dlForNonce,
+								HexString::wstring(std::vector<uint8_t>(cache + (v + idx) * 64 + 0, cache + (v + idx) * 64 + 32)).c_str(),
+								HexString::wstring(std::vector<uint8_t>(cache + (v + idx) * 64 + 32, cache + (v + idx) * 64 + 63)).c_str());
 						}
 					}
 
@@ -198,11 +198,11 @@ void procscoop_sse_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 							Log(L"TESTMODE: CHECK ERROR: SSE: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %s",
 								dlForNonce, coin->testround2->check_deadline.value(),
 								(nonce + v + idx), coin->mining->currentBaseTarget, coin->mining->currentHeight, file_name.c_str());
-							Log(L"SIG: %llu <= %S", dlForNonce,
-								HexString::string(std::vector<uint8_t>(sig0 + 0, sig0 + 32)).c_str());
-							Log(L"SCP: %llu <= %S %S", dlForNonce,
-								HexString::string(std::vector<uint8_t>(cache + (v + idx) * 64 + 0, cache + (v + idx) * 64 + 32)).c_str(),
-								HexString::string(std::vector<uint8_t>(cache + (v + idx) * 64 + 32, cache + (v + idx) * 64 + 63)).c_str());
+							Log(L"SIG: %llu <= %s", dlForNonce,
+								HexString::wstring(std::vector<uint8_t>(sig0 + 0, sig0 + 32)).c_str());
+							Log(L"SCP: %llu <= %s %s", dlForNonce,
+								HexString::wstring(std::vector<uint8_t>(cache + (v + idx) * 64 + 0, cache + (v + idx) * 64 + 32)).c_str(),
+								HexString::wstring(std::vector<uint8_t>(cache + (v + idx) * 64 + 32, cache + (v + idx) * 64 + 63)).c_str());
 						}
 					}
 		unsigned posn = 0;
@@ -355,11 +355,11 @@ void procscoop_avx_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 							Log(L"TESTMODE: CHECK ERROR: AVX: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %s",
 								dlForNonce, coin->testround2->check_deadline.value(),
 								(nonce + v + idx), coin->mining->currentBaseTarget, coin->mining->currentHeight, file_name.c_str());
-							Log(L"SIG: %llu <= %S", dlForNonce,
-								HexString::string(std::vector<uint8_t>(sig0 + 0, sig0 + 32)).c_str());
-							Log(L"SCP: %llu <= %S %S", dlForNonce,
-								HexString::string(std::vector<uint8_t>(cache + (v + idx) * 64 + 0, cache + (v + idx) * 64 + 32)).c_str(),
-								HexString::string(std::vector<uint8_t>(cache + (v + idx) * 64 + 32, cache + (v + idx) * 64 + 63)).c_str());
+							Log(L"SIG: %llu <= %s", dlForNonce,
+								HexString::wstring(std::vector<uint8_t>(sig0 + 0, sig0 + 32)).c_str());
+							Log(L"SCP: %llu <= %s %s", dlForNonce,
+								HexString::wstring(std::vector<uint8_t>(cache + (v + idx) * 64 + 0, cache + (v + idx) * 64 + 32)).c_str(),
+								HexString::wstring(std::vector<uint8_t>(cache + (v + idx) * 64 + 32, cache + (v + idx) * 64 + 63)).c_str());
 						}
 					}
 		unsigned posn = 0;
@@ -541,11 +541,11 @@ void procscoop_avx2_fast(std::shared_ptr<t_coin_info> coin, unsigned long long c
 							Log(L"TESTMODE: CHECK ERROR: AVX2: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %s",
 								dlForNonce, coin->testround2->check_deadline.value(),
 								(nonce + v + idx), coin->mining->currentBaseTarget, coin->mining->currentHeight, file_name.c_str());
-							Log(L"SIG: %llu <= %S", dlForNonce,
-								HexString::string(std::vector<uint8_t>(sig0 + 0, sig0 + 32)).c_str());
-							Log(L"SCP: %llu <= %S %S", dlForNonce,
-								HexString::string(std::vector<uint8_t>(cache + (v + idx) * 64 + 0, cache + (v + idx) * 64 + 32)).c_str(),
-								HexString::string(std::vector<uint8_t>(cache + (v + idx) * 64 + 32, cache + (v + idx) * 64 + 63)).c_str());
+							Log(L"SIG: %llu <= %s", dlForNonce,
+								HexString::wstring(std::vector<uint8_t>(sig0 + 0, sig0 + 32)).c_str());
+							Log(L"SCP: %llu <= %s %s", dlForNonce,
+								HexString::wstring(std::vector<uint8_t>(cache + (v + idx) * 64 + 0, cache + (v + idx) * 64 + 32)).c_str(),
+								HexString::wstring(std::vector<uint8_t>(cache + (v + idx) * 64 + 32, cache + (v + idx) * 64 + 63)).c_str());
 						}
 					}
 		unsigned posn = 0;
@@ -803,11 +803,11 @@ void procscoop_avx512_fast(std::shared_ptr<t_coin_info> coin, unsigned long long
 							Log(L"TESTMODE: CHECK ERROR: SSE: Deadline value differs: %llu, expected: %llu, nonce: %llu, baseTarget: %llu, height: %llu, file: %s",
 								dlForNonce, coin->testround2->check_deadline.value(),
 								(nonce + v + idx), coin->mining->currentBaseTarget, coin->mining->currentHeight, file_name.c_str());
-							Log(L"SIG: %llu <= %S", dlForNonce,
-								HexString::string(std::vector<uint8_t>(sig0 + 0, sig0 + 32)).c_str());
-							Log(L"SCP: %llu <= %S %S", dlForNonce,
-								HexString::string(std::vector<uint8_t>(cache + (v + idx) * 64 + 0, cache + (v + idx) * 64 + 32)).c_str(),
-								HexString::string(std::vector<uint8_t>(cache + (v + idx) * 64 + 32, cache + (v + idx) * 64 + 63)).c_str());
+							Log(L"SIG: %llu <= %s", dlForNonce,
+								HexString::wstring(std::vector<uint8_t>(sig0 + 0, sig0 + 32)).c_str());
+							Log(L"SCP: %llu <= %s %s", dlForNonce,
+								HexString::wstring(std::vector<uint8_t>(cache + (v + idx) * 64 + 0, cache + (v + idx) * 64 + 32)).c_str(),
+								HexString::wstring(std::vector<uint8_t>(cache + (v + idx) * 64 + 32, cache + (v + idx) * 64 + 63)).c_str());
 						}
 					}
 		unsigned posn = 0;

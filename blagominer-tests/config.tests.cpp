@@ -5,20 +5,20 @@
 #include "network.h"
 
 TEST(LoadConfig, Basic_POC2StartBlock) {
-	Document document;
+	DocumentUTF16LE document;
 	{
-		rapidjson::Document::AllocatorType& docAllocator = document.GetAllocator();
+		DocumentUTF16LE::AllocatorType& docAllocator = document.GetAllocator();
 		document.SetObject();
 
-		rapidjson::Value n_coin(rapidjson::kObjectType);
-		document.AddMember("coin:ABC", n_coin, docAllocator);
+		ValueUTF16LE n_coin(rapidjson::kObjectType);
+		document.AddMember(L"coin:ABC", n_coin, docAllocator);
 
-		rapidjson::Value n_coin2(rapidjson::kObjectType);
-		document.AddMember("coin:BurstLikeCoin", n_coin2, docAllocator);
+		ValueUTF16LE n_coin2(rapidjson::kObjectType);
+		document.AddMember(L"coin:BurstLikeCoin", n_coin2, docAllocator);
 
-		rapidjson::Value n_coin3(rapidjson::kObjectType);
-		n_coin3.AddMember("POC2StartBlock", 789, docAllocator);
-		document.AddMember("coin:DEF", n_coin3, docAllocator);
+		ValueUTF16LE n_coin3(rapidjson::kObjectType);
+		n_coin3.AddMember(L"POC2StartBlock", 789, docAllocator);
+		document.AddMember(L"coin:DEF", n_coin3, docAllocator);
 	}
 
 	// use load_config so it invokes init_mining_info+init_coinNetwork for each coin
@@ -40,20 +40,20 @@ TEST(LoadConfig, Basic_POC2StartBlock) {
 }
 
 TEST(LoadConfig, Basic_Priority) {
-	Document document;
+	DocumentUTF16LE document;
 	{
-		rapidjson::Document::AllocatorType& docAllocator = document.GetAllocator();
+		DocumentUTF16LE::AllocatorType& docAllocator = document.GetAllocator();
 		document.SetObject();
 
-		rapidjson::Value n_coin(rapidjson::kObjectType);
-		document.AddMember("coin:ABC", n_coin, docAllocator);
+		ValueUTF16LE n_coin(rapidjson::kObjectType);
+		document.AddMember(L"coin:ABC", n_coin, docAllocator);
 
-		rapidjson::Value n_coin2(rapidjson::kObjectType);
-		document.AddMember("coin:BurstLikeCoin", n_coin2, docAllocator);
+		ValueUTF16LE n_coin2(rapidjson::kObjectType);
+		document.AddMember(L"coin:BurstLikeCoin", n_coin2, docAllocator);
 
-		rapidjson::Value n_coin3(rapidjson::kObjectType);
-		n_coin3.AddMember("Priority", 123, docAllocator);
-		document.AddMember("coin:DEF", n_coin3, docAllocator);
+		ValueUTF16LE n_coin3(rapidjson::kObjectType);
+		n_coin3.AddMember(L"Priority", 123, docAllocator);
+		document.AddMember(L"coin:DEF", n_coin3, docAllocator);
 	}
 
 	// use load_config so it invokes init_mining_info+init_coinNetwork for each coin
@@ -75,17 +75,17 @@ TEST(LoadConfig, Basic_Priority) {
 }
 
 TEST(LoadConfig, Basic_Mode) {
-	Document document;
+	DocumentUTF16LE document;
 	{
-		rapidjson::Document::AllocatorType& docAllocator = document.GetAllocator();
+		DocumentUTF16LE::AllocatorType& docAllocator = document.GetAllocator();
 		document.SetObject();
 
-		rapidjson::Value n_coin(rapidjson::kObjectType);
-		document.AddMember("coin:ABC", n_coin, docAllocator);
+		ValueUTF16LE n_coin(rapidjson::kObjectType);
+		document.AddMember(L"coin:ABC", n_coin, docAllocator);
 
-		rapidjson::Value n_coin2(rapidjson::kObjectType);
-		n_coin2.AddMember("Mode", "solo", docAllocator);
-		document.AddMember("coin:DEF", n_coin2, docAllocator);
+		ValueUTF16LE n_coin2(rapidjson::kObjectType);
+		n_coin2.AddMember(L"Mode", L"solo", docAllocator);
+		document.AddMember(L"coin:DEF", n_coin2, docAllocator);
 	}
 
 	// since now we call loadCoinConfig instead of load_config, results are in local structures
@@ -101,8 +101,8 @@ TEST(LoadConfig, Basic_Mode) {
 		init_coinNetwork(coin2);
 	}
 
-	loadCoinConfig(document, "coin:ABC", coin1);
-	loadCoinConfig(document, "coin:DEF", coin2);
+	loadCoinConfig(document, L"coin:ABC", coin1);
+	loadCoinConfig(document, L"coin:DEF", coin2);
 
 	EXPECT_EQ(coin1->coinname, L"ABC");
 	EXPECT_EQ(coin1->mining->miner_mode, 1);

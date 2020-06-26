@@ -35,6 +35,8 @@ using namespace rapidjson;
 #include "rapidjson/document.h"		// rapidjson's DOM-style API
 #include "rapidjson/error/en.h"
 #include "rapidjson/writer.h"
+typedef GenericDocument<UTF16LE<>> DocumentUTF16LE;
+typedef DocumentUTF16LE::ValueType ValueUTF16LE;
 #pragma warning( pop )
 
 #undef max

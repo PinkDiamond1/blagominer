@@ -455,7 +455,7 @@ void Output_Curses::_consoleWriter() {
 					const int remaining = COLS - x;
 
 					if (remaining > 0) {
-						waddwstr(win_main, std::wstring(remaining, ' ').c_str());
+						waddwstr(win_main, std::wstring(remaining, L' ').c_str());
 						int newY;
 						int newX;
 						getyx(win_main, newY, newX);

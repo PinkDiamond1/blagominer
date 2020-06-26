@@ -51,27 +51,27 @@ void checkForUpdate() {
 			}
 
 			if (!error) {
-				Document document;	// Default template parameter uses UTF8 and MemoryPoolAllocator.
-				if (document.Parse<0>(lpResult).HasParseError()) {
+				DocumentUTF16LE document;	// Default template parameter uses UTF8 and MemoryPoolAllocator.
+				if (document.Parse<0, UTF8<>>(lpResult).HasParseError()) {
 					Log(L"UPDATE CHECKER: Error (offset %u) parsing retrieved data: %S", (unsigned)document.GetErrorOffset(), GetParseError_En(document.GetParseError()));
 				}
 				else {
 					if (document.IsObject()) {
-						if (document.HasMember("major") && document["major"].IsUint() &&
-							document.HasMember("minor") && document["minor"].IsUint() &&
-							document.HasMember("revision") && document["revision"].IsUint()) {
+						if (document.HasMember(L"major") && document[L"major"].IsUint() &&
+							document.HasMember(L"minor") && document[L"minor"].IsUint() &&
+							document.HasMember(L"revision") && document[L"revision"].IsUint()) {
 							
-							unsigned int major = document["major"].GetUint();
-							unsigned int minor = document["minor"].GetUint();
-							unsigned int revision = document["revision"].GetUint();
+							unsigned int major = document[L"major"].GetUint();
+							unsigned int minor = document[L"minor"].GetUint();
+							unsigned int revision = document[L"revision"].GetUint();
 							
 							if (major > versionMajor ||
 								(major >= versionMajor && minor > versionMinor) ||
 								(major >= versionMajor && minor >= versionMinor && revision > versionRevision)) {
-								std::string releaseVersion =
-									std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(revision);
-								Log(L"UPDATE CHECKER: New version availabe: %S", releaseVersion.c_str());
-								gui->showNewVersion(releaseVersion);
+								std::wstring releaseVersion =
+									std::to_wstring(major) + L"." + std::to_wstring(minor) + L"." + std::to_wstring(revision);
+								Log(L"UPDATE CHECKER: New version availabe: %s", releaseVersion.c_str());
+								gui->showNewVersion(toStr(releaseVersion));
 							}
 							else {
 								Log(L"UPDATE CHECKER: The miner is up to date (%i.%i.%i)", versionMajor, versionMinor, versionRevision);

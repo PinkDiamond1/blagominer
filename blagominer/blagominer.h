@@ -19,10 +19,10 @@ void init_mining_info(std::shared_ptr<t_coin_info> coin, std::wstring name, size
 void init_logging_config();
 void init_gui_config();
 
-void loadCoinConfig(Document const & document, std::string section, std::shared_ptr<t_coin_info> coin);
+void loadCoinConfig(DocumentUTF16LE const & document, std::wstring section, std::shared_ptr<t_coin_info> coin);
 
 std::vector<char, heap_allocator<char>> load_config_file(wchar_t const *const filename);
-Document load_config_json(std::vector<char, heap_allocator<char>> const& json_);
-int load_config(Document const& document);
+DocumentUTF16LE load_config_json(std::vector<char, heap_allocator<char>> const& json_);
+int load_config(DocumentUTF16LE const& document);
 
 // load_testmode_config
