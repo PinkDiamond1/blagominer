@@ -26,11 +26,11 @@ void checkForUpdate() {
 				STATSTG statStream;
 				if (SUCCEEDED(lpStream->Stat(&statStream, STATFLAG_NONAME))) {
 					dwSize = statStream.cbSize.LowPart;
-					lpResult = (LPSTR)malloc(dwSize + 1); // TODO: LPRESULT seem to be never free'd
+					lpResult = (LPSTR)malloc(dwSize + 1llu); // TODO: LPRESULT seem to be never free'd
 					if (lpResult) {
 						LARGE_INTEGER liPos;
 						ZeroMemory(&liPos, sizeof(liPos));
-						ZeroMemory(lpResult, dwSize + 1);
+						ZeroMemory(lpResult, dwSize + 1llu);
 						lpStream->Seek(liPos, STREAM_SEEK_SET, NULL);
 						lpStream->Read(lpResult, dwSize, NULL);
 					}

@@ -56,6 +56,8 @@ TEST(RnD_BurstMath_CalcDeadline_QueLap, dccONburst641159WithGenSigFromDump) {
 	}
 }
 
+#pragma warning( push )
+#pragma warning( disable: 6387 )	// Warning C6387	module/ptr1/ptr2 could be zero - nope, can't
 TEST(RnD_DcminerUnUPXed_sanityChecks, coreInterop) {
 	// https://www.codeproject.com/Articles/1045674/Load-EXE-as-DLL-Mission-Possible
 	// ^^ actually, I think that neither global data, nor imports are important
@@ -64,6 +66,7 @@ TEST(RnD_DcminerUnUPXed_sanityChecks, coreInterop) {
 
 	std::string modpath = "D:\\w\\q\\dcminer\\dcminer\\dcminer-unpacked.exe";
 	HMODULE module = LoadLibraryA(modpath.c_str());
+	ASSERT_NE(module, nullptr);
 
 	size_t offs_cstr_knownMessage = 0x0000000000089A50;
 	std::string referencedata_knownMessage = "PROXY: socket failed with error: %ld\n";
@@ -71,8 +74,12 @@ TEST(RnD_DcminerUnUPXed_sanityChecks, coreInterop) {
 	size_t offs_cstr_seedFormat = 0x000000000008AA70;
 	std::string referencedata_seedFormat = "DISKCOIN%-08d";
 
-	std::string sanityCheck_knownMessage = (char*)((uint8_t*)module + offs_cstr_knownMessage);
-	std::string sanityCheck_hashSeedFormat = (char*)( (uint8_t*)module + offs_cstr_seedFormat);
+	char* ptr1 = (char*)((uint8_t*)module + offs_cstr_knownMessage);
+	char* ptr2 = (char*)((uint8_t*)module + offs_cstr_seedFormat);
+	ASSERT_NE(ptr1, nullptr);
+	ASSERT_NE(ptr2, nullptr);
+	std::string sanityCheck_knownMessage = ptr1;
+	std::string sanityCheck_hashSeedFormat = ptr2;
 
 	// check if the offsets hit the expected data
 	ASSERT_EQ(referencedata_knownMessage, sanityCheck_knownMessage);
@@ -98,15 +105,21 @@ TEST(RnD_DcminerUnUPXed_sanityChecks, coreInterop) {
 
 	FreeLibrary(module);
 }
+#pragma warning( pop )
 
+#pragma warning( push )
+#pragma warning( disable: 6387 )	// Warning C6387	module could be zero - nope, can't
+#pragma warning( disable: 6011 )	// Warning C6011	stringhasher could be zero - nope, can't
 TEST(RnD_DcminerUnUPXed_sanityChecks, stringHasher) {
 
 	std::string modpath = "D:\\w\\q\\dcminer\\dcminer\\dcminer-unpacked.exe";
 	HMODULE module = LoadLibraryA(modpath.c_str());
+	ASSERT_NE(module, nullptr);
 
 	size_t offs_code_hasher1 = 0x000000000000C910;
 
 	auto stringhasher = reinterpret_cast<void(*)(uint8_t* output, char* input)>((uint8_t*)module + offs_code_hasher1);
+	ASSERT_NE(stringhasher, nullptr);
 
 	char seed[] = "DISKCOIN641187\x20\x20";
 	std::vector<uint8_t> referencedata_hasher1_output = HexString::from("B257A631E5203832CC45CCCC33330000");
@@ -129,15 +142,21 @@ TEST(RnD_DcminerUnUPXed_sanityChecks, stringHasher) {
 
 	FreeLibrary(module);
 }
+#pragma warning( pop )
 
+#pragma warning( push )
+#pragma warning( disable: 6387 )	// Warning C6387	module could be zero - nope, can't
+#pragma warning( disable: 6011 )	// Warning C6011	blobhasher could be zero - nope, can't
 TEST(RnD_DcminerUnUPXed_sanityChecks, blobHasherWithoutStringHasherNoPaddingFails) {
 
 	std::string modpath = "D:\\w\\q\\dcminer\\dcminer\\dcminer-unpacked.exe";
 	HMODULE module = LoadLibraryA(modpath.c_str());
+	ASSERT_NE(module, nullptr);
 
 	size_t offs_code_hasher2 = 0x000000000000CC70;
 
 	auto blobhasher = reinterpret_cast<void(*)(uint8_t* key, void* unknown, uint8_t* input, uint8_t* output)>((uint8_t*)module + offs_code_hasher2);
+	ASSERT_NE(blobhasher, nullptr);
 
 	// below: the hasher1 output SHOULD be just 16b, and I captured 'reference' of 32b, and the hasher1 turns out to write FAR MORE.
 	// there's a difference in the tail bytes between what I captured as hasher1 output and what hasher1 emitted,
@@ -198,15 +217,21 @@ TEST(RnD_DcminerUnUPXed_sanityChecks, blobHasherWithoutStringHasherNoPaddingFail
 
 	FreeLibrary(module);
 }
+#pragma warning( pop )
 
+#pragma warning( push )
+#pragma warning( disable: 6387 )	// Warning C6387	module could be zero - nope, can't
+#pragma warning( disable: 6011 )	// Warning C6011	blobhasher could be zero - nope, can't
 TEST(RnD_DcminerUnUPXed_sanityChecks, blobHasherWithoutStringHasherZeroPaddingFails) {
 
 	std::string modpath = "D:\\w\\q\\dcminer\\dcminer\\dcminer-unpacked.exe";
 	HMODULE module = LoadLibraryA(modpath.c_str());
+	ASSERT_NE(module, nullptr);
 
 	size_t offs_code_hasher2 = 0x000000000000CC70;
 
 	auto blobhasher = reinterpret_cast<void(*)(uint8_t* key, void* unknown, uint8_t* input, uint8_t* output)>((uint8_t*)module + offs_code_hasher2);
+	ASSERT_NE(blobhasher, nullptr);
 
 	// below: ok.. no-padding test proved there is a problem. Let's try following the data I captured
 	// and let's zero-pad it, so there is no trash further in the buffer. Let's see if the output
@@ -260,17 +285,24 @@ TEST(RnD_DcminerUnUPXed_sanityChecks, blobHasherWithoutStringHasherZeroPaddingFa
 
 	FreeLibrary(module);
 }
+#pragma warning( pop )
 
+#pragma warning( push )
+#pragma warning( disable: 6387 )	// Warning C6387	module could be zero - nope, can't
+#pragma warning( disable: 6011 )	// Warning C6011	stringhasher/blobhasher could be zero - nope, can't
 TEST(RnD_DcminerUnUPXed_sanityChecks, blobHasherWithStringHasherOnSeparateBufferFails) {
 
 	std::string modpath = "D:\\w\\q\\dcminer\\dcminer\\dcminer-unpacked.exe";
 	HMODULE module = LoadLibraryA(modpath.c_str());
+	ASSERT_NE(module, nullptr);
 
 	size_t offs_code_hasher1 = 0x000000000000C910;
 	size_t offs_code_hasher2 = 0x000000000000CC70;
 
 	auto stringhasher = reinterpret_cast<void(*)(uint8_t* output, char* input)>((uint8_t*)module + offs_code_hasher1);
 	auto blobhasher = reinterpret_cast<void(*)(uint8_t* key, void* unknown, uint8_t* input, uint8_t* output)>((uint8_t*)module + offs_code_hasher2);
+	ASSERT_NE(stringhasher, nullptr);
+	ASSERT_NE(blobhasher, nullptr);
 
 	// below: ok.. zero-padding proved that PROBABLY the input should be much longer,
 	// but let's prepare the zero-padded buffer once again and let's try crossing out another option:
@@ -339,17 +371,24 @@ TEST(RnD_DcminerUnUPXed_sanityChecks, blobHasherWithStringHasherOnSeparateBuffer
 
 	FreeLibrary(module);
 }
+#pragma warning( pop )
 
+#pragma warning( push )
+#pragma warning( disable: 6387 )	// Warning C6387	module could be zero - nope, can't
+#pragma warning( disable: 6011 )	// Warning C6011	stringhasher/blobhasher could be zero - nope, can't
 TEST(RnD_DcminerUnUPXed_sanityChecks, blobHasherWithStringHasherOnSharedBufferWorks) {
 
 	std::string modpath = "D:\\w\\q\\dcminer\\dcminer\\dcminer-unpacked.exe";
 	HMODULE module = LoadLibraryA(modpath.c_str());
+	ASSERT_NE(module, nullptr);
 
 	size_t offs_code_hasher1 = 0x000000000000C910;
 	size_t offs_code_hasher2 = 0x000000000000CC70;
 
 	auto stringhasher = reinterpret_cast<void(*)(uint8_t* output, char* input)>((uint8_t*)module + offs_code_hasher1);
 	auto blobhasher = reinterpret_cast<void(*)(uint8_t* key, void* unknown, uint8_t* input, uint8_t* output)>((uint8_t*)module + offs_code_hasher2);
+	ASSERT_NE(stringhasher, nullptr);
+	ASSERT_NE(blobhasher, nullptr);
 
 	// alright. it seems that `hasher1` outputs MORE SIGNIFICANT data and probably the WHOLE data matters.
 	// I have no idea how I managed to capture only first 16bytes and all-zeroes later, but it looks like
@@ -425,6 +464,7 @@ TEST(RnD_DcminerUnUPXed_sanityChecks, blobHasherWithStringHasherOnSharedBufferWo
 
 	FreeLibrary(module);
 }
+#pragma warning( pop )
 
 TEST(RnD_DcminerUnUPXed_GenerateGensig, dccONburst641159) {
 	// based on data from LIVE debugging session

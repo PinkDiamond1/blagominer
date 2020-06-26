@@ -279,6 +279,7 @@ retry:
 		// when the source data seems invalid, let's just strip each character in a dumb way
 		// at least any simple characters will be preserved
 		std::string tmp = "!cvt!:";
+#pragma warning( suppress: 4244 )	// Warning	C4244	'argument': conversion from 'wchar_t' to 'const _Elem', possible loss of data
 		tmp += std::string(wide_utf16_source_string.begin(), wide_utf16_source_string.end());
 		return tmp;
 	}
