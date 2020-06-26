@@ -363,7 +363,8 @@ int load_config(Document const& document)
 			const Value& Paths = document["Paths"];			// Using a reference for consecutive access is handy and faster.
 			for (SizeType i = 0; i < Paths.Size(); i++)
 			{
-				paths_dir.push_back(Paths[i].GetString());
+				// wchar_t@windows = utf16le
+				paths_dir.push_back(Paths[i].GetString()); // TODO: now, that's a bummer. How RAPIDJSON handles WIDE strings?
 				Log(L"Path: %s", paths_dir[i].c_str());
 			}
 		}

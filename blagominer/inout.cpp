@@ -861,6 +861,7 @@ void Output_Curses::printFileStats(std::map<std::wstring, t_file_stats>const& fi
 		if (element.second.conflictingDeadlines > 0 || element.second.readErrors > 0) {
 			bm_wattronC(14);
 			bm_wmoveC(lineCount, 1);
+			// TODO: check if bm_wprintwC really supports %S wide char string
 			bm_wprintwC("%S %s", toWStr(element.first, 46).c_str(), toStr(element.second.matchingDeadlines, 11).c_str(), 0);
 			if (element.second.conflictingDeadlines > 0) {
 				bm_wattronC(4);
