@@ -146,7 +146,9 @@ namespace BurstMath
 		char res[32];
 		///*
 		memcpy_s(sig + 0, sizeof(sig), currentSignature.data(), sizeof(char) * 32); // TODO: currentSignature.length vs s()*32 vs int8_t vs char
-		memcpy_s(sig + 32, sizeof(sig) - 32, scoop, SCOOP_SIZE);
+		//memcpy_s(sig + 32, sizeof(sig) - 32, scoop, SCOOP_SIZE);
+		memcpy_s(sig + 32 + 0 * HASH_SIZE, sizeof(sig) - 32 - 0 * HASH_SIZE, scoop + 0 * HASH_SIZE, HASH_SIZE);
+		memcpy_s(sig + 32 + 1 * HASH_SIZE, sizeof(sig) - 32 - 1 * HASH_SIZE, scoop + 1 * HASH_SIZE, HASH_SIZE);
 
 		sph_shabal256(&xx, (const unsigned char*)sig, 64 + 32); // TODO: not sizeof(sig) as it has extra +64?
 		sph_shabal256_close(&xx, res);
