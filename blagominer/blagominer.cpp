@@ -1044,25 +1044,28 @@ void newRound(std::shared_ptr<t_coin_info > coinCurrentlyMining) {
 	Log(L"Both sender+confirmer threads for %s shut down.", coinCurrentlyMining->coinname.c_str());
 	coinCurrentlyMining->locks->stopRoundSpecificNetworkingThreads = false; // actually it's pretty important to do it HERE
 
-	EnterCriticalSection(&coinCurrentlyMining->locks->sessionsLock);
-	for (auto it = coinCurrentlyMining->network->sessions.begin(); it != coinCurrentlyMining->network->sessions.end(); ++it) {
-		closesocket((*it)->Socket);
+	{
+		std::lock_guard<std::mutex> lockGuard(coinCurrentlyMining->locks->sessionsLock);
+		for (auto it = coinCurrentlyMining->network->sessions.begin(); it != coinCurrentlyMining->network->sessions.end(); ++it) {
+			closesocket((*it)->Socket);
+		}
+		coinCurrentlyMining->network->sessions.clear();
+		for (auto it = coinCurrentlyMining->network->sessions2.begin(); it != coinCurrentlyMining->network->sessions2.end(); ++it) {
+			// it's safe here as long as we ensure that not only WORKER threads are inactive, but coins' SENDER and CONFIRMER threads as well
+			curl_easy_cleanup((*it)->curl);
+		}
+		coinCurrentlyMining->network->sessions2.clear();
 	}
-	coinCurrentlyMining->network->sessions.clear();
-	for (auto it = coinCurrentlyMining->network->sessions2.begin(); it != coinCurrentlyMining->network->sessions2.end(); ++it) {
-		// it's safe here as long as we ensure that not only WORKER threads are inactive, but coins' SENDER and CONFIRMER threads as well
-		curl_easy_cleanup((*it)->curl);
+
+	{
+		std::lock_guard<std::mutex> lockGuard(coinCurrentlyMining->locks->sharesLock);
+		coinCurrentlyMining->mining->shares.clear();
 	}
-	coinCurrentlyMining->network->sessions2.clear();
-	LeaveCriticalSection(&coinCurrentlyMining->locks->sessionsLock);
 
-	EnterCriticalSection(&coinCurrentlyMining->locks->sharesLock);
-	coinCurrentlyMining->mining->shares.clear();
-	LeaveCriticalSection(&coinCurrentlyMining->locks->sharesLock);
-
-	EnterCriticalSection(&coinCurrentlyMining->locks->bestsLock);
-	coinCurrentlyMining->mining->bests.clear();
-	LeaveCriticalSection(&coinCurrentlyMining->locks->bestsLock);
+	{
+		std::lock_guard<std::mutex> lockGuard(coinCurrentlyMining->locks->bestsLock);
+		coinCurrentlyMining->mining->bests.clear();
+	}
 
 	updateCurrentMiningInfo(coinCurrentlyMining);
 	coinCurrentlyMining->mining->deadline = 0;
@@ -1229,7 +1232,7 @@ void closeMiner() {
 
 	for (auto& coin : allcoins)
 	{
-		EnterCriticalSection(&coin->locks->sessionsLock);
+		std::lock_guard<std::mutex> lockGuard(coin->locks->sessionsLock);
 		for (auto it = coin->network->sessions.begin(); it != coin->network->sessions.end(); ++it) {
 			closesocket((*it)->Socket);
 		}
@@ -1238,16 +1241,7 @@ void closeMiner() {
 			curl_easy_cleanup((*it)->curl);
 		}
 		coin->network->sessions2.clear();
-		LeaveCriticalSection(&coin->locks->sessionsLock);
 	}
-
-	for (auto& coin : allcoins)
-		if (coin->mining->enable || coin->network->enable_proxy) {
-			DeleteCriticalSection(&coin->locks->sessionsLock);
-			DeleteCriticalSection(&coin->locks->sessions2Lock);
-			DeleteCriticalSection(&coin->locks->sharesLock);
-			DeleteCriticalSection(&coin->locks->bestsLock);
-		}
 
 	// TODO: cleanup this whole destructor insanity
 	p_minerPath.~vector();
@@ -1284,11 +1278,6 @@ BOOL WINAPI OnConsoleClose(DWORD dwCtrlType)
 void initMiningOrProxy(std::shared_ptr<t_coin_info> coin)
 {
 	if (coin->mining->enable || coin->network->enable_proxy) {
-
-		InitializeCriticalSection(&coin->locks->sessionsLock);
-		InitializeCriticalSection(&coin->locks->sessions2Lock);
-		InitializeCriticalSection(&coin->locks->bestsLock);
-		InitializeCriticalSection(&coin->locks->sharesLock);
 
 		coin->locks->stopRoundSpecificNetworkingThreads = false;
 

@@ -127,10 +127,10 @@ struct t_locks {
 	std::mutex mCurrentStrSignature;
 	std::mutex mNewMiningInfoReceived;
 
-	CRITICAL_SECTION sessionsLock;			// session lock
-	CRITICAL_SECTION sessions2Lock;			// session2 lock
-	CRITICAL_SECTION bestsLock;				// best lock
-	CRITICAL_SECTION sharesLock;			// shares lock
+	std::mutex sessionsLock;		// session lock
+	std::mutex sessions2Lock;		// session2 lock
+	std::mutex bestsLock;			// best lock
+	std::mutex sharesLock;			// shares lock
 
 	volatile bool stopRoundSpecificNetworkingThreads;
 };
@@ -170,17 +170,17 @@ struct t_network_info {
 	std::string nodeport;
 	std::string noderoot;
 	std::string solopass;
-	unsigned submitTimeout;
+	unsigned submitTimeout = 1000;
 	std::string updateraddr;
 	std::string updaterport;
 	std::string updaterroot;
-	bool enable_proxy;						// enable client/server functionality
+	bool enable_proxy = false;						// enable client/server functionality
 	std::string proxyport;
 	size_t send_interval;
 	size_t update_interval;
 	size_t proxy_update_interval;
-	int network_quality;
-	bool usehttps;
+	int network_quality = 0;
+	bool usehttps = false;
 	std::string sendextraquery;
 	std::string sendextraheader;
 	std::vector<std::shared_ptr<t_session>> sessions;
@@ -204,8 +204,8 @@ struct t_coin_info {
 
 	bool isPoc2Round();
 
-	t_roundreplay_round* testround1;
-	t_roundreplay_round_test* testround2;
+	t_roundreplay_round* testround1 = 0;
+	t_roundreplay_round_test* testround2 = 0;
 };
 
 struct t_file_stats {
@@ -221,7 +221,7 @@ extern t_logging loggingConfig;
 
 struct t_roundreplay_round_test {
 	enum class RoundTestMode { RMT_UNKNOWN = 0, RMT_NORMAL = 1, RMT_OFFLINE = 2 };
-	RoundTestMode mode;
+	RoundTestMode mode = RoundTestMode::RMT_UNKNOWN;
 
 	unsigned long long assume_account;
 	unsigned long long assume_nonce;
@@ -242,9 +242,9 @@ struct t_roundreplay_round_test {
 };
 
 struct t_roundreplay_round {
-	unsigned long long height;
+	unsigned long long height = 0;
 	std::wstring signature;
-	unsigned long long baseTarget;
+	unsigned long long baseTarget = 0;
 
 	std::optional<bool> assume_POC2; // TODO: since it's round X test, move that to the TEST // obvious in OFFLINE, and in ONLINE remember the mode is SHORT not FULL!
 
@@ -252,13 +252,13 @@ struct t_roundreplay_round {
 };
 
 struct t_roundreplay {
-	bool isEnabled;
+	bool isEnabled = false;
 	std::wstring coinName;
 	std::vector<t_roundreplay_round> rounds;
 };
 
 struct t_testmode_config {
-	bool isEnabled;
+	bool isEnabled = false;
 	t_roundreplay roundReplay;
 };
 
@@ -340,12 +340,12 @@ extern std::unique_ptr<IUserInterface> gui;
 
 struct hwinfo
 {
-	bool AES;
-	bool SSE, SSE2, SSE3, SSE42;
-	bool AVX, AVX2, AVX512F, avxsupported;
+	bool AES = false;
+	bool SSE = false, SSE2 = false, SSE3 = false, SSE42 = false;
+	bool AVX = false, AVX2 = false, AVX512F = false, avxsupported = false;
 	std::string vendor, brand;
-	unsigned long cores;
-	unsigned long long memory; // in megabytes
+	unsigned long cores = 0;
+	unsigned long long memory = 0; // in megabytes
 };
 
 struct IUserInterface

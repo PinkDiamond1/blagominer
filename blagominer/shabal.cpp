@@ -85,21 +85,23 @@ void procscoop_sph(std::shared_ptr<t_coin_info> coin, const unsigned long long n
 					cache[v * 64 + 50], cache[v * 64 + 51], cache[v * 64 + 52], cache[v * 64 + 53], cache[v * 64 + 54], cache[v * 64 + 55], cache[v * 64 + 56], cache[v * 64 + 57], cache[v * 64 + 58], cache[v * 64 + 59],
 					cache[v * 64 + 60], cache[v * 64 + 61], cache[v * 64 + 62], cache[v * 64 + 63]);
 
-				EnterCriticalSection(&coin->locks->bestsLock);
-				coin->mining->bests[acc].best = *wertung;
-				coin->mining->bests[acc].nonce = nonce + v;
-				coin->mining->bests[acc].DL = deadline;
-				LeaveCriticalSection(&coin->locks->bestsLock);
-				EnterCriticalSection(&coin->locks->sharesLock);
-				coin->mining->shares.push_back(std::make_shared<t_shares>(
-					file_name, 
-					coin->mining->bests[acc].account_id, 
-					coin->mining->bests[acc].best,
-					coin->mining->bests[acc].nonce,
-					coin->mining->bests[acc].DL,
-					coin->mining->currentHeight,
-					coin->mining->currentBaseTarget));
-				LeaveCriticalSection(&coin->locks->sharesLock);
+				{
+					std::lock_guard<std::mutex> lockGuard(coin->locks->bestsLock);
+					coin->mining->bests[acc].best = *wertung;
+					coin->mining->bests[acc].nonce = nonce + v;
+					coin->mining->bests[acc].DL = deadline;
+				}
+				{
+					std::lock_guard<std::mutex> lockGuard(coin->locks->sharesLock);
+					coin->mining->shares.push_back(std::make_shared<t_shares>(
+						file_name,
+						coin->mining->bests[acc].account_id,
+						coin->mining->bests[acc].best,
+						coin->mining->bests[acc].nonce,
+						coin->mining->bests[acc].DL,
+						coin->mining->currentHeight,
+						coin->mining->currentBaseTarget));
+				}
 
 				gui->printWorkerDeadlineFound(coin->mining->bests[acc].account_id, coin->coinname, coin->mining->bests[acc].DL);
 			}
@@ -242,21 +244,23 @@ void procscoop_sse_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 					cache[(v + posn) * 64 + 50], cache[(v + posn) * 64 + 51], cache[(v + posn) * 64 + 52], cache[(v + posn) * 64 + 53], cache[(v + posn) * 64 + 54], cache[(v + posn) * 64 + 55], cache[(v + posn) * 64 + 56], cache[(v + posn) * 64 + 57], cache[(v + posn) * 64 + 58], cache[(v + posn) * 64 + 59],
 					cache[(v + posn) * 64 + 60], cache[(v + posn) * 64 + 61], cache[(v + posn) * 64 + 62], cache[(v + posn) * 64 + 63]);
 
-				EnterCriticalSection(&coin->locks->bestsLock);
-				coin->mining->bests[acc].best = *wertung;
-				coin->mining->bests[acc].nonce = nonce + v + posn;
-				coin->mining->bests[acc].DL = deadline;
-				LeaveCriticalSection(&coin->locks->bestsLock);
-				EnterCriticalSection(&coin->locks->sharesLock);
-				coin->mining->shares.push_back(std::make_shared<t_shares>(
-					file_name,
-					coin->mining->bests[acc].account_id,
-					coin->mining->bests[acc].best,
-					coin->mining->bests[acc].nonce,
-					coin->mining->bests[acc].DL,
-					coin->mining->currentHeight,
-					coin->mining->currentBaseTarget));
-				LeaveCriticalSection(&coin->locks->sharesLock);
+				{
+					std::lock_guard<std::mutex> lockGuard(coin->locks->bestsLock);
+					coin->mining->bests[acc].best = *wertung;
+					coin->mining->bests[acc].nonce = nonce + v + posn;
+					coin->mining->bests[acc].DL = deadline;
+				}
+				{
+					std::lock_guard<std::mutex> lockGuard(coin->locks->sharesLock);
+					coin->mining->shares.push_back(std::make_shared<t_shares>(
+						file_name,
+						coin->mining->bests[acc].account_id,
+						coin->mining->bests[acc].best,
+						coin->mining->bests[acc].nonce,
+						coin->mining->bests[acc].DL,
+						coin->mining->currentHeight,
+						coin->mining->currentBaseTarget));
+				}
 
 				gui->printWorkerDeadlineFound(coin->mining->bests[acc].account_id, coin->coinname, coin->mining->bests[acc].DL);
 			}
@@ -399,21 +403,23 @@ void procscoop_avx_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 					cache[(v + posn) * 64 + 50], cache[(v + posn) * 64 + 51], cache[(v + posn) * 64 + 52], cache[(v + posn) * 64 + 53], cache[(v + posn) * 64 + 54], cache[(v + posn) * 64 + 55], cache[(v + posn) * 64 + 56], cache[(v + posn) * 64 + 57], cache[(v + posn) * 64 + 58], cache[(v + posn) * 64 + 59],
 					cache[(v + posn) * 64 + 60], cache[(v + posn) * 64 + 61], cache[(v + posn) * 64 + 62], cache[(v + posn) * 64 + 63]);
 
-				EnterCriticalSection(&coin->locks->bestsLock);
-				coin->mining->bests[acc].best = *wertung;
-				coin->mining->bests[acc].nonce = nonce + v + posn;
-				coin->mining->bests[acc].DL = deadline;
-				LeaveCriticalSection(&coin->locks->bestsLock);
-				EnterCriticalSection(&coin->locks->sharesLock);
-				coin->mining->shares.push_back(std::make_shared<t_shares>(
-					file_name,
-					coin->mining->bests[acc].account_id,
-					coin->mining->bests[acc].best, 
-					coin->mining->bests[acc].nonce,
-					coin->mining->bests[acc].DL,
-					coin->mining->currentHeight,
-					coin->mining->currentBaseTarget));
-				LeaveCriticalSection(&coin->locks->sharesLock);
+				{
+					std::lock_guard<std::mutex> lockGuard(coin->locks->bestsLock);
+					coin->mining->bests[acc].best = *wertung;
+					coin->mining->bests[acc].nonce = nonce + v + posn;
+					coin->mining->bests[acc].DL = deadline;
+				}
+				{
+					std::lock_guard<std::mutex> lockGuard(coin->locks->sharesLock);
+					coin->mining->shares.push_back(std::make_shared<t_shares>(
+						file_name,
+						coin->mining->bests[acc].account_id,
+						coin->mining->bests[acc].best,
+						coin->mining->bests[acc].nonce,
+						coin->mining->bests[acc].DL,
+						coin->mining->currentHeight,
+						coin->mining->currentBaseTarget));
+				}
 
 				gui->printWorkerDeadlineFound(coin->mining->bests[acc].account_id, coin->coinname, coin->mining->bests[acc].DL);
 			}
@@ -605,21 +611,23 @@ void procscoop_avx2_fast(std::shared_ptr<t_coin_info> coin, unsigned long long c
 					cache[(v + posn) * 64 + 50], cache[(v + posn) * 64 + 51], cache[(v + posn) * 64 + 52], cache[(v + posn) * 64 + 53], cache[(v + posn) * 64 + 54], cache[(v + posn) * 64 + 55], cache[(v + posn) * 64 + 56], cache[(v + posn) * 64 + 57], cache[(v + posn) * 64 + 58], cache[(v + posn) * 64 + 59],
 					cache[(v + posn) * 64 + 60], cache[(v + posn) * 64 + 61], cache[(v + posn) * 64 + 62], cache[(v + posn) * 64 + 63]);
 
-				EnterCriticalSection(&coin->locks->bestsLock);
-				coin->mining->bests[acc].best = *wertung;
-				coin->mining->bests[acc].nonce = nonce + v + posn;
-				coin->mining->bests[acc].DL = deadline;
-				LeaveCriticalSection(&coin->locks->bestsLock);
-				EnterCriticalSection(&coin->locks->sharesLock);
-				coin->mining->shares.push_back(std::make_shared<t_shares>(
-					file_name,
-					coin->mining->bests[acc].account_id,
-					coin->mining->bests[acc].best,
-					coin->mining->bests[acc].nonce,
-					coin->mining->bests[acc].DL,
-					coin->mining->currentHeight,
-					coin->mining->currentBaseTarget));
-				LeaveCriticalSection(&coin->locks->sharesLock);
+				{
+					std::lock_guard<std::mutex> lockGuard(coin->locks->bestsLock);
+					coin->mining->bests[acc].best = *wertung;
+					coin->mining->bests[acc].nonce = nonce + v + posn;
+					coin->mining->bests[acc].DL = deadline;
+				}
+				{
+					std::lock_guard<std::mutex> lockGuard(coin->locks->sharesLock);
+					coin->mining->shares.push_back(std::make_shared<t_shares>(
+						file_name,
+						coin->mining->bests[acc].account_id,
+						coin->mining->bests[acc].best,
+						coin->mining->bests[acc].nonce,
+						coin->mining->bests[acc].DL,
+						coin->mining->currentHeight,
+						coin->mining->currentBaseTarget));
+				}
 
 				gui->printWorkerDeadlineFound(coin->mining->bests[acc].account_id, coin->coinname, coin->mining->bests[acc].DL);
 			}
@@ -907,21 +915,23 @@ void procscoop_avx512_fast(std::shared_ptr<t_coin_info> coin, unsigned long long
 					cache[(v + posn) * 64 + 50], cache[(v + posn) * 64 + 51], cache[(v + posn) * 64 + 52], cache[(v + posn) * 64 + 53], cache[(v + posn) * 64 + 54], cache[(v + posn) * 64 + 55], cache[(v + posn) * 64 + 56], cache[(v + posn) * 64 + 57], cache[(v + posn) * 64 + 58], cache[(v + posn) * 64 + 59],
 					cache[(v + posn) * 64 + 60], cache[(v + posn) * 64 + 61], cache[(v + posn) * 64 + 62], cache[(v + posn) * 64 + 63]);
 
-				EnterCriticalSection(&coin->locks->bestsLock);
-				coin->mining->bests[acc].best = *wertung;
-				coin->mining->bests[acc].nonce = nonce + v + posn;
-				coin->mining->bests[acc].DL = deadline;
-				LeaveCriticalSection(&coin->locks->bestsLock);
-				EnterCriticalSection(&coin->locks->sharesLock);
-				coin->mining->shares.push_back(std::make_shared<t_shares>(
-					file_name,
-					coin->mining->bests[acc].account_id, 
-					coin->mining->bests[acc].best,
-					coin->mining->bests[acc].nonce,
-					coin->mining->bests[acc].DL,
-					coin->mining->currentHeight,
-					coin->mining->currentBaseTarget));
-				LeaveCriticalSection(&coin->locks->sharesLock);
+				{
+					std::lock_guard<std::mutex> lockGuard(coin->locks->bestsLock);
+					coin->mining->bests[acc].best = *wertung;
+					coin->mining->bests[acc].nonce = nonce + v + posn;
+					coin->mining->bests[acc].DL = deadline;
+				}
+				{
+					std::lock_guard<std::mutex> lockGuard(coin->locks->sharesLock);
+					coin->mining->shares.push_back(std::make_shared<t_shares>(
+						file_name,
+						coin->mining->bests[acc].account_id,
+						coin->mining->bests[acc].best,
+						coin->mining->bests[acc].nonce,
+						coin->mining->bests[acc].DL,
+						coin->mining->currentHeight,
+						coin->mining->currentBaseTarget));
+				}
 
 				gui->printWorkerDeadlineFound(coin->mining->bests[acc].account_id, coin->coinname, coin->mining->bests[acc].DL);
 			}
