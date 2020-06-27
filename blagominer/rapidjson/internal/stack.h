@@ -41,7 +41,7 @@ public:
     }
 
 #if RAPIDJSON_HAS_CXX11_RVALUE_REFS
-    Stack(Stack&& rhs)
+    Stack(Stack&& rhs) RAPIDJSON_NOEXCEPT
         : allocator_(rhs.allocator_),
           ownAllocator_(rhs.ownAllocator_),
           stack_(rhs.stack_),
