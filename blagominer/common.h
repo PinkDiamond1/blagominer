@@ -132,27 +132,28 @@ struct t_locks {
 	std::mutex bestsLock;			// best lock
 	std::mutex sharesLock;			// shares lock
 
-	volatile bool stopRoundSpecificNetworkingThreads;
+	volatile bool stopRoundSpecificNetworkingThreads = false;
 };
 
+// TODO: instead of all-zero init, provide a ctor: init_mining_info
 struct t_mining_info {
-	bool enable;
-	bool newMiningInfoReceived;
-	size_t miner_mode;						// miner mode. 0=solo, 1=pool
-	size_t priority;
-	MiningState state;
-	unsigned long long baseTarget;			// base target of current block
-	unsigned long long targetDeadlineInfo;	// target deadline info from pool
-	unsigned long long height;				// current block height
-	unsigned long long deadline;			// current deadline
-	unsigned long long my_target_deadline;
-	unsigned long long POC2StartBlock;
-	bool enableDiskcoinGensigs;
-	unsigned int scoop;						// currenty scoop
+	bool enable = false;
+	bool newMiningInfoReceived = false;
+	size_t miner_mode = 1;					// miner mode. 0=solo, 1=pool
+	size_t priority = 0;
+	MiningState state = MiningState::DONE;
+	unsigned long long baseTarget = 0;			// base target of current block
+	unsigned long long targetDeadlineInfo = 0;	// target deadline info from pool
+	unsigned long long height = 0;				// current block height
+	unsigned long long deadline = 0;			// current deadline
+	unsigned long long my_target_deadline = 0;
+	unsigned long long POC2StartBlock = 0;
+	bool enableDiskcoinGensigs = false;
+	unsigned int scoop = 0;						// currenty scoop
 	std::vector<std::shared_ptr<t_directory_info>> dirs;
 
 	// Values for current mining process
-	char currentSignature[33];
+	char currentSignature[33] = { 0, };
 	std::wstring current_str_signature;
 	unsigned long long currentHeight = 0;
 	unsigned long long currentBaseTarget = 0;
@@ -160,11 +161,12 @@ struct t_mining_info {
 	std::vector<std::shared_ptr<t_shares>> shares;
 
 	// Values for new mining info check
-	char signature[33];						// signature of current block
-	char oldSignature[33];					// signature of last block
+	char signature[33] = { 0, };			// signature of current block
+	char oldSignature[33] = { 0, };			// signature of last block
 	std::wstring str_signature;
 };
 
+// TODO: instead of all-zero init, provide a ctor: init_coinNetwork
 struct t_network_info {
 	std::string nodeaddr;
 	std::string nodeport;
@@ -176,9 +178,9 @@ struct t_network_info {
 	std::string updaterroot;
 	bool enable_proxy = false;						// enable client/server functionality
 	std::string proxyport;
-	size_t send_interval;
-	size_t update_interval;
-	size_t proxy_update_interval;
+	size_t send_interval = 100;
+	size_t update_interval = 1000;
+	size_t proxy_update_interval = 500;
 	int network_quality = 0;
 	bool usehttps = false;
 	std::string sendextraquery;
@@ -192,6 +194,7 @@ struct t_network_info {
 struct t_roundreplay_round;
 struct t_roundreplay_round_test;
 
+// TODO: instead of all-zero init, provide a ctor: init_mining_info
 struct t_coin_info {
 	std::wstring coinname;
 	CoinLogFiles logging;
@@ -223,8 +226,8 @@ struct t_roundreplay_round_test {
 	enum class RoundTestMode { RMT_UNKNOWN = 0, RMT_NORMAL = 1, RMT_OFFLINE = 2 };
 	RoundTestMode mode = RoundTestMode::RMT_UNKNOWN;
 
-	unsigned long long assume_account;
-	unsigned long long assume_nonce;
+	unsigned long long assume_account = 0;
+	unsigned long long assume_nonce = 0;
 
 	std::optional<unsigned int> assume_scoop;
 	std::optional<std::wstring> assume_scoop_low;
