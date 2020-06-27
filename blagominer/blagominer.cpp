@@ -1429,7 +1429,7 @@ int wmain(int argc, wchar_t **argv) {
 	std::transform(proxycoins.begin(), proxycoins.end(), std::back_inserter(proxyports), [](auto&& it) { return it->network->proxyport; });
 	size_t beforeUniq = proxyports.size();
 	std::sort(proxyports.begin(), proxyports.end());
-	std::unique(proxycoins.begin(), proxycoins.end());
+	std::unique(proxyports.begin(), proxyports.end());
 	size_t afterUniq = proxyports.size();
 
 	if (afterUniq != beforeUniq) {
