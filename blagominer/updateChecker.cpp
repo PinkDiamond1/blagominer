@@ -14,16 +14,18 @@ double getDiffernceinDays(const std::time_t end, std::time_t beginning) {
 // Source partially from http://www.rohitab.com/discuss/topic/28719-downloading-a-file-winsock-http-c/page-2#entry10072081
 void checkForUpdate() {
 
+	bool first = true;
 	std::time_t lastChecked = 0;
 	while (!exit_flag)
 	{
-		if (getDiffernceinDays(std::time(nullptr), lastChecked) > checkForUpdateInterval)
+		if (!first && getDiffernceinDays(std::time(nullptr), lastChecked) > checkForUpdateInterval)
 		{
 			std::this_thread::yield();
 			std::this_thread::sleep_for(std::chrono::seconds(1));
 			continue;
 		}
 
+		first = false;
 		lastChecked = std::time(nullptr);
 
 		Log(L"UPDATE CHECKER: Checking for new version.");
