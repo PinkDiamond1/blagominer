@@ -21,7 +21,7 @@ void checkForUpdate() {
 		if (!first && getDiffernceinDays(std::time(nullptr), lastChecked) > checkForUpdateInterval)
 		{
 			std::this_thread::yield();
-			std::this_thread::sleep_for(std::chrono::seconds(1));
+			std::this_thread::sleep_for(std::chrono::hours(1));
 			continue;
 		}
 
@@ -32,7 +32,7 @@ void checkForUpdate() {
 		std::unique_ptr<IStream, void(*)(LPSTREAM)> guardStream(nullptr, [](LPSTREAM lpStream) { lpStream->Release(); });
 		{
 			LPSTREAM tmp;
-			if (FAILED(URLOpenBlockingStream(NULL, versionUrl, &tmp, 0, NULL)))
+			if (FAILED(URLOpenBlockingStream(NULL, versionUrl, &tmp, 0, NULL))) // TODO: replace with CURL?
 			{
 				Log(L"UPDATE CHECKER: Error opening stream.");
 				continue;
