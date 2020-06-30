@@ -967,10 +967,13 @@ unsigned int calcScoop(std::shared_ptr<t_coin_info> coin) {
 	return (xcache[31] + 256 * xcache[30]) % 4096;
 }
 
-void updateCurrentMiningInfo(std::shared_ptr<t_coin_info> coin) {
+// '_withAllScoopWorkersStopped' means it's safe to work on data shared
+// with scoop worker threads because there's NO worker threads at this moment
+void updateCurrentMiningInfo_withAllScoopWorkersStopped(std::shared_ptr<t_coin_info> coin) {
 	const wchar_t* coinName = coin->coinname.c_str();
 	Log(L"Updating mining information for %s.", coinName);
 
+	// TODO: why do we need locks inside getsig/etc when all network threads are halted?
 	coin->mining->currentSignature = getSignature(coin);
 
 	updateCurrentStrSignature(coin);
@@ -1030,7 +1033,11 @@ void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& currentQueue, st
 }
 
 
-void newRound(std::shared_ptr<t_coin_info > coinCurrentlyMining) {
+// '_withAllScoopWorkersStopped' means it's safe to work on data shared
+// with scoop worker threads because there's NO worker threads at this moment
+// TODO: we're shutting down here the network threads as well, maybe other locks can be removed as well?
+void newRound_withAllScoopWorkersStopped(std::shared_ptr<t_coin_info> coinCurrentlyMining)
+{
 	const wchar_t* coinName = coinCurrentlyMining->coinname.c_str();
 	Log(L"New round for %s.", coinName);
 
@@ -1070,7 +1077,9 @@ void newRound(std::shared_ptr<t_coin_info > coinCurrentlyMining) {
 		coinCurrentlyMining->mining->bests.clear();
 	}
 
-	updateCurrentMiningInfo(coinCurrentlyMining);
+	// '_withAllScoopWorkersStopped' means it's safe to work on data shared
+	// with scoop worker threads because there's NO worker threads at this moment
+	updateCurrentMiningInfo_withAllScoopWorkersStopped(coinCurrentlyMining);
 	coinCurrentlyMining->mining->deadline = 0;
 
 	if (coinCurrentlyMining->mining->enable && coinCurrentlyMining->mining->state == MiningState::QUEUED) {
@@ -1103,7 +1112,7 @@ void handleProxyOnly(std::shared_ptr<t_coin_info> coin) {
 					coin->mining->currentBaseTarget, 4398046511104 / 240 / coin->mining->currentBaseTarget,
 					0, true, coin->mining->deadline }.detach();
 			}
-			newRound(coin);
+			newRound_withAllScoopWorkersStopped(coin);
 		}
 		else {
 			std::this_thread::yield();
@@ -1763,7 +1772,7 @@ int wmain(int argc, wchar_t **argv) {
 			setnewMiningInfoReceived(miningCoin, false);
 			queue.erase(queue.begin());
 
-			newRound(miningCoin);
+			newRound_withAllScoopWorkersStopped(miningCoin);
 
 			// TODO: there doesn't seem to be a way for a 'miningcoin' to be 'not enabled'
 			if (miningCoin->mining->enable) {
