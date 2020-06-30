@@ -153,7 +153,6 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 			char *find = strstr(buffer.data(), "\r\n\r\n");
 			if (find != nullptr)
 			{
-				const unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
 				if (strstr(buffer.data(), "submitNonce") != nullptr)
 				{
 
@@ -201,8 +200,8 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 							
 							// We confirm
 							RtlSecureZeroMemory(buffer.data(), buffer.size());
-							size_t acc = Get_index_acc(get_accountId, coinInfo, targetDeadlineInfo);
-							int bytes = sprintf_s(buffer.data(), buffer.size(), "HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n{\"result\": \"proxy\",\"accountId\": %llu,\"deadline\": %llu,\"targetDeadline\": %llu}", get_accountId, get_deadline / coinInfo->mining->currentBaseTarget, coinInfo->mining->bests[acc].targetDeadline);
+							int bytes = sprintf_s(buffer.data(), buffer.size(), "HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n{\"result\": \"proxy\",\"accountId\": %llu,\"deadline\": %llu,\"targetDeadline\": %llu}",
+								get_accountId, get_deadline / coinInfo->mining->currentBaseTarget, coinInfo->mining->bests[Get_index_acc(get_accountId, coinInfo)].targetDeadline);
 							iResult = send(ClientSocket, buffer.data(), bytes, 0);
 							if (iResult == SOCKET_ERROR)
 							{
@@ -225,9 +224,11 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 					if (strstr(buffer.data(), "getMiningInfo") != nullptr)
 					{
 						std::wstring str_signature = getCurrentStrSignature(coinInfo);
+						unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
 
 						RtlSecureZeroMemory(buffer.data(), buffer.size());
-						int bytes = sprintf_s(buffer.data(), buffer.size(), "HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n{\"baseTarget\":\"%llu\",\"height\":\"%llu\",\"generationSignature\":\"%S\",\"targetDeadline\":%llu}", coinInfo->mining->currentBaseTarget, coinInfo->mining->currentHeight, str_signature.c_str(), targetDeadlineInfo);
+						int bytes = sprintf_s(buffer.data(), buffer.size(), "HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n{\"baseTarget\":\"%llu\",\"height\":\"%llu\",\"generationSignature\":\"%S\",\"targetDeadline\":%llu}",
+							coinInfo->mining->currentBaseTarget, coinInfo->mining->currentHeight, str_signature.c_str(), targetDeadlineInfo);
 
 						iResult = send(ClientSocket, buffer.data(), bytes, 0);
 						if (iResult == SOCKET_ERROR)
@@ -281,7 +282,7 @@ void increaseNetworkQuality(std::shared_ptr<t_coin_info> coin) {
 }
 
 
-void __impl__send_i__sockets(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, std::vector<std::shared_ptr<t_session>>& tmpSessions, unsigned long long targetDeadlineInfo, std::shared_ptr<t_shares> share)
+void __impl__send_i__sockets(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, std::vector<std::shared_ptr<t_session>>& tmpSessions, std::shared_ptr<t_shares> share)
 {
 	const wchar_t* senderName = coinInfo->coinname.c_str();
 
@@ -364,7 +365,7 @@ void __impl__send_i__sockets(std::vector<char, heap_allocator<char>>& buffer, st
 			guardConnectSocket.release();
 
 			Log(L"[%20llu] Sender %s: Setting bests targetDL: %10llu", share->account_id, senderName, share->deadline);
-			coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline = share->deadline;
+			coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo)].targetDeadline = share->deadline;
 			{
 				std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sharesLock);
 				if (!coinInfo->mining->shares.empty()) {
@@ -375,7 +376,7 @@ void __impl__send_i__sockets(std::vector<char, heap_allocator<char>>& buffer, st
 	}
 }
 
-void __impl__send_i__curl(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, std::vector<std::shared_ptr<t_session2>>& tmpSessions, unsigned long long targetDeadlineInfo, std::shared_ptr<t_shares> share)
+void __impl__send_i__curl(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, std::vector<std::shared_ptr<t_session2>>& tmpSessions, std::shared_ptr<t_shares> share)
 {
 	bool failed = false;
 
@@ -496,7 +497,7 @@ void __impl__send_i__curl(std::vector<char, heap_allocator<char>>& buffer, std::
 			curl.release();
 
 			Log(L"[%20llu] Sender %s: Setting bests targetDL: %10llu", share->account_id, senderName, share->deadline);
-			coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline = share->deadline;
+			coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo)].targetDeadline = share->deadline;
 			{
 				std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sharesLock);
 				if (!coinInfo->mining->shares.empty()) {
@@ -553,18 +554,15 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 			continue;
 		}
 
-		const unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
 		// Disable the ball if it is larger than the current targetDeadline, relevant for the Proxy mode
-		if (share->deadline > coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline)
+		auto tgdl = coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo)].targetDeadline;
+		if (share->deadline > tgdl)
 		{
 			Log(L"[%20llu|%-10s|Sender] DL discarded : %llu > %llu",
-				share->account_id, senderName, share->deadline,
-				coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline);
+				share->account_id, senderName, share->deadline, tgdl);
 			if (use_debug)
 			{
-				gui->debugNetworkDeadlineDiscarded(
-					share->account_id, senderName, share->deadline,
-					coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline);
+				gui->debugNetworkDeadlineDiscarded(share->account_id, senderName, share->deadline, tgdl);
 			}
 			{
 				std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sharesLock);
@@ -588,9 +586,9 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 		}
 
 		if (coinInfo->network->usehttps)
-			__impl__send_i__curl(buffer, coinInfo, tmpSessions2, targetDeadlineInfo, share);
+			__impl__send_i__curl(buffer, coinInfo, tmpSessions2, share);
 		else
-			__impl__send_i__sockets(buffer, coinInfo, tmpSessions, targetDeadlineInfo, share);
+			__impl__send_i__sockets(buffer, coinInfo, tmpSessions, share);
 	}
 
 	Log(L"Sender %s: All work done, shutting down.", senderName);
@@ -632,8 +630,6 @@ bool __impl__confirm_i__sockets(std::vector<char, heap_allocator<char>>& buffer,
 		return true;
 	}
 
-	const unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
-		
 	ConnectSocket = session->Socket;
 
 	// Make socket blocking
@@ -835,8 +831,6 @@ bool __impl__confirm_i__curl(std::vector<char, heap_allocator<char>>& buffer, st
 		return true;
 	}
 
-	const unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
-
 	CURL* curl = session->curl;
 	curl_socket_t sockfd;
 	CURLcode res = curl_easy_getinfo(curl, CURLINFO_ACTIVESOCKET, &sockfd);
@@ -1004,8 +998,8 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 		std::shared_ptr<t_session> session;
 		std::shared_ptr<t_session2> session2;
 
-		const unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
-		
+		unsigned long long targetDeadlineInfo_beforeSending = getTargetDeadlineInfo(coinInfo);
+
 		unsigned long long ndeadline = -1; // TODO: handle case when the pool forgets to provide this
 		unsigned long long naccountId = 0;
 		unsigned long long ntargetDeadline = 0;
@@ -1060,7 +1054,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 					{
 						{
 							std::lock_guard<std::mutex> lockGuard(coinInfo->locks->bestsLock);
-							coinInfo->mining->bests[Get_index_acc(naccountId, coinInfo, targetDeadlineInfo)].targetDeadline = ntargetDeadline;
+							coinInfo->mining->bests[Get_index_acc(naccountId, coinInfo)].targetDeadline = ntargetDeadline;
 						}
 
 						gui->printNetworkDeadlineConfirmed(true, naccountId, coinName, ndeadline);
@@ -1110,6 +1104,8 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 						std::thread{ Csv_Fail, coinInfo, sessionX->body.height, sessionX->body.file_name, sessionX->body.baseTarget,
 								4398046511104 / 240 / sessionX->body.baseTarget, sessionX->body.nonce, sessionX->deadline, 0, find }.detach();
 						std::thread{ increaseConflictingDeadline, coinInfo, sessionX->body.height, sessionX->body.file_name }.detach();
+						unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
+						// TODO: what if targetDeadlineInfo != targetDeadlineInfo_beforeSending? also could we could check Height/Signature to detect false alarms (ie. GMI came when Confirm was alraedy sending data)
 						if (sessionX->deadline <= targetDeadlineInfo) {
 							Log(L"Confirmer %s: Deadline should have been accepted (%llu <= %llu). Fast block or corrupted file?", coinName, sessionX->deadline, targetDeadlineInfo);
 							gui->printToConsole(6, false, false, true, false,
@@ -1140,7 +1136,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 		}
 		else if (!failedOrNoData && nonJsonSuccessDetected)
 		{
-				coinInfo->mining->deadline = coinInfo->mining->bests[Get_index_acc(sessionX->body.account_id, coinInfo, targetDeadlineInfo)].DL; //maybe better iter-> deadline?
+				coinInfo->mining->deadline = coinInfo->mining->bests[Get_index_acc(sessionX->body.account_id, coinInfo)].DL; //maybe better iter-> deadline?
 																			// if(deadline > iter->deadline) deadline = iter->deadline;
 				std::thread{ increaseMatchingDeadline, sessionX->body.file_name }.detach();
 				gui->printNetworkDeadlineConfirmed(false, sessionX->body.account_id, coinName, sessionX->deadline); // TODO: why pretty-time is disabled here?
