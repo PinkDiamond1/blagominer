@@ -1063,6 +1063,9 @@ void newRound_withAllScoopWorkersStopped(std::shared_ptr<t_coin_info> coinCurren
 			closesocket((*it)->Socket);
 		}
 		coinCurrentlyMining->network->sessions.clear();
+	}
+	{
+		std::lock_guard<std::mutex> lockGuard(coinCurrentlyMining->locks->sessions2Lock);
 		for (auto it = coinCurrentlyMining->network->sessions2.begin(); it != coinCurrentlyMining->network->sessions2.end(); ++it) {
 			// it's safe here as long as we ensure that not only WORKER threads are inactive, but coins' SENDER and CONFIRMER threads as well
 			curl_easy_cleanup((*it)->curl);
@@ -1252,6 +1255,10 @@ void closeMiner() {
 			closesocket((*it)->Socket);
 		}
 		coin->network->sessions.clear();
+	}
+	for (auto& coin : allcoins)
+	{
+		std::lock_guard<std::mutex> lockGuard(coin->locks->sessions2Lock);
 		for (auto it = coin->network->sessions2.begin(); it != coin->network->sessions2.end(); ++it) {
 			curl_easy_cleanup((*it)->curl);
 		}

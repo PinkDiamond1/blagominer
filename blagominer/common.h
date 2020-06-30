@@ -121,7 +121,7 @@ struct CoinLogFiles {
 struct t_locks {
 	std::mutex mHeight;					//					//				*blagomin,	*network,	*worker			*: via common (isPoc2Round|getHeight|setHeight)
 	std::mutex mTargetDeadlineInfo;		//					//	*accounts,	*network								*: via common (getTargetDeadlineInfo|setTargetDeadlineInfo)
-	std::mutex mSignature;				//					//				*blagomin,	*network					*: via common (getSignature|setSignature|updateOldSignature|signaturesDiffer|signaturesDiffer)
+	std::mutex mSignature;				//					//				*blagomin,	*network					*: via common (getSignature|setSignature|updateOldSignature|signaturesDiffer)
 	std::mutex mStrSignature;			//					//				*blagomin,	*network					*: via common (setStrSignature|updateCurrentStrSignature)
 	std::mutex mOldSignature;			//					// 				*blagomin,	*network					*: via common (signaturesDiffer|updateCurrentStrSignature)
 	std::mutex mCurrentStrSignature;	//					//				*blagomin,	*network					*: via common (getCurrentStrSignature|updateCurrentStrSignature)
