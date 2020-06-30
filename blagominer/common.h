@@ -153,7 +153,7 @@ struct t_mining_info {
 	std::vector<std::shared_ptr<t_directory_info>> dirs;
 
 	// Values for current mining process
-	char currentSignature[33] = { 0, };
+	std::array<uint8_t, 32> currentSignature;
 	std::wstring current_str_signature;
 	unsigned long long currentHeight = 0;
 	unsigned long long currentBaseTarget = 0;
@@ -161,8 +161,8 @@ struct t_mining_info {
 	std::vector<std::shared_ptr<t_shares>> shares;
 
 	// Values for new mining info check
-	char signature[33] = { 0, };			// signature of current block
-	char oldSignature[33] = { 0, };			// signature of last block
+	std::array<uint8_t, 32> signature;			// signature of current block
+	std::array<uint8_t, 32> oldSignature;		// signature of last block
 	std::wstring str_signature;
 };
 
@@ -273,14 +273,14 @@ void setHeight(std::shared_ptr<t_coin_info> coin, const unsigned long long heigh
 
 unsigned long long getTargetDeadlineInfo(std::shared_ptr<t_coin_info> coin);
 void setTargetDeadlineInfo(std::shared_ptr<t_coin_info> coin, const unsigned long long targetDeadlineInfo);
-char* getSignature(std::shared_ptr<t_coin_info> coin);
+std::array<uint8_t, 32> getSignature(std::shared_ptr<t_coin_info> coin);
 std::wstring getCurrentStrSignature(std::shared_ptr<t_coin_info> coin);
-void setSignature(std::shared_ptr<t_coin_info> coin, const char* signature);
+void setSignature(std::shared_ptr<t_coin_info> coin, std::array<uint8_t, 32> const& signature);
 void setStrSignature(std::shared_ptr<t_coin_info> coin, std::wstring const& signature);
 void updateOldSignature(std::shared_ptr<t_coin_info> coin);
 void updateCurrentStrSignature(std::shared_ptr<t_coin_info> coin);
 bool signaturesDiffer(std::shared_ptr<t_coin_info> coin);
-bool signaturesDiffer(std::shared_ptr<t_coin_info> coin, const char* sig);
+bool signaturesDiffer(std::shared_ptr<t_coin_info> coin, std::array<uint8_t, 32> const& sig);
 bool haveReceivedNewMiningInfo(const std::vector<std::shared_ptr<t_coin_info>>& coins);
 void setnewMiningInfoReceived(std::shared_ptr<t_coin_info> coin, const bool val);
 int getNetworkQuality(std::shared_ptr<t_coin_info> coin);

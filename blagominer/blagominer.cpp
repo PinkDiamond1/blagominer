@@ -944,9 +944,12 @@ size_t GetFiles(std::wstring str, std::vector <t_files> *p_files, bool* bfsDetec
 
 unsigned int calcScoop(std::shared_ptr<t_coin_info> coin) {
 	Log(L"Calculating scoop for %s", coin->coinname.c_str());
-	char scoopgen[40];
-	memmove(scoopgen, coin->mining->signature, 32);
-	const char *mov = (char*)&coin->mining->currentHeight; // TODO: why not CURRENT SIGNATURE?!
+	
+	unsigned char scoopgen[40];
+	memmove(scoopgen, coin->mining->signature.data(), 32); // TODO: why not CURRENT SIGNATURE?!
+
+	// careful: endianess assumption
+	const char* mov = (char*)&coin->mining->currentHeight;
 	scoopgen[32] = mov[7];
 	scoopgen[33] = mov[6];
 	scoopgen[34] = mov[5];
@@ -956,19 +959,19 @@ unsigned int calcScoop(std::shared_ptr<t_coin_info> coin) {
 	scoopgen[38] = mov[1];
 	scoopgen[39] = mov[0];
 
-	sph_shabal256(&local_32, (const unsigned char*)(const unsigned char*)scoopgen, 40);
-	char xcache[32];
+	sph_shabal256(&local_32, scoopgen, 40);
+	unsigned char xcache[32];
 	sph_shabal256_close(&local_32, xcache);
 
-	return (((unsigned char)xcache[31]) + 256 * (unsigned char)xcache[30]) % 4096;
+	// careful: endianess assumption
+	return (xcache[31] + 256 * xcache[30]) % 4096;
 }
 
 void updateCurrentMiningInfo(std::shared_ptr<t_coin_info> coin) {
 	const wchar_t* coinName = coin->coinname.c_str();
 	Log(L"Updating mining information for %s.", coinName);
-	char* sig = getSignature(coin);
-	memmove(coin->mining->currentSignature, sig, 32);
-	delete[] sig;
+
+	coin->mining->currentSignature = getSignature(coin);
 
 	updateCurrentStrSignature(coin);
 	coin->mining->currentHeight = coin->mining->height;
@@ -989,7 +992,7 @@ void updateCurrentMiningInfo(std::shared_ptr<t_coin_info> coin) {
 			if (!testresult)
 				Log(L"TESTMODE: CHECK ERROR: Scoop number differs: %u, expected: %u, height: %llu, gensig: %s",
 					coin->mining->scoop, coin->testround2->check_scoop.value(),
-					coin->mining->currentHeight, HexString::wstring(std::vector<uint8_t>(coin->mining->currentSignature + 0, coin->mining->currentSignature + 32)).c_str());
+					coin->mining->currentHeight, HexString::wstring(coin->mining->currentSignature).c_str());
 		}
 }
 
@@ -1312,9 +1315,9 @@ void initMiningOrProxy(std::shared_ptr<t_coin_info> coin)
 
 		// TODO: vectorize/etc
 		// TODO: RtlSecureZeroMemory, everywhere, seriously?
-		RtlSecureZeroMemory(coin->mining->oldSignature, 33);
-		RtlSecureZeroMemory(coin->mining->signature, 33);
-		RtlSecureZeroMemory(coin->mining->currentSignature, 33);
+		// coin->mining->oldSignature.fill(0);
+		// coin->mining->signature.fill(0);
+		// coin->mining->currentSignature.fill(0);
 		// below: not needed, those are recently-constructed anyways
 		// coin->mining->str_signature.clear();
 		// coin->mining->current_str_signature.clear();
@@ -1665,11 +1668,7 @@ int wmain(int argc, wchar_t **argv) {
 
 						newCoin->mining->height = round.height;
 						newCoin->mining->str_signature = round.signature;
-
-						char sig[33];
-						size_t sigLen = xstr2strr(sig, 33, round.signature.c_str());
-						std::copy(sig, sig + 32, newCoin->mining->signature);
-
+						newCoin->mining->signature = *HexString::arrayfrom<32>(round.signature.c_str());
 						newCoin->mining->baseTarget = round.baseTarget;
 
 						newCoin->testround1 = &round;

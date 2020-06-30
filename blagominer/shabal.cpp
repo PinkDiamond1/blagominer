@@ -21,7 +21,7 @@ void procscoop_sph(std::shared_ptr<t_coin_info> coin, const unsigned long long n
 	char sig[32 + 128];
 	cache = data;
 	char res[32];
-	memcpy_s(sig, sizeof(sig), coin->mining->currentSignature, sizeof(char) * 32);
+	memmove(sig, coin->mining->currentSignature.data(), 32);
 	
 	sph_shabal_context x;
 	for (unsigned long long v = 0; v < n; v++)
@@ -122,7 +122,7 @@ void procscoop_sse_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 	cache = data;
 	unsigned long long v;
 
-	memmove(sig0, coin->mining->currentSignature, 32);
+	memmove(sig0, coin->mining->currentSignature.data(), 32);
 	end0[0] = -128;
 	memset(&end0[1], 0, 31);
 
@@ -281,7 +281,7 @@ void procscoop_avx_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 	cache = data;
 	unsigned long long v;
 
-	memmove(sig0, coin->mining->currentSignature, 32);
+	memmove(sig0, coin->mining->currentSignature.data(), 32);
 	end0[0] = -128;
 	memset(&end0[1], 0, 31);
 
@@ -444,7 +444,7 @@ void procscoop_avx2_fast(std::shared_ptr<t_coin_info> coin, unsigned long long c
 	cache = data;
 	unsigned long long v;
 
-	memmove(sig0, coin->mining->currentSignature, 32);
+	memmove(sig0, coin->mining->currentSignature.data(), 32);
 	end0[0] = -128;
 	memset(&end0[1], 0, 31);
 
@@ -660,7 +660,7 @@ void procscoop_avx512_fast(std::shared_ptr<t_coin_info> coin, unsigned long long
 	cache = data;
 	unsigned long long v;
 
-	memmove(sig0, coin->mining->currentSignature, 32);
+	memmove(sig0, coin->mining->currentSignature.data(), 32);
 	end0[0] = -128;
 	memset(&end0[1], 0, 31);
 

@@ -10,6 +10,7 @@
 #include "filemonitor.h"
 #include "picohttpparser.h"
 #include "reference/diskcoin/DiskcoinMath.h"
+#include "hexstring.h"
 
 #include "blagominer.h" // for use_debug, total_size
 
@@ -1398,29 +1399,32 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 
 	if (gmi.HasMember(L"generationSignature")) {
 		setStrSignature(coinInfo, gmi[L"generationSignature"].GetString());
-		char sig[33];
-		size_t sigLen = xstr2strr(sig, 33, gmi[L"generationSignature"].GetString());
 
-		if (coinInfo->mining->enableDiskcoinGensigs) {
-			std::array<uint8_t, 32> tmp;
-			std::copy(sig, sig + 32, tmp.data());
-			auto newsig = diskcoin_generate_gensig_aes128(height, tmp);
-			std::copy(newsig->begin(), newsig->end(), sig);
+		std::unique_ptr<std::array<uint8_t, 32>> sig;
+		try
+		{
+			sig = HexString::arrayfrom<32>(gmi[L"generationSignature"].GetString());
 		}
-
-		bool sigDiffer = signaturesDiffer(coinInfo, sig);
-										
-		if (sigLen <= 1) {
+		catch (std::invalid_argument)
+		{
 			Log(L"*! GMI %s: Node response: Error decoding generationsignature: %S", updaterName, Log_server(rawResponse.c_str()).c_str());
+			return false;
 		}
-		else if (sigDiffer) {
+
+		if (coinInfo->mining->enableDiskcoinGensigs)
+			sig = diskcoin_generate_gensig_aes128(height, *sig);
+
+		bool sigDiffer = signaturesDiffer(coinInfo, *sig);
+		if (sigDiffer) {
 			newBlock = true;
-			setSignature(coinInfo, sig);
-			if (!loggingConfig.logAllGetMiningInfos) {
+			setSignature(coinInfo, *sig);
+			if (!loggingConfig.logAllGetMiningInfos) { // TODO: why is it negated? why is here a condition at all?
 				Log(L"*! GMI %s: Received new mining info: %S", updaterName, Log_server(rawResponse.c_str()).c_str());
 			}
 		}
 	}
+	// TODO: else?
+
 	if (gmi.HasMember(L"targetDeadline")) {
 		unsigned long long newTargetDeadlineInfo = 0;
 		if (gmi[L"targetDeadline"].IsString()) {

@@ -47,17 +47,9 @@ void setTargetDeadlineInfo(std::shared_ptr<t_coin_info> coin, const unsigned lon
 	coin->mining->targetDeadlineInfo = targetDeadlineInfo;
 }
 
-/**
-	Don't forget to delete the pointer after using it. // TODO: christ, really?
-**/
-char* getSignature(std::shared_ptr<t_coin_info> coin) {
-	char* sig = new char[33];
-	RtlSecureZeroMemory(sig, 33);
-	{
-		std::lock_guard<std::mutex> lockGuard(coin->locks->mSignature);
-		memmove(sig, coin->mining->signature, 32);
-	}
-	return sig;
+std::array<uint8_t, 32> getSignature(std::shared_ptr<t_coin_info> coin) {
+	std::lock_guard<std::mutex> lockGuard(coin->locks->mSignature);
+	return coin->mining->signature;
 }
 
 std::wstring getCurrentStrSignature(std::shared_ptr<t_coin_info> coin) {
@@ -65,10 +57,11 @@ std::wstring getCurrentStrSignature(std::shared_ptr<t_coin_info> coin) {
 	return coin->mining->current_str_signature;
 }
 
-void setSignature(std::shared_ptr<t_coin_info> coin, const char* signature) {
+void setSignature(std::shared_ptr<t_coin_info> coin, std::array<uint8_t, 32> const& signature) {
 	std::lock_guard<std::mutex> lockGuard(coin->locks->mSignature);
-	memmove(coin->mining->signature, signature, 32);
+	coin->mining->signature = signature;
 }
+
 void setStrSignature(std::shared_ptr<t_coin_info> coin, std::wstring const& str_signature) {
 	std::lock_guard<std::mutex> lockGuard(coin->locks->mStrSignature);
 	coin->mining->str_signature = str_signature;
@@ -77,7 +70,7 @@ void setStrSignature(std::shared_ptr<t_coin_info> coin, std::wstring const& str_
 void updateOldSignature(std::shared_ptr<t_coin_info> coin) {
 	std::lock_guard<std::mutex> lockGuard(coin->locks->mSignature);
 	std::lock_guard<std::mutex> lockGuardO(coin->locks->mOldSignature);
-	memmove(coin->mining->oldSignature, coin->mining->signature, 32);
+	coin->mining->oldSignature = coin->mining->signature;
 }
 
 void updateCurrentStrSignature(std::shared_ptr<t_coin_info> coin) {
@@ -89,12 +82,12 @@ void updateCurrentStrSignature(std::shared_ptr<t_coin_info> coin) {
 bool signaturesDiffer(std::shared_ptr<t_coin_info> coin) {
 	std::lock_guard<std::mutex> lockGuard(coin->locks->mSignature);
 	std::lock_guard<std::mutex> lockGuardO(coin->locks->mOldSignature);
-	return memcmp(coin->mining->signature, coin->mining->oldSignature, 32) != 0;
+	return coin->mining->signature != coin->mining->oldSignature;
 }
 
-bool signaturesDiffer(std::shared_ptr<t_coin_info> coin, const char* sig) {
+bool signaturesDiffer(std::shared_ptr<t_coin_info> coin, std::array<uint8_t, 32> const& sig) {
 	std::lock_guard<std::mutex> lockGuard(coin->locks->mSignature);
-	return memcmp(coin->mining->signature, sig, 32) != 0;
+	return coin->mining->signature != sig;
 }
 
 bool haveReceivedNewMiningInfo(const std::vector<std::shared_ptr<t_coin_info>>& coins) {
