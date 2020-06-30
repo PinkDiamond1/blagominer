@@ -947,6 +947,9 @@ unsigned int calcScoop(std::shared_ptr<t_coin_info> coin) {
 	
 	unsigned char scoopgen[40];
 	memmove(scoopgen, coin->mining->signature.data(), 32); // TODO: why not CURRENT SIGNATURE?!
+	// re ^ it doesnt make MUCH difference, as calcScoop is called from within updateCurrentMiningInfo_withAllScoopWorkersStopped
+	// that currentSignature was just refreshed with signature, however there is a slight chance that network thread updated
+	// the signature once again and that currentHeight is not matched with signature anymore
 
 	// careful: endianess assumption
 	const char* mov = (char*)&coin->mining->currentHeight;

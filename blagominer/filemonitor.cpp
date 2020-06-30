@@ -1,6 +1,6 @@
 #include "filemonitor.h"
 
-std::mutex mFileStats;
+static std::mutex mFileStats;
 
 std::map<std::wstring, t_file_stats> fileStats = std::map<std::wstring, t_file_stats>();
 bool showCorruptedPlotFiles = true;

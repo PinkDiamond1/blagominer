@@ -9,7 +9,7 @@
 
 
 //logger variables
-extern std::mutex mLog;
+extern std::mutex mLog;	//	inout.cpp, inout.*.cpp, logger.cpp
 extern std::list<std::wstring> loggingQueue;
 
 extern bool loggingInitialized;

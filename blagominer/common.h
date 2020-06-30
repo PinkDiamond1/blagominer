@@ -119,20 +119,20 @@ struct CoinLogFiles {
 
 // TODO: this locking scheme IS SO WRONG.. and even things like 'baseTarget' or 'scoop' are not protected..
 struct t_locks {
-	std::mutex mHeight;
-	std::mutex mTargetDeadlineInfo;
-	std::mutex mSignature;
-	std::mutex mStrSignature;
-	std::mutex mOldSignature;
-	std::mutex mCurrentStrSignature;
-	std::mutex mNewMiningInfoReceived;
+	std::mutex mHeight;					//					//				*blagomin,	*network,	*worker			*: via common (isPoc2Round|getHeight|setHeight)
+	std::mutex mTargetDeadlineInfo;		//					//	*accounts,	*network								*: via common (getTargetDeadlineInfo|setTargetDeadlineInfo)
+	std::mutex mSignature;				//					//				*blagomin,	*network					*: via common (getSignature|setSignature|updateOldSignature|signaturesDiffer|signaturesDiffer)
+	std::mutex mStrSignature;			//					//				*blagomin,	*network					*: via common (setStrSignature|updateCurrentStrSignature)
+	std::mutex mOldSignature;			//					// 				*blagomin,	*network					*: via common (signaturesDiffer|updateCurrentStrSignature)
+	std::mutex mCurrentStrSignature;	//					//				*blagomin,	*network					*: via common (getCurrentStrSignature|updateCurrentStrSignature)
+	std::mutex mNewMiningInfoReceived;	//					// 				*blagomin,	*network					*: via common (haveReceivedNewMiningInfo|setnewMiningInfoReceived)
 
-	std::mutex sessionsLock;		// session lock
-	std::mutex sessions2Lock;		// session2 lock
-	std::mutex bestsLock;			// best lock
-	std::mutex sharesLock;			// shares lock
+	std::mutex sessionsLock;			// session lock		//				blagomin,	network
+	std::mutex sessions2Lock;			// session2 lock	//							network
+	std::mutex bestsLock;				// best lock		//	accounts,	blagomin,	network,	shabal
+	std::mutex sharesLock;				// shares lock		//				blagomin,	network,	shabal
 
-	volatile bool stopRoundSpecificNetworkingThreads = false;
+	volatile bool stopRoundSpecificNetworkingThreads = false;	//			blagomin,	network
 };
 
 // TODO: instead of all-zero init, provide a ctor: init_mining_info
