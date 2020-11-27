@@ -685,13 +685,10 @@ bool __impl__confirm_i__sockets(std::vector<char, heap_allocator<char>>& buffer,
 		}
 		else //received a pool response
 		{
-			find = strstr(buffer.data(), "{");
-			if (find == nullptr)
-			{
-				find = strstr(buffer.data(), "\r\n\r\n");
-				if (find != nullptr) find = find + 4;
-				else find = buffer.data();
-			}
+			find = strstr(buffer.data(), "\r\n\r\n"); // try skipping status line and headers right to the body/payload
+			if (find == nullptr) find = buffer.data(); // panic! typical header-body separator line is missing! not a HTTP-compliant response?!
+			find = strstr(find, "{");
+			if (find == nullptr) find = buffer.data(); // ok, let's face it: we didn't find it, feed the parser with anything and let it fail
 
 			unsigned long long ndeadline;
 			unsigned long long naccountId = 0;
