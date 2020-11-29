@@ -321,7 +321,8 @@ int load_config(Document const& document)
 
 		if (document.HasMember("Logging") && document["Logging"].IsObject())
 		{
-			Log(L"### Loading configuration for Logging ###");
+			//[GH25]note:no effect, log_init not called, loggingInitialized still FALSE; logline manually delayed for now
+			//Log(L"### Loading configuration for Logging ###");
 
 			const Value& logging = document["Logging"];
 
@@ -331,12 +332,25 @@ int load_config(Document const& document)
 			
 			if (logging.HasMember("EnableCsv") && (logging["EnableCsv"].IsBool()))	loggingConfig.enableCsv = logging["EnableCsv"].GetBool();
 		}
+	}
+
+	Log_init(); //[GH25]note: do not call before 'loggingConfig.enableLogging' is read from the cfg file; but DO call before any Log()
+
+	// TODO: odd to have log_init in load_config, but it's needed before Log() and it's nice, and right now there's no other place
+	// also, but we can't skip log_init if !document.IsObject(), so the condition block had to be split into two parts,
+	// or else default loggingConfig.enableLogging=true wouldn't have any effetc due to default loggingInitialized=false, geesh
+	// TODO: cleanup; move 'delaying' to Log() so it happens behind the scenes; also pick one default state for logging control flags,
+	// or, in fact, maybe remove one flag, why do we even have two in the first place? also, split load_config into two function:
+	// load-logging-config and load-whateverelse-config; jsondoc is already in-memory so function splitting does not matter except
+	// for code readability and POLA: Log_init() here is REALLY not expected.
+
+	if (document.IsObject())
+	{
+		Log(L"### Loading configuration for Logging ###"); //[GH25]note:a bit out-ouf-seq but that's the first moment we actually can log
+
 		Log(L"logAllGetMiningInfos: %d", loggingConfig.logAllGetMiningInfos);
 		Log(L"UseLog: %d", loggingConfig.enableLogging);
 		Log(L"EnableCsv: %d", loggingConfig.enableCsv);
-
-		// TODO: what does the Log() do before Log_init() is executed?
-		Log_init();
 
 
 		if (document.HasMember("GUI") && document["GUI"].IsObject())
@@ -1377,7 +1391,7 @@ int wmain(int argc, wchar_t **argv) {
 	// init 3rd party libs
 	curl_global_init(CURL_GLOBAL_DEFAULT);
 
-	// Initialize configuration.
+	// Initialize configuration defaults
 	init_logging_config();
 	init_gui_config();
 
