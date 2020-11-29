@@ -1,5 +1,8 @@
 ﻿#include "inout.h"
 
+#include <algorithm>
+#include <sstream>
+
 const std::string header = "File name                                             +DLs      -DLs       I/O";
 
 IUserInterface::~IUserInterface() {}
@@ -15,22 +18,40 @@ Output_Curses::Output_Curses(short x, short y, bool lock)
 	bm_init();
 }
 
+// TODO: consider variadic template like logger.h:Log()
 void Output_Curses::printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
 	bool trailingNewLine, bool fillLine, const wchar_t * format, ...)
 {
 	std::wstring message;
+
+	// TODO: extract, deduplicate
 	SYSTEMTIME cur_time;
 	GetLocalTime(&cur_time);
-	wchar_t timeBuff[9];
-	wchar_t timeBuffMil[13];
-	swprintf(timeBuff, sizeof(timeBuff), L"%02d:%02d:%02d", cur_time.wHour, cur_time.wMinute, cur_time.wSecond);
-	swprintf(timeBuffMil, sizeof(timeBuff), L"%02d:%02d:%02d.%03d", cur_time.wHour, cur_time.wMinute, cur_time.wSecond, cur_time.wMilliseconds);
-	std::wstring time = timeBuff;
-	std::wstring timeMil = timeBuffMil;
+
+	std::wstring time = (
+		std::wostringstream()
+		<< std::setw(2) << std::setfill(L'0') << cur_time.wHour
+		<< ':'
+		<< std::setw(2) << std::setfill(L'0') << cur_time.wMinute
+		<< ':'
+		<< std::setw(2) << std::setfill(L'0') << cur_time.wSecond
+		).str();
+
+	std::wstring timeMil = (
+		std::wostringstream()
+		<< std::setw(2) << std::setfill(L'0') << cur_time.wHour
+		<< ':'
+		<< std::setw(2) << std::setfill(L'0') << cur_time.wMinute
+		<< ':'
+		<< std::setw(2) << std::setfill(L'0') << cur_time.wSecond
+		<< '.'
+		<< std::setw(3) << std::setfill(L'0') << cur_time.wMilliseconds
+		).str();
+	//-TODO: extract, deduplicate
 
 	if (printTimestamp) {
 
-		message = timeBuff;
+		message = time;
 		message += L" ";
 	}
 
@@ -58,6 +79,64 @@ void Output_Curses::printToConsole(int colorPair, bool printTimestamp, bool lead
 	}
 }
 
+void Output_Curses::printHeadlineTitle(
+	std::wstring const& appname,
+	std::wstring const& version,
+	bool elevated
+)
+{
+	printToConsole(12, false, false, true, false, L"%s, %s %s",
+		appname.c_str(), version.c_str(),
+		elevated ? L"(elevated)" : L"(nonelevated)");
+}
+
+void Output_Curses::printWallOfCredits(
+	std::vector<std::wstring> const& history
+)
+{
+	for (auto&& item : history)
+		printToConsole(4, false, false, true, false, item.c_str());
+}
+
+void Output_Curses::printHWInfo(
+	hwinfo const& info
+)
+{
+	printToConsole(-1, false, true, false, false, L"CPU support: ");
+	if (info.AES)		printToConsole(-1, false, false, false, false, L" AES ");
+	if (info.SSE)		printToConsole(-1, false, false, false, false, L" SSE ");
+	if (info.SSE2)		printToConsole(-1, false, false, false, false, L" SSE2 ");
+	if (info.SSE3)		printToConsole(-1, false, false, false, false, L" SSE3 ");
+	if (info.SSE42)		printToConsole(-1, false, false, false, false, L" SSE4.2 ");
+	if (info.AVX)		printToConsole(-1, false, false, false, false, L" AVX ");
+	if (info.AVX2)		printToConsole(-1, false, false, false, false, L" AVX2 ");
+	if (info.AVX512F)	printToConsole(-1, false, false, false, false, L" AVX512F ");
+
+	if (info.avxsupported)	printToConsole(-1, false, false, false, false, L"     [recomend use AVX]");
+	if (info.AVX2)			printToConsole(-1, false, false, false, false, L"     [recomend use AVX2]");
+	if (info.AVX512F)		printToConsole(-1, false, false, false, false, L"     [recomend use AVX512F]");
+
+	printToConsole(-1, false, true, false, false, L"%S %S [%u cores]", info.vendor.c_str(), info.brand.c_str(), info.cores);
+	printToConsole(-1, false, true, true, false, L"RAM: %llu Mb", info.memory);
+}
+
+void Output_Curses::printPlotsStart()
+{
+	printToConsole(15, false, false, true, false, L"Using plots:");
+}
+
+void Output_Curses::printPlotsInfo(std::wstring const& directory, size_t nfiles, unsigned long long size)
+{
+	printToConsole(-1, false, false, true, false, L"%s\tfiles: %4llu\t size: %7llu GiB",
+		directory.c_str(), nfiles, size / 1024 / 1024 / 1024);
+}
+
+void Output_Curses::printPlotsEnd(unsigned long long total_size)
+{
+	printToConsole(15, false, false, true, false, L"TOTAL: %llu GiB (%llu TiB)",
+		total_size / 1024 / 1024 / 1024, total_size / 1024 / 1024 / 1024 / 1024);
+}
+
 void Output_Curses::printThreadActivity(
 	std::wstring const& coinName,
 	std::wstring const& threadKind,
@@ -69,18 +148,19 @@ void Output_Curses::printThreadActivity(
 
 void Output_Curses::debugWorkerStats(
 	std::wstring const& specialReadMode,
-	std::string const& directory,
+	std::wstring const& directory,
 	double proc_time, double work_time,
 	unsigned long long files_size_per_thread
 )
 {
 	auto msgFormat = !specialReadMode.empty()
-		? L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (%s)"
-		: L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%%%s"; // note that the last %s is always empty, it is there just to keep the same number of placeholders
+		? L"Thread \"%s\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (%s)"
+		: L"Thread \"%s\" @ %.1f sec (%.1f MB/s) CPU %.2f%%%s"; // note that the last %s is always empty, it is there just to keep the same number of placeholders
 
 	printToConsole(7, true, false, true, false, msgFormat,
 		directory.c_str(), work_time, (double)(files_size_per_thread) / work_time / 1024 / 1024 / 4096,
-		proc_time / work_time * 100);
+		proc_time / work_time * 100,
+		specialReadMode.c_str());
 }
 
 void Output_Curses::printWorkerDeadlineFound(
@@ -89,32 +169,46 @@ void Output_Curses::printWorkerDeadlineFound(
 	unsigned long long deadline
 )
 {
-	printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Worker] DL found     : %s",
-		account_id, coinName, toWStr(deadline, 11).c_str());
+	printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Worker] DL found     : %11llu",
+		account_id, coinName.c_str(),
+		deadline);
+}
+
+void Output_Curses::printNetworkHostResolution(
+	std::wstring const& lookupWhat,
+	std::wstring const& coinName,
+	std::string const& remoteName,
+	std::vector<char> const& resolvedIP,
+	std::string const& remotePost,
+	std::string const& remotePath
+)
+{
+	printToConsole(-1, false, false, true, false, L"%s %15s %S (ip %S:%S) %S", coinName.c_str(), lookupWhat.c_str(),
+		remoteName.c_str(), resolvedIP.data(), remotePost.c_str(), ((remotePath.length() ? "on /" : "") + remotePath).c_str());
 }
 
 void Output_Curses::printNetworkProxyDeadlineReceived(
 	unsigned long long account_id,
 	std::wstring const& coinName,
 	unsigned long long deadline,
-	char const (& const clientAddr)[22]
+	char const (&clientAddr)[22]
 )
 {
-	printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Proxy ] DL found     : %s {%S}",
-		account_id, coinName,
-		toWStr(deadline, 11).c_str(), clientAddr);
+	printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Proxy ] DL found     : %11llu {%S}",
+		account_id, coinName.c_str(),
+		deadline, clientAddr);
 }
 
 void Output_Curses::debugNetworkProxyDeadlineAcked(
 	unsigned long long account_id,
 	std::wstring const& coinName,
 	unsigned long long deadline,
-	char const (& const clientAddr)[22]
+	char const (&clientAddr)[22]
 )
 {
-	printToConsole(9, true, false, true, false, L"[%20llu|%-10s|Proxy ] DL ack'ed    : %s {%S}",
-		account_id, coinName,
-		toWStr(deadline, 11).c_str(), clientAddr);
+	printToConsole(9, true, false, true, false, L"[%20llu|%-10s|Proxy ] DL ack'ed    : %11llu {%S}",
+		account_id, coinName.c_str(),
+		deadline, clientAddr);
 }
 
 void Output_Curses::debugNetworkDeadlineDiscarded(
@@ -124,10 +218,9 @@ void Output_Curses::debugNetworkDeadlineDiscarded(
 	unsigned long long targetDeadline
 )
 {
-	printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Sender] DL discarded : %s > %s",
-		account_id, coinName,
-		toWStr(deadline, 11).c_str(),
-		toWStr(targetDeadline, 11).c_str());
+	printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Sender] DL discarded : %11llu > %11llu",
+		account_id, coinName.c_str(),
+		deadline, targetDeadline);
 }
 
 void Output_Curses::printNetworkDeadlineSent(
@@ -141,10 +234,10 @@ void Output_Curses::printNetworkDeadlineSent(
 	unsigned min = (deadline % (60 * 60)) / 60;
 	unsigned sec = deadline % 60;
 
-	printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL sent      : %s %sd %02u:%02u:%02u",
-		account_id, coinName,
-		toWStr(deadline, 11).c_str(),
-		toWStr(days, 7).c_str(), hours, min, sec);
+	printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL sent      : %11llu %7ud %02u:%02u:%02u",
+		account_id, coinName.c_str(),
+		deadline,
+		days, hours, min, sec);
 }
 
 void Output_Curses::printNetworkDeadlineConfirmed(
@@ -157,7 +250,7 @@ void Output_Curses::printNetworkDeadlineConfirmed(
 	if (!with_timespan)
 	{
 		printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL confirmed : %s",
-			account_id, coinName,
+			account_id, coinName.c_str(),
 			deadline
 		);
 	}
@@ -168,10 +261,10 @@ void Output_Curses::printNetworkDeadlineConfirmed(
 		unsigned min = (deadline % (60 * 60)) / 60;
 		unsigned sec = deadline % 60;
 
-		printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL confirmed : %s %sd %02u:%02u:%02u",
-			account_id, coinName,
-			toWStr(deadline, 11).c_str(),
-			toWStr(days, 7).c_str(), hours, min, sec);
+		printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL confirmed : %11llu %7ud %02u:%02u:%02u",
+			account_id, coinName.c_str(),
+			deadline,
+			days, hours, min, sec);
 	}
 }
 
@@ -181,9 +274,9 @@ void Output_Curses::debugNetworkTargetDeadlineUpdated(
 	unsigned long long targetDeadline
 )
 {
-	printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] Set target DL: %s",
-		account_id, coinName,
-		toWStr(targetDeadline, 11).c_str());
+	printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] Set target DL: %11llu",
+		account_id, coinName.c_str(),
+		targetDeadline);
 }
 
 void Output_Curses::debugRoundTime(
@@ -193,41 +286,53 @@ void Output_Curses::debugRoundTime(
 	printToConsole(7, true, false, true, false, L"Total round time: %.1f sec", threads_time);
 }
 
-void Output_Curses::printRoundInterrupt(
+void Output_Curses::printBlockEnqueued(
 	unsigned long long currentHeight,
-	std::wstring const& coinname
+	std::wstring const& coinName,
+	bool atEnd, bool noQueue
 )
 {
-	printToConsole(8, true, false, false, true, L"[#%s|%s|Info    ] Mining has been interrupted by another coin.",
-		toWStr(currentHeight, 7).c_str(),
-		toWStr(coinname, 10).c_str());
+	if (noQueue)
+		printToConsole(5, true, false, false, true, L"[#%7llu|%-10s|Info    ] New block.",
+			currentHeight, coinName.c_str());
+	else
+		printToConsole(5, true, false, false, true, L"[#%7llu|%-10s|Info    ] New block has been added to the%s queue.",
+			currentHeight, coinName.c_str(), atEnd ? L" end of the" : L"");
+}
+
+void Output_Curses::printRoundInterrupt(
+	unsigned long long currentHeight,
+	std::wstring const& coinName
+)
+{
+	printToConsole(8, true, false, false, true, L"[#%7llu|%-10s|Info    ] Mining has been interrupted by another coin.",
+		currentHeight, coinName.c_str());
 }
 
 void Output_Curses::printRoundChangeInfo(bool isResumingInterrupted,
 	unsigned long long currentHeight,
-	std::wstring const& coinname,
+	std::wstring const& coinName,
 	unsigned long long currentBaseTarget,
 	unsigned long long currentNetDiff,
 	bool isPoc2Round
 )
 {
 	auto msgFormat = isResumingInterrupted
-		? L"[#%s|%s|Continue] Base Target %s %c Net Diff %s TiB %c PoC%i"
-		: L"[#%s|%s|Start   ] Base Target %s %c Net Diff %s TiB %c PoC%i";
+		? L"[#%7llu|%-10s|Continue] Base Target %7llu %c Net Diff %8llu TiB %c PoC%i"
+		: L"[#%7llu|%-10s|Start   ] Base Target %7llu %c Net Diff %8llu TiB %c PoC%i";
 
 	auto colorPair = isResumingInterrupted
 		? 5
 		: 25;
 
 	printToConsole(colorPair, true, true, false, true, msgFormat,
-		toWStr(currentHeight, 7).c_str(),
-		toWStr(coinname, 10).c_str(),
-		toWStr(currentBaseTarget, 7).c_str(), sepChar,
-		toWStr(currentNetDiff, 8).c_str(), sepChar,
-		isPoc2Round);
+		currentHeight, coinName.c_str(),
+		currentBaseTarget, sepChar,
+		currentNetDiff, sepChar,
+		isPoc2Round ? 2 : 1);
 }
 
-void Output_Curses::printConnQuality(int ncoins, std::wstring const& connQualInfo)
+void Output_Curses::printConnQuality(size_t ncoins, std::wstring const& connQualInfo)
 {
 	if (ncoins != prevNCoins94)
 	{
@@ -236,7 +341,7 @@ void Output_Curses::printConnQuality(int ncoins, std::wstring const& connQualInf
 			leadingSpace94 = IUserInterface::make_leftpad_for_networkstats(94, ncoins);
 	}
 
-	size_t size = swprintf(nullptr, 0, L"%s%s", leadingSpace94.c_str(), connQualInfo.c_str()) + 1;
+	size_t size = swprintf(nullptr, 0, L"%s%s", leadingSpace94.c_str(), connQualInfo.c_str()) + 1llu;
 	std::unique_ptr<wchar_t[]> buf(new wchar_t[size]);
 	swprintf(buf.get(), size, L"%s%s", leadingSpace94.c_str(), connQualInfo.c_str());
 
@@ -247,7 +352,7 @@ void Output_Curses::printConnQuality(int ncoins, std::wstring const& connQualInf
 	}
 }
 
-void Output_Curses::printScanProgress(int ncoins, std::wstring const& connQualInfo,
+void Output_Curses::printScanProgress(size_t ncoins, std::wstring const& connQualInfo,
 	unsigned long long bytesRead, unsigned long long round_size,
 	double thread_time, double threads_speed,
 	unsigned long long deadline
@@ -261,16 +366,16 @@ void Output_Curses::printScanProgress(int ncoins, std::wstring const& connQualIn
 	}
 
 	size_t size = swprintf(nullptr, 0, L"%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c %s%s",
-		(bytesRead * 4096 * 100 / round_size), sepChar,
-		(((double)bytesRead) / (256 * 1024 * 1024)), sepChar,
+		(bytesRead * 4096 * 100 / std::max(1ull, round_size)), sepChar,
+		(((double)bytesRead) / (256llu * 1024 * 1024)), sepChar,
 		thread_time, sepChar,
 		threads_speed, sepChar,
 		(deadline == 0) ? L"          -" : toWStr(deadline, 11).c_str(), sepChar,
-		leadingSpace94.c_str(), connQualInfo.c_str()) + 1;
+		leadingSpace94.c_str(), connQualInfo.c_str()) + 1llu;
 	std::unique_ptr<wchar_t[]> buf(new wchar_t[size]);
 	swprintf(buf.get(), size, L"%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c %s%s",
-		(bytesRead * 4096 * 100 / round_size), sepChar,
-		(((double)bytesRead) / (256 * 1024 * 1024)), sepChar,
+		(bytesRead * 4096 * 100 / std::max(1ull, round_size)), sepChar,
+		(((double)bytesRead) / (256llu * 1024 * 1024)), sepChar,
 		thread_time, sepChar,
 		threads_speed, sepChar,
 		(deadline == 0) ? L"          -" : toWStr(deadline, 11).c_str(), sepChar,
@@ -351,7 +456,7 @@ void Output_Curses::_consoleWriter() {
 					const int remaining = COLS - x;
 
 					if (remaining > 0) {
-						waddwstr(win_main, std::wstring(remaining, ' ').c_str());
+						waddwstr(win_main, std::wstring(remaining, L' ').c_str());
 						int newY;
 						int newX;
 						getyx(win_main, newY, newX);
@@ -720,7 +825,7 @@ void Output_Curses::boxCorrupted() {
 	wattroff(win_corrupted, COLOR_PAIR(4));
 }
 
-void Output_Curses::printFileStats(std::map<std::string, t_file_stats>const& fileStats) {
+void Output_Curses::printFileStats(std::map<std::wstring, t_file_stats>const& fileStats) {
 	std::lock_guard lockGuardConsoleWindow(mConsoleWindow);
 	int lineCount = 0;
 	for (auto& element : fileStats) {
@@ -757,7 +862,8 @@ void Output_Curses::printFileStats(std::map<std::string, t_file_stats>const& fil
 		if (element.second.conflictingDeadlines > 0 || element.second.readErrors > 0) {
 			bm_wattronC(14);
 			bm_wmoveC(lineCount, 1);
-			bm_wprintwC("%s %s", toStr(element.first, 46).c_str(), toStr(element.second.matchingDeadlines, 11).c_str(), 0);
+			// TODO: check if bm_wprintwC really supports %S wide char string
+			bm_wprintwC("%S %s", toWStr(element.first, 46).c_str(), toStr(element.second.matchingDeadlines, 11).c_str(), 0);
 			if (element.second.conflictingDeadlines > 0) {
 				bm_wattronC(4);
 			}

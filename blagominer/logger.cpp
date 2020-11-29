@@ -5,7 +5,7 @@
 
 FILE * fp_Log = nullptr;
 
-std::mutex mLog;
+std::mutex mLog;	//	inout.cpp, inout.*.cpp, logger.cpp
 std::list<std::wstring> loggingQueue;
 std::thread writer;
 bool interruptWriter = false;

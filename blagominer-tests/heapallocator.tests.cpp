@@ -53,7 +53,7 @@ TEST(HeapAllocator, ThrowsWhenFailsToAllocate) {
 		{
 			char* ptr = tested.allocate(INT64_MAX);
 		}
-		catch (const std::bad_alloc& e)
+		catch (const std::bad_alloc&)
 		{
 			// EXPECT_...
 			throw;
@@ -74,8 +74,8 @@ TEST(HeapAllocator, PassesFlagsToHeapAlloc) {
 	ptr[1] = 0x00;
 	ptr[2] = 0x00;
 	ptr[3] = 0x00;
-	ptr[4] = 0xAA;
-	ptr[5] = 0xFF;
+	ptr[4] = 0xAAi8;
+	ptr[5] = 0xFFi8;
 
 	HeapFree(hHeap, 0, ptr);
 
@@ -83,6 +83,7 @@ TEST(HeapAllocator, PassesFlagsToHeapAlloc) {
 	//ASSERT_EQ(ptr, ptr2);
 
 	bool any = false;
+#pragma warning( suppress: 6001 )	// Warning C6001	actually, we're counting here on uninitialized trash
 	for (size_t i = 0; i < 10240 && !any; ++i) any = ptr[i] != 0;
 	EXPECT_TRUE(any);
 

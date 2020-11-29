@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "volume_ntfs.h"
 
+#include <algorithm>
 #include <ntddvol.h>
 
 // ShowError() and determineNtfsFilePosition()
@@ -32,7 +33,7 @@ int determineNtfsFilePosition(LONGLONG& result, std::wstring drive, std::wstring
 	std::wstring szFileName = filename;
 	WCHAR szVolumeName[128] = { 0 };
 	WCHAR szFileSystemName[32] = { 0 };
-	INT iExtentsBufferSize = 1024;
+	INT iExtentsBufferSize = std::max(1, 1024 / narrow_cast<INT, size_t>(sizeof(RETRIEVAL_POINTERS_BUFFER)));
 	DWORD dwBytesReturned;
 	DWORD dwSectorsPerCluster;
 	DWORD dwBytesPerSector;
@@ -44,7 +45,6 @@ int determineNtfsFilePosition(LONGLONG& result, std::wstring drive, std::wstring
 	DWORD dwClusterSizeInBytes;
 
 	STARTING_VCN_INPUT_BUFFER StartingPointInputBuffer;
-	LARGE_INTEGER FileOffstFromBegDisk;
 	VOLUME_LOGICAL_OFFSET VolumeLogicalOffset;
 	LARGE_INTEGER  PhysicalOffsetReturnValue;
 	VOLUME_PHYSICAL_OFFSETS VolumePhysicalOffsets;
@@ -66,8 +66,7 @@ int determineNtfsFilePosition(LONGLONG& result, std::wstring drive, std::wstring
 	}
 
 	// Buffer to hold the extents info
-	PRETRIEVAL_POINTERS_BUFFER lpRetrievalPointersBuffer =
-		(PRETRIEVAL_POINTERS_BUFFER)malloc(iExtentsBufferSize);
+	auto lpRetrievalPointersBuffer = std::vector<RETRIEVAL_POINTERS_BUFFER>(iExtentsBufferSize / sizeof(RETRIEVAL_POINTERS_BUFFER));
 
 	//StartingVcn field is the virtual cluster number in file
 	// It is not a file offset
@@ -87,8 +86,8 @@ int determineNtfsFilePosition(LONGLONG& result, std::wstring drive, std::wstring
 		FSCTL_GET_RETRIEVAL_POINTERS,
 		&StartingPointInputBuffer,
 		sizeof(STARTING_VCN_INPUT_BUFFER),
-		lpRetrievalPointersBuffer,
-		iExtentsBufferSize,
+		lpRetrievalPointersBuffer.data(),
+		iExtentsBufferSize * sizeof(RETRIEVAL_POINTERS_BUFFER),
 		&dwBytesReturned,
 		NULL))
 	{
@@ -140,7 +139,7 @@ int determineNtfsFilePosition(LONGLONG& result, std::wstring drive, std::wstring
 
 	else if (wcscmp(szFileSystemName, L"NTFS") == 0)
 	{
-		VolumeLogicalOffset.LogicalOffset = lpRetrievalPointersBuffer->Extents[0].Lcn.QuadPart * dwClusterSizeInBytes;
+		VolumeLogicalOffset.LogicalOffset = lpRetrievalPointersBuffer.front().Extents[0].Lcn.QuadPart * dwClusterSizeInBytes;
 		if (!DeviceIoControl(
 			volumeHandle,
 			IOCTL_VOLUME_LOGICAL_TO_PHYSICAL,

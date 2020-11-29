@@ -58,10 +58,11 @@ namespace BurstMath
 		, bool simulate_messedup_POC1_POC2
 	) {
 		///* simulate reading ACCOUNT:NONCENR:SCOOPNR from files == generate the part of the plot..
-		const auto NONCE_SIZE = 4096 * 64;
-		const auto HASH_SIZE = 32;
-		const auto HASH_CAP = 4096;
-		const auto SCOOP_SIZE = 64;
+		const size_t HASH_CAP = 4096;
+		const size_t HASH_SIZE = 32;
+		const size_t SCOOP_SIZE = 2 * HASH_SIZE;
+		const size_t NONCE_SIZE = HASH_CAP * SCOOP_SIZE;
+		const size_t MAX_SCOOP_ID = HASH_CAP - 1;
 
 		uint8_t scoop[SCOOP_SIZE];
 
@@ -89,7 +90,7 @@ namespace BurstMath
 			//*!emit paws etyb
 
 			sph_shabal_context x;
-			int len;
+			size_t len;
 
 			for (int i = NONCE_SIZE; i > 0; i -= HASH_SIZE) {
 				sph_shabal256_init(&x);
@@ -113,14 +114,14 @@ namespace BurstMath
 			if (!simulate_messedup_POC1_POC2)
 			{
 				// normal POC2 operation
-				memcpy(scoop, gendata + (scoop_nr * SCOOP_SIZE), 32);
-				memcpy(scoop + 32, gendata + ((4095 - scoop_nr) * SCOOP_SIZE) + 32, 32);
+				memcpy(scoop + 0 * HASH_SIZE, gendata + (scoop_nr * SCOOP_SIZE), HASH_SIZE);
+				memcpy(scoop + 1 * HASH_SIZE, gendata + ((MAX_SCOOP_ID - scoop_nr) * SCOOP_SIZE) + HASH_SIZE, HASH_SIZE);
 			}
 			else
 			{
 				// simulate a POC2 data file being read in POC1 mode
-				memcpy(scoop, gendata + (scoop_nr * SCOOP_SIZE), 32);
-				memcpy(scoop + 32, gendata + (scoop_nr * SCOOP_SIZE) + 32, 32);
+				memcpy(scoop + 0 * HASH_SIZE, gendata + (scoop_nr * SCOOP_SIZE) + 0 * HASH_SIZE, HASH_SIZE);
+				memcpy(scoop + 1 * HASH_SIZE, gendata + (scoop_nr * SCOOP_SIZE) + 1 * HASH_SIZE, HASH_SIZE);
 			}
 			///* now we have the data 'read from the plot files' in SCOOP array
 
@@ -128,26 +129,28 @@ namespace BurstMath
 			// RE: as of 'now', apparently not yet (https://stackoverflow.com/questions/19467909/will-the-new-expression-ever-return-a-pointer-to-an-array)
 			scoopLow = std::make_unique<std::array<uint8_t, HASH_SIZE>>();
 			scoopHigh = std::make_unique<std::array<uint8_t, HASH_SIZE>>();
-			memcpy_s(scoopLow.get(), HASH_SIZE, scoop + 0, 32);
-			memcpy_s(scoopHigh.get(), HASH_SIZE, scoop + 32, 32);
+			memcpy_s(scoopLow.get(), HASH_SIZE, scoop + 0 * HASH_SIZE, HASH_SIZE);
+			memcpy_s(scoopHigh.get(), HASH_SIZE, scoop + 1 * HASH_SIZE, HASH_SIZE);
 		}
 		else
 		{
 			if (simulate_messedup_POC1_POC2) throw std::invalid_argument("simulate_messedup_POC1_POC2 option has no sense when providing specific scoop data");
-			memcpy_s(scoop + 0, HASH_SIZE, scoopLow.get(), 32);
-			memcpy_s(scoop + 32, HASH_SIZE, scoopHigh.get(), 32);
+			memcpy_s(scoop + 0 * HASH_SIZE, HASH_SIZE, scoopLow.get(), HASH_SIZE);
+			memcpy_s(scoop + 1 * HASH_SIZE, HASH_SIZE, scoopHigh.get(), HASH_SIZE);
 		}
 
 		///* back to orig algo from blago shabal.cpp:procscoop_sph()
 		sph_shabal_context xx;
 		sph_shabal256_init(&xx); // = init(global_32)
-		char sig[32 + 64 + 64];
+		char sig[32 + 64 + 64]; // TODO: why 2x +64?
 		char res[32];
 		///*
-		memcpy_s(sig, sizeof(sig), currentSignature.data(), sizeof(char) * 32);
-		memcpy_s(&sig[32], sizeof(sig) - 32, scoop, sizeof(char) * 64);
+		memcpy_s(sig + 0, sizeof(sig), currentSignature.data(), sizeof(char) * 32); // TODO: currentSignature.length vs s()*32 vs int8_t vs char
+		//memcpy_s(sig + 32, sizeof(sig) - 32, scoop, SCOOP_SIZE);
+		memcpy_s(sig + 32 + 0 * HASH_SIZE, sizeof(sig) - 32 - 0 * HASH_SIZE, scoop + 0 * HASH_SIZE, HASH_SIZE);
+		memcpy_s(sig + 32 + 1 * HASH_SIZE, sizeof(sig) - 32 - 1 * HASH_SIZE, scoop + 1 * HASH_SIZE, HASH_SIZE);
 
-		sph_shabal256(&xx, (const unsigned char*)sig, 64 + 32);
+		sph_shabal256(&xx, (const unsigned char*)sig, 64 + 32); // TODO: not sizeof(sig) as it has extra +64?
 		sph_shabal256_close(&xx, res);
 
 		unsigned long long *wertung = (unsigned long long*)res;

@@ -8,85 +8,96 @@
 LPCWSTR versionUrl = L"https://raw.githubusercontent.com/quetzalcoatl/blagominer/master/.version";
 
 double getDiffernceinDays(const std::time_t end, std::time_t beginning) {
-	return std::difftime(end, beginning) / (60 * 60 * 24);
+	return std::difftime(end, beginning) / (60llu * 60 * 24);
 }
 
 // Source partially from http://www.rohitab.com/discuss/topic/28719-downloading-a-file-winsock-http-c/page-2#entry10072081
 void checkForUpdate() {
 
+	bool first = true;
 	std::time_t lastChecked = 0;
-	while (!exit_flag) {
-		bool error = false;
-		if (getDiffernceinDays(std::time(nullptr), lastChecked) > checkForUpdateInterval) {
-			Log(L"UPDATE CHECKER: Checking for new version.");
-			LPSTR lpResult = NULL;
-			LPSTREAM lpStream;
-			if (SUCCEEDED(URLOpenBlockingStream(NULL, versionUrl, &lpStream, 0, NULL))) {
-				STATSTG statStream;
-				if (SUCCEEDED(lpStream->Stat(&statStream, STATFLAG_NONAME))) {
-					DWORD dwSize = statStream.cbSize.LowPart + 1;
-					lpResult = (LPSTR)malloc(dwSize);
-					if (lpResult) {
-						LARGE_INTEGER liPos;
-						ZeroMemory(&liPos, sizeof(liPos));
-						ZeroMemory(lpResult, dwSize);
-						lpStream->Seek(liPos, STREAM_SEEK_SET, NULL);
-						lpStream->Read(lpResult, dwSize - 1, NULL);
-					}
-					else {
-						Log(L"UPDATE CHECKER: Error allocating memory.");
-						error = true;
-					}
-				}
-				else {
-					Log(L"UPDATE CHECKER: Error retrieving stream data.");
-					error = true;
-				}
-				lpStream->Release();
-
-			}
-			else {
-				Log(L"UPDATE CHECKER: Error opening stream.");
-				error = true;
-			}
-
-			if (!error) {
-				Document document;	// Default template parameter uses UTF8 and MemoryPoolAllocator.
-				if (document.Parse<0>(lpResult).HasParseError()) {
-					Log(L"UPDATE CHECKER: Error (offset %u) parsing retrieved data: %S", (unsigned)document.GetErrorOffset(), GetParseError_En(document.GetParseError()));
-				}
-				else {
-					if (document.IsObject()) {
-						if (document.HasMember("major") && document["major"].IsUint() &&
-							document.HasMember("minor") && document["minor"].IsUint() &&
-							document.HasMember("revision") && document["revision"].IsUint()) {
-							
-							unsigned int major = document["major"].GetUint();
-							unsigned int minor = document["minor"].GetUint();
-							unsigned int revision = document["revision"].GetUint();
-							
-							if (major > versionMajor ||
-								(major >= versionMajor && minor > versionMinor) ||
-								(major >= versionMajor && minor >= versionMinor && revision > versionRevision)) {
-								std::string releaseVersion =
-									std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(revision);
-								Log(L"UPDATE CHECKER: New version availabe: %S", releaseVersion.c_str());
-								gui->showNewVersion(releaseVersion);
-							}
-							else {
-								Log(L"UPDATE CHECKER: The miner is up to date (%i.%i.%i)", versionMajor, versionMinor, versionRevision);
-							}
-						}
-						else {
-							Log(L"UPDATE CHECKER: Error parsing release version number.");
-						}
-					}
-				}
-			}
-			lastChecked = std::time(nullptr);
+	while (!exit_flag)
+	{
+		if (!first && getDiffernceinDays(std::time(nullptr), lastChecked) > checkForUpdateInterval)
+		{
+			std::this_thread::yield();
+			std::this_thread::sleep_for(std::chrono::hours(1));
+			continue;
 		}
-		std::this_thread::yield();
-		std::this_thread::sleep_for(std::chrono::seconds(1));
+
+		first = false;
+		lastChecked = std::time(nullptr);
+
+		Log(L"UPDATE CHECKER: Checking for new version.");
+		std::unique_ptr<IStream, void(*)(LPSTREAM)> guardStream(nullptr, [](LPSTREAM lpStream) { lpStream->Release(); });
+		{
+			LPSTREAM tmp;
+			if (FAILED(URLOpenBlockingStream(NULL, versionUrl, &tmp, 0, NULL))) // TODO: replace with CURL?
+			{
+				Log(L"UPDATE CHECKER: Error opening stream.");
+				continue;
+			}
+			guardStream.reset(tmp);
+		}
+
+		STATSTG statStream;
+		if (FAILED(guardStream->Stat(&statStream, STATFLAG_NONAME)))
+		{
+			Log(L"UPDATE CHECKER: Error retrieving stream data.");
+			continue;
+		}
+
+		DWORD dwSize = statStream.cbSize.LowPart;
+		std::vector<char> lpResult(dwSize);
+
+		guardStream->Seek({ 0 }, STREAM_SEEK_SET, NULL);
+		guardStream->Read(lpResult.data(), dwSize, NULL);
+
+		DocumentUTF16LE document = parseJsonData<kParseNoFlags>(lpResult);
+		if (document.HasParseError())
+		{
+			Log(L"UPDATE CHECKER: Error (offset %zu) parsing retrieved data: %S", document.GetErrorOffset(), GetParseError_En(document.GetParseError()));
+			continue;
+		}
+
+		if (!document.IsObject())
+		{
+			Log(L"UPDATE CHECKER: Error parsing release version data: root is not an object.");
+			continue;
+		}
+
+		if (!document.HasMember(L"major") ||
+			!document.HasMember(L"minor") ||
+			!document.HasMember(L"revision"))
+		{
+			Log(L"UPDATE CHECKER: Error parsing release version number.");
+			continue;
+		}
+
+		if (!document[L"major"].IsUint() ||
+			!document[L"minor"].IsUint() ||
+			!document[L"revision"].IsUint())
+		{
+			Log(L"UPDATE CHECKER: Error parsing release version number.");
+			continue;
+		}
+
+		unsigned int major = document[L"major"].GetUint();
+		unsigned int minor = document[L"minor"].GetUint();
+		unsigned int revision = document[L"revision"].GetUint();
+
+		if (major > versionMajor ||
+			(major >= versionMajor && minor > versionMinor) ||
+			(major >= versionMajor && minor >= versionMinor && revision > versionRevision))
+		{
+			std::wstring releaseVersion = std::to_wstring(major) + L"." + std::to_wstring(minor) + L"." + std::to_wstring(revision);
+			Log(L"UPDATE CHECKER: New version availabe: %s", releaseVersion.c_str());
+			gui->showNewVersion(toStr(releaseVersion));
+		}
+		else
+		{
+			Log(L"UPDATE CHECKER: The miner is up to date (%i.%i.%i)", versionMajor, versionMinor, versionRevision);
+		}
 	}
 
 }

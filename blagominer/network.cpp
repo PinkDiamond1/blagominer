@@ -10,6 +10,7 @@
 #include "filemonitor.h"
 #include "picohttpparser.h"
 #include "reference/diskcoin/DiskcoinMath.h"
+#include "hexstring.h"
 
 #include "blagominer.h" // for use_debug, total_size
 
@@ -152,7 +153,6 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 			char *find = strstr(buffer.data(), "\r\n\r\n");
 			if (find != nullptr)
 			{
-				const unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
 				if (strstr(buffer.data(), "submitNonce") != nullptr)
 				{
 
@@ -188,10 +188,11 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 								get_totalsize = _strtoui64(starttotalsize, 0, 10);
 								satellite_size.insert(std::pair <u_long, unsigned long long>(client_socket_address.sin_addr.S_un.S_addr, get_totalsize));
 							}
-							EnterCriticalSection(&coinInfo->locks->sharesLock);
-							coinInfo->mining->shares.push_back(std::make_shared<t_shares>(
-								client_address_str, get_accountId, get_deadline, get_nonce, get_deadline, coinInfo->mining->currentHeight, coinInfo->mining->currentBaseTarget));
-							LeaveCriticalSection(&coinInfo->locks->sharesLock);
+							{
+								std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sharesLock);
+								coinInfo->mining->shares.push_back(std::make_shared<t_shares>(
+									toWStr(client_address_str), get_accountId, get_deadline, get_nonce, get_deadline, coinInfo->mining->currentHeight, coinInfo->mining->currentBaseTarget));
+							}
 
 							auto scaledDL = get_deadline / coinInfo->mining->currentBaseTarget;
 							gui->printNetworkProxyDeadlineReceived(get_accountId, proxyName, scaledDL, client_address_str);
@@ -199,8 +200,8 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 							
 							// We confirm
 							RtlSecureZeroMemory(buffer.data(), buffer.size());
-							size_t acc = Get_index_acc(get_accountId, coinInfo, targetDeadlineInfo);
-							int bytes = sprintf_s(buffer.data(), buffer.size(), "HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n{\"result\": \"proxy\",\"accountId\": %llu,\"deadline\": %llu,\"targetDeadline\": %llu}", get_accountId, get_deadline / coinInfo->mining->currentBaseTarget, coinInfo->mining->bests[acc].targetDeadline);
+							int bytes = sprintf_s(buffer.data(), buffer.size(), "HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n{\"result\": \"proxy\",\"accountId\": %llu,\"deadline\": %llu,\"targetDeadline\": %llu}",
+								get_accountId, get_deadline / coinInfo->mining->currentBaseTarget, coinInfo->mining->bests[Get_index_acc(get_accountId, coinInfo)].targetDeadline);
 							iResult = send(ClientSocket, buffer.data(), bytes, 0);
 							if (iResult == SOCKET_ERROR)
 							{
@@ -222,11 +223,13 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 				{
 					if (strstr(buffer.data(), "getMiningInfo") != nullptr)
 					{
-						char* str_signature = getCurrentStrSignature(coinInfo);
+						std::wstring str_signature = getCurrentStrSignature(coinInfo);
+						unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
 
 						RtlSecureZeroMemory(buffer.data(), buffer.size());
-						int bytes = sprintf_s(buffer.data(), buffer.size(), "HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n{\"baseTarget\":\"%llu\",\"height\":\"%llu\",\"generationSignature\":\"%s\",\"targetDeadline\":%llu}", coinInfo->mining->currentBaseTarget, coinInfo->mining->currentHeight, str_signature, targetDeadlineInfo);
-						delete[] str_signature;
+						int bytes = sprintf_s(buffer.data(), buffer.size(), "HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n{\"baseTarget\":\"%llu\",\"height\":\"%llu\",\"generationSignature\":\"%S\",\"targetDeadline\":%llu}",
+							coinInfo->mining->currentBaseTarget, coinInfo->mining->currentHeight, str_signature.c_str(), targetDeadlineInfo);
+
 						iResult = send(ClientSocket, buffer.data(), bytes, 0);
 						if (iResult == SOCKET_ERROR)
 						{
@@ -279,7 +282,7 @@ void increaseNetworkQuality(std::shared_ptr<t_coin_info> coin) {
 }
 
 
-void __impl__send_i__sockets(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, std::vector<std::shared_ptr<t_session>>& tmpSessions, unsigned long long targetDeadlineInfo, std::shared_ptr<t_shares> share)
+void __impl__send_i__sockets(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, std::vector<std::shared_ptr<t_session>>& tmpSessions, std::shared_ptr<t_shares> share)
 {
 	const wchar_t* senderName = coinInfo->coinname.c_str();
 
@@ -362,17 +365,18 @@ void __impl__send_i__sockets(std::vector<char, heap_allocator<char>>& buffer, st
 			guardConnectSocket.release();
 
 			Log(L"[%20llu] Sender %s: Setting bests targetDL: %10llu", share->account_id, senderName, share->deadline);
-			coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline = share->deadline;
-			EnterCriticalSection(&coinInfo->locks->sharesLock);
-			if (!coinInfo->mining->shares.empty()) {
-				coinInfo->mining->shares.erase(coinInfo->mining->shares.begin());
+			coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo)].targetDeadline = share->deadline;
+			{
+				std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sharesLock);
+				if (!coinInfo->mining->shares.empty()) {
+					coinInfo->mining->shares.erase(coinInfo->mining->shares.begin());
+				}
 			}
-			LeaveCriticalSection(&coinInfo->locks->sharesLock);
 		}
 	}
 }
 
-void __impl__send_i__curl(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, std::vector<std::shared_ptr<t_session2>>& tmpSessions, unsigned long long targetDeadlineInfo, std::shared_ptr<t_shares> share)
+void __impl__send_i__curl(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, std::vector<std::shared_ptr<t_session2>>& tmpSessions, std::shared_ptr<t_shares> share)
 {
 	bool failed = false;
 
@@ -419,6 +423,7 @@ void __impl__send_i__curl(std::vector<char, heap_allocator<char>>& buffer, std::
 		curl_easy_setopt(curl.get(), CURLOPT_CONNECT_ONLY, 1L);
 		curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT_MS, coinInfo->network->submitTimeout);
 
+#pragma warning ( suppress: 26812 ) // Warning C26812 "The enum type 'CURLcode' is unscoped. Prefer 'enum class' over 'enum'"
 		CURLcode res = curl_easy_perform(curl.get());
 
 		curl_socket_t sockfd;
@@ -492,12 +497,13 @@ void __impl__send_i__curl(std::vector<char, heap_allocator<char>>& buffer, std::
 			curl.release();
 
 			Log(L"[%20llu] Sender %s: Setting bests targetDL: %10llu", share->account_id, senderName, share->deadline);
-			coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline = share->deadline;
-			EnterCriticalSection(&coinInfo->locks->sharesLock);
-			if (!coinInfo->mining->shares.empty()) {
-				coinInfo->mining->shares.erase(coinInfo->mining->shares.begin());
+			coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo)].targetDeadline = share->deadline;
+			{
+				std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sharesLock);
+				if (!coinInfo->mining->shares.empty()) {
+					coinInfo->mining->shares.erase(coinInfo->mining->shares.begin());
+				}
 			}
-			LeaveCriticalSection(&coinInfo->locks->sharesLock);
 		}
 	}
 }
@@ -514,29 +520,32 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 	while (!exit_flag && !coinInfo->locks->stopRoundSpecificNetworkingThreads) {
 		std::shared_ptr<t_shares> share;
 
-		EnterCriticalSection(&coinInfo->locks->sharesLock);
-		if (!coinInfo->mining->shares.empty()) {
-			share = coinInfo->mining->shares.front();
+		{
+			std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sharesLock);
+			if (!coinInfo->mining->shares.empty()) {
+				share = coinInfo->mining->shares.front();
+			}
 		}
-		LeaveCriticalSection(&coinInfo->locks->sharesLock);
 
 		if (share == nullptr) {
 			// No more data for now
 
 			if (!tmpSessions.empty()) {
-				EnterCriticalSection(&coinInfo->locks->sessionsLock);
-				for (auto& session : tmpSessions) {
-					coinInfo->network->sessions.push_back(session);
+				{
+					std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sessionsLock);
+					for (auto& session : tmpSessions) {
+						coinInfo->network->sessions.push_back(session);
+					}
 				}
-				LeaveCriticalSection(&coinInfo->locks->sessionsLock);
 				tmpSessions.clear();
 			}
 			if (!tmpSessions2.empty()) {
-				EnterCriticalSection(&coinInfo->locks->sessions2Lock);
-				for (auto& session : tmpSessions2) {
-					coinInfo->network->sessions2.push_back(session);
+				{
+					std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sessions2Lock);
+					for (auto& session : tmpSessions2) {
+						coinInfo->network->sessions2.push_back(session);
+					}
 				}
-				LeaveCriticalSection(&coinInfo->locks->sessions2Lock);
 				tmpSessions2.clear();
 			}
 
@@ -545,49 +554,48 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 			continue;
 		}
 
-		const unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
 		// Disable the ball if it is larger than the current targetDeadline, relevant for the Proxy mode
-		if (share->deadline > coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline)
+		auto tgdl = coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo)].targetDeadline;
+		if (share->deadline > tgdl)
 		{
 			Log(L"[%20llu|%-10s|Sender] DL discarded : %llu > %llu",
-				share->account_id, senderName, share->deadline,
-				coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline);
+				share->account_id, senderName, share->deadline, tgdl);
 			if (use_debug)
 			{
-				gui->debugNetworkDeadlineDiscarded(
-					share->account_id, senderName, share->deadline,
-					coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline);
+				gui->debugNetworkDeadlineDiscarded(share->account_id, senderName, share->deadline, tgdl);
 			}
-			EnterCriticalSection(&coinInfo->locks->sharesLock);
-			if (!coinInfo->mining->shares.empty()) {
-				coinInfo->mining->shares.erase(coinInfo->mining->shares.begin());
+			{
+				std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sharesLock);
+				if (!coinInfo->mining->shares.empty()) {
+					coinInfo->mining->shares.erase(coinInfo->mining->shares.begin());
+				}
 			}
-			LeaveCriticalSection(&coinInfo->locks->sharesLock);
 			continue;
 		}
 
 		if (share->height != coinInfo->mining->currentHeight) {
 			Log(L"Sender %s: DL %llu from block %llu discarded. New block %llu",
 				senderName, share->deadline, share->height, coinInfo->mining->currentHeight);
-			EnterCriticalSection(&coinInfo->locks->sharesLock);
-			if (!coinInfo->mining->shares.empty()) {
-				coinInfo->mining->shares.erase(coinInfo->mining->shares.begin());
+			{
+				std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sharesLock);
+				if (!coinInfo->mining->shares.empty()) {
+					coinInfo->mining->shares.erase(coinInfo->mining->shares.begin());
+				}
 			}
-			LeaveCriticalSection(&coinInfo->locks->sharesLock);
 			continue;
 		}
 
 		if (coinInfo->network->usehttps)
-			__impl__send_i__curl(buffer, coinInfo, tmpSessions2, targetDeadlineInfo, share);
+			__impl__send_i__curl(buffer, coinInfo, tmpSessions2, share);
 		else
-			__impl__send_i__sockets(buffer, coinInfo, tmpSessions, targetDeadlineInfo, share);
+			__impl__send_i__sockets(buffer, coinInfo, tmpSessions, share);
 	}
 
 	Log(L"Sender %s: All work done, shutting down.", senderName);
 }
 
 
-bool __impl__confirm_i__sockets(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, char*& find, bool& nonJsonSuccessDetected, std::shared_ptr<t_session>& session) {
+bool __impl__confirm_i__sockets(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, DocumentUTF16LE& output, char const*& find, bool& nonJsonSuccessDetected, std::shared_ptr<t_session>& session) {
 	bool failed = false;
 
 	const wchar_t* confirmerName = coinInfo->coinname.c_str();
@@ -595,11 +603,12 @@ bool __impl__confirm_i__sockets(std::vector<char, heap_allocator<char>>& buffer,
 	SOCKET ConnectSocket;
 	int iResult = 0;
 
-	EnterCriticalSection(&coinInfo->locks->sessionsLock);
-	if (!coinInfo->network->sessions.empty()) {
-		session = coinInfo->network->sessions.front();
+	{
+		std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sessionsLock);
+		if (!coinInfo->network->sessions.empty()) {
+			session = coinInfo->network->sessions.front();
+		}
 	}
-	LeaveCriticalSection(&coinInfo->locks->sessionsLock);
 
 	if (session == nullptr) {
 		// No more data for now
@@ -610,18 +619,17 @@ bool __impl__confirm_i__sockets(std::vector<char, heap_allocator<char>>& buffer,
 	if (session->body.height != coinInfo->mining->currentHeight) {
 		Log(L"Confirmer %s: DL %llu from block %llu discarded. New block %llu",
 			confirmerName, session->deadline, session->body.height, coinInfo->mining->currentHeight);
-		EnterCriticalSection(&coinInfo->locks->sessionsLock);
-		if (!coinInfo->network->sessions.empty()) {
-			iResult = closesocket(coinInfo->network->sessions.front()->Socket);
-			Log(L"Confirmer %s: Close socket. Code = %i", confirmerName, WSAGetLastError());
-			coinInfo->network->sessions.erase(coinInfo->network->sessions.begin());
+		{
+			std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sessionsLock);
+			if (!coinInfo->network->sessions.empty()) {
+				iResult = closesocket(coinInfo->network->sessions.front()->Socket);
+				Log(L"Confirmer %s: Close socket. Code = %i", confirmerName, WSAGetLastError());
+				coinInfo->network->sessions.erase(coinInfo->network->sessions.begin());
+			}
 		}
-		LeaveCriticalSection(&coinInfo->locks->sessionsLock);
 		return true;
 	}
 
-	const unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
-		
 	ConnectSocket = session->Socket;
 
 	// Make socket blocking
@@ -643,23 +651,25 @@ bool __impl__confirm_i__sockets(std::vector<char, heap_allocator<char>>& buffer,
 		{
 			decreaseNetworkQuality(coinInfo);
 			Log(L"Confirmer %s: ! Error getting confirmation for DL: %llu  code: %i", confirmerName, session->deadline, WSAGetLastError());
-			EnterCriticalSection(&coinInfo->locks->sessionsLock);
-			if (!coinInfo->network->sessions.empty()) {
-				iResult = closesocket(coinInfo->network->sessions.front()->Socket);
-				Log(L"Confirmer %s: Close socket. Code = %i", confirmerName, WSAGetLastError());
-				coinInfo->network->sessions.erase(coinInfo->network->sessions.begin());
+			{
+				std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sessionsLock);
+				if (!coinInfo->network->sessions.empty()) {
+					iResult = closesocket(coinInfo->network->sessions.front()->Socket);
+					Log(L"Confirmer %s: Close socket. Code = %i", confirmerName, WSAGetLastError());
+					coinInfo->network->sessions.erase(coinInfo->network->sessions.begin());
+				}
 			}
-			LeaveCriticalSection(&coinInfo->locks->sessionsLock);
-			EnterCriticalSection(&coinInfo->locks->sharesLock);
-			coinInfo->mining->shares.push_back(std::make_shared<t_shares>(
-				session->body.file_name,
-				session->body.account_id, 
-				session->body.best, 
-				session->body.nonce,
-				session->body.deadline,
-				session->body.height,
-				session->body.baseTarget));
-			LeaveCriticalSection(&coinInfo->locks->sharesLock);
+			{
+				std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sharesLock);
+				coinInfo->mining->shares.push_back(std::make_shared<t_shares>(
+					session->body.file_name,
+					session->body.account_id,
+					session->body.best,
+					session->body.nonce,
+					session->body.deadline,
+					session->body.height,
+					session->body.baseTarget));
+			}
 		}
 		failed = true;
 	}
@@ -671,34 +681,32 @@ bool __impl__confirm_i__sockets(std::vector<char, heap_allocator<char>>& buffer,
 		if (buffer[0] == '\0')
 		{
 			Log(L"Confirmer %s: zero-length message for DL: %llu", confirmerName, session->deadline);
-			EnterCriticalSection(&coinInfo->locks->sharesLock);
-			coinInfo->mining->shares.push_back(std::make_shared<t_shares>(
-				session->body.file_name,
-				session->body.account_id, 
-				session->body.best, 
-				session->body.nonce,
-				session->body.deadline,
-				session->body.height,
-				session->body.baseTarget));
-			LeaveCriticalSection(&coinInfo->locks->sharesLock);
+			{
+				std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sharesLock);
+				coinInfo->mining->shares.push_back(std::make_shared<t_shares>(
+					session->body.file_name,
+					session->body.account_id,
+					session->body.best,
+					session->body.nonce,
+					session->body.deadline,
+					session->body.height,
+					session->body.baseTarget));
+			}
 			failed = true;
 		}
 		else //received a pool response
 		{
-			find = strstr(buffer.data(), "{");
-			if (find == nullptr)
-			{
-				find = strstr(buffer.data(), "\r\n\r\n");
-				if (find != nullptr) find = find + 4;
-				else find = buffer.data();
-			}
+			find = strstr(buffer.data(), "\r\n\r\n"); // try skipping status line and headers right to the body/payload
+			if (find == nullptr) find = buffer.data(); // panic! typical header-body separator line is missing! not a HTTP-compliant response?!
+			find = strstr(find, "{");
+			if (find == nullptr) find = buffer.data(); // ok, let's face it: we didn't find it, feed the parser with anything and let it fail
 
-			unsigned long long ndeadline;
 			unsigned long long naccountId = 0;
 			unsigned long long ntargetDeadline = 0;
 
-			rapidjson::Document& answ = output;
-			if (answ.Parse<0>(find).HasParseError())
+			DocumentUTF16LE& answ = output;
+			parseJsonData<kParseNoFlags>(answ, span{ find, buffer.size() - (find - buffer.data()) });
+			if (answ.HasParseError())
 			{
 				if (strstr(find, "Received share") != nullptr)
 				{
@@ -722,16 +730,17 @@ bool __impl__confirm_i__sockets(std::vector<char, heap_allocator<char>>& buffer,
 						std::string error_str(msg, msg_len);
 						gui->printToConsole(6, true, false, true, false, L"%s: Server error: %d %S", confirmerName, status, error_str.c_str());
 						Log(L"Confirmer %s: server error for DL: %llu", confirmerName, session->deadline);
-						EnterCriticalSection(&coinInfo->locks->sharesLock);
-						coinInfo->mining->shares.push_back(std::make_shared<t_shares>(
-							session->body.file_name,
-							session->body.account_id,
-							session->body.best,
-							session->body.nonce,
-							session->body.deadline,
-							session->body.height,
-							session->body.baseTarget));
-						LeaveCriticalSection(&coinInfo->locks->sharesLock);
+						{
+							std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sharesLock);
+							coinInfo->mining->shares.push_back(std::make_shared<t_shares>(
+								session->body.file_name,
+								session->body.account_id,
+								session->body.best,
+								session->body.nonce,
+								session->body.deadline,
+								session->body.height,
+								session->body.baseTarget));
+						}
 					}
 					else //got something incomprehensible
 					{
@@ -745,13 +754,14 @@ bool __impl__confirm_i__sockets(std::vector<char, heap_allocator<char>>& buffer,
 				nonJsonSuccessDetected = false;
 			}
 		}
-		EnterCriticalSection(&coinInfo->locks->sessionsLock);
-		if (!coinInfo->network->sessions.empty()) {
-			iResult = closesocket(coinInfo->network->sessions.front()->Socket);
-			Log(L"Confirmer %s: Close socket. Code = %i", confirmerName, WSAGetLastError());
-			coinInfo->network->sessions.erase(coinInfo->network->sessions.begin());
+		{
+			std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sessionsLock);
+			if (!coinInfo->network->sessions.empty()) {
+				iResult = closesocket(coinInfo->network->sessions.front()->Socket);
+				Log(L"Confirmer %s: Close socket. Code = %i", confirmerName, WSAGetLastError());
+				coinInfo->network->sessions.erase(coinInfo->network->sessions.begin());
+			}
 		}
-		LeaveCriticalSection(&coinInfo->locks->sessionsLock);
 	}
 	return failed;
 }
@@ -784,18 +794,19 @@ static int wait_on_socket(curl_socket_t sockfd, int for_recv, long timeout_ms)
 	return res;
 }
 
-bool __impl__confirm_i__curl(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, char*& find, bool& nonJsonSuccessDetected, std::shared_ptr<t_session2>& session) {
+bool __impl__confirm_i__curl(std::vector<char, heap_allocator<char>>& buffer, std::shared_ptr<t_coin_info> coinInfo, DocumentUTF16LE& output, char const*& find, bool& nonJsonSuccessDetected, std::shared_ptr<t_session2>& session) {
 	bool failed = false;
 
 	const wchar_t* confirmerName = coinInfo->coinname.c_str();
 
 	int iResult = 0;
 
-	EnterCriticalSection(&coinInfo->locks->sessions2Lock);
-	if (!coinInfo->network->sessions2.empty()) {
-		session = coinInfo->network->sessions2.front();
+	{
+		std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sessions2Lock);
+		if (!coinInfo->network->sessions2.empty()) {
+			session = coinInfo->network->sessions2.front();
+		}
 	}
-	LeaveCriticalSection(&coinInfo->locks->sessions2Lock);
 
 	if (session == nullptr) {
 		// No more data for now
@@ -806,17 +817,16 @@ bool __impl__confirm_i__curl(std::vector<char, heap_allocator<char>>& buffer, st
 	if (session->body.height != coinInfo->mining->currentHeight) {
 		Log(L"Confirmer %s: DL %llu from block %llu discarded. New block %llu",
 			confirmerName, session->deadline, session->body.height, coinInfo->mining->currentHeight);
-		EnterCriticalSection(&coinInfo->locks->sessions2Lock);
-		if (!coinInfo->network->sessions2.empty()) {
-			curl_easy_cleanup(coinInfo->network->sessions2.front()->curl);
-			Log(L"Confirmer %s: Close socket.", confirmerName);
-			coinInfo->network->sessions2.erase(coinInfo->network->sessions2.begin());
+		{
+			std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sessions2Lock);
+			if (!coinInfo->network->sessions2.empty()) {
+				curl_easy_cleanup(coinInfo->network->sessions2.front()->curl);
+				Log(L"Confirmer %s: Close socket.", confirmerName);
+				coinInfo->network->sessions2.erase(coinInfo->network->sessions2.begin());
+			}
 		}
-		LeaveCriticalSection(&coinInfo->locks->sessions2Lock);
 		return true;
 	}
-
-	const unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
 
 	CURL* curl = session->curl;
 	curl_socket_t sockfd;
@@ -857,23 +867,25 @@ bool __impl__confirm_i__curl(std::vector<char, heap_allocator<char>>& buffer, st
 		Log(L"Confirmer %s: ! Error getting confirmation for DL: %llu  error: %S", confirmerName, session->deadline, curl_easy_strerror(res));
 		failed = true;
 
-		EnterCriticalSection(&coinInfo->locks->sessions2Lock);
-		if (!coinInfo->network->sessions2.empty()) {
-			curl_easy_cleanup(coinInfo->network->sessions2.front()->curl);
-			Log(L"Confirmer %s: Close socket.", confirmerName);
-			coinInfo->network->sessions2.erase(coinInfo->network->sessions2.begin());
+		{
+			std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sessions2Lock);
+			if (!coinInfo->network->sessions2.empty()) {
+				curl_easy_cleanup(coinInfo->network->sessions2.front()->curl);
+				Log(L"Confirmer %s: Close socket.", confirmerName);
+				coinInfo->network->sessions2.erase(coinInfo->network->sessions2.begin());
+			}
 		}
-		LeaveCriticalSection(&coinInfo->locks->sessions2Lock);
-		EnterCriticalSection(&coinInfo->locks->sharesLock);
-		coinInfo->mining->shares.push_back(std::make_shared<t_shares>(
-			session->body.file_name,
-			session->body.account_id,
-			session->body.best,
-			session->body.nonce,
-			session->body.deadline,
-			session->body.height,
-			session->body.baseTarget));
-		LeaveCriticalSection(&coinInfo->locks->sharesLock);
+		{
+			std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sharesLock);
+			coinInfo->mining->shares.push_back(std::make_shared<t_shares>(
+				session->body.file_name,
+				session->body.account_id,
+				session->body.best,
+				session->body.nonce,
+				session->body.deadline,
+				session->body.height,
+				session->body.baseTarget));
+		}
 	}
 	else //got something from the server
 	{
@@ -883,16 +895,17 @@ bool __impl__confirm_i__curl(std::vector<char, heap_allocator<char>>& buffer, st
 		if (buffer[0] == '\0')
 		{
 			Log(L"Confirmer %s: zero-length message for DL: %llu", confirmerName, session->deadline);
-			EnterCriticalSection(&coinInfo->locks->sharesLock);
-			coinInfo->mining->shares.push_back(std::make_shared<t_shares>(
-				session->body.file_name,
-				session->body.account_id,
-				session->body.best,
-				session->body.nonce,
-				session->body.deadline,
-				session->body.height,
-				session->body.baseTarget));
-			LeaveCriticalSection(&coinInfo->locks->sharesLock);
+			{
+				std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sharesLock);
+				coinInfo->mining->shares.push_back(std::make_shared<t_shares>(
+					session->body.file_name,
+					session->body.account_id,
+					session->body.best,
+					session->body.nonce,
+					session->body.deadline,
+					session->body.height,
+					session->body.baseTarget));
+			}
 			failed = true;
 		}
 		else //received a pool response
@@ -905,12 +918,12 @@ bool __impl__confirm_i__curl(std::vector<char, heap_allocator<char>>& buffer, st
 				else find = buffer.data();
 			}
 
-			unsigned long long ndeadline;
 			unsigned long long naccountId = 0;
 			unsigned long long ntargetDeadline = 0;
 
-			rapidjson::Document& answ = output;
-			if (answ.Parse<0>(find).HasParseError())
+			DocumentUTF16LE& answ = output;
+			parseJsonData<kParseNoFlags>(answ, span{ find, buffer.size() - (find - buffer.data()) });
+			if (answ.HasParseError())
 			{
 				if (strstr(find, "Received share") != nullptr)
 				{
@@ -934,16 +947,17 @@ bool __impl__confirm_i__curl(std::vector<char, heap_allocator<char>>& buffer, st
 						std::string error_str(msg, msg_len);
 						gui->printToConsole(6, true, false, true, false, L"%s: Server error: %d %S", confirmerName, status, error_str.c_str());
 						Log(L"Confirmer %s: server error for DL: %llu", confirmerName, session->deadline);
-						EnterCriticalSection(&coinInfo->locks->sharesLock);
-						coinInfo->mining->shares.push_back(std::make_shared<t_shares>(
-							session->body.file_name,
-							session->body.account_id,
-							session->body.best,
-							session->body.nonce,
-							session->body.deadline,
-							session->body.height,
-							session->body.baseTarget));
-						LeaveCriticalSection(&coinInfo->locks->sharesLock);
+						{
+							std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sharesLock);
+							coinInfo->mining->shares.push_back(std::make_shared<t_shares>(
+								session->body.file_name,
+								session->body.account_id,
+								session->body.best,
+								session->body.nonce,
+								session->body.deadline,
+								session->body.height,
+								session->body.baseTarget));
+						}
 					}
 					else //got something incomprehensible
 					{
@@ -957,13 +971,14 @@ bool __impl__confirm_i__curl(std::vector<char, heap_allocator<char>>& buffer, st
 				nonJsonSuccessDetected = false;
 			}
 		}
-		EnterCriticalSection(&coinInfo->locks->sessions2Lock);
-		if (!coinInfo->network->sessions2.empty()) {
-			curl_easy_cleanup(coinInfo->network->sessions2.front()->curl);
-			Log(L"Confirmer %s: Close socket.", confirmerName);
-			coinInfo->network->sessions2.erase(coinInfo->network->sessions2.begin());
+		{
+			std::lock_guard<std::mutex> lockGuard(coinInfo->locks->sessions2Lock);
+			if (!coinInfo->network->sessions2.empty()) {
+				curl_easy_cleanup(coinInfo->network->sessions2.front()->curl);
+				Log(L"Confirmer %s: Close socket.", confirmerName);
+				coinInfo->network->sessions2.erase(coinInfo->network->sessions2.begin());
+			}
 		}
-		LeaveCriticalSection(&coinInfo->locks->sessions2Lock);
 	}
 	return failed;
 }
@@ -972,7 +987,6 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 	const wchar_t* coinName = coinInfo->coinname.c_str();
 	Log(L"Confirmer %s: started thread", coinName);
 
-	SOCKET ConnectSocket;
 	int iResult = 0;
 	std::vector<char, heap_allocator<char>> buffer(1000, theHeap);
 
@@ -981,15 +995,15 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 		std::shared_ptr<t_session> session;
 		std::shared_ptr<t_session2> session2;
 
-		const unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
-		
-		unsigned long long ndeadline;
+		unsigned long long targetDeadlineInfo_beforeSending = getTargetDeadlineInfo(coinInfo);
+
+		unsigned long long ndeadline = -1; // TODO: handle case when the pool forgets to provide this
 		unsigned long long naccountId = 0;
 		unsigned long long ntargetDeadline = 0;
 
-		char* find;
+		char const* find;
 		bool nonJsonSuccessDetected;
-		rapidjson::Document answ;
+		DocumentUTF16LE answ;
 		bool failedOrNoData;
 
 		if (coinInfo->network->usehttps)
@@ -997,7 +1011,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 		else
 			failedOrNoData = __impl__confirm_i__sockets(buffer, coinInfo, answ, find, nonJsonSuccessDetected, session);
 
-		t_session sessionX_(NULL, -1, t_shares("", 0, 0, 0, 0, 0, 0));
+		t_session sessionX_(NULL, -1, t_shares(L"", 0, 0, 0, 0, 0, 0));
 		t_session* sessionX = &sessionX_;
 		if (!failedOrNoData)
 			if (coinInfo->network->usehttps) {
@@ -1016,28 +1030,29 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 		{
 			if (answ.IsObject())
 			{
-				if (answ.HasMember("deadline")) {
-					if (answ["deadline"].IsString())	ndeadline = _strtoui64(answ["deadline"].GetString(), 0, 10);
+				if (answ.HasMember(L"deadline")) {
+					if (answ[L"deadline"].IsString())	ndeadline = _wcstoui64(answ[L"deadline"].GetString(), 0, 10);
 					else
-						if (answ["deadline"].IsInt64()) ndeadline = answ["deadline"].GetInt64();
+						if (answ[L"deadline"].IsInt64()) ndeadline = answ[L"deadline"].GetInt64();
 					Log(L"Confirmer %s: confirmed deadline: %llu", coinName, ndeadline);
 
-					if (answ.HasMember("targetDeadline")) {
-						if (answ["targetDeadline"].IsString())	ntargetDeadline = _strtoui64(answ["targetDeadline"].GetString(), 0, 10);
+					if (answ.HasMember(L"targetDeadline")) {
+						if (answ[L"targetDeadline"].IsString())	ntargetDeadline = _wcstoui64(answ[L"targetDeadline"].GetString(), 0, 10);
 						else
-							if (answ["targetDeadline"].IsInt64()) ntargetDeadline = answ["targetDeadline"].GetInt64();
+							if (answ[L"targetDeadline"].IsInt64()) ntargetDeadline = answ[L"targetDeadline"].GetInt64();
 					}
-					if (answ.HasMember("accountId")) {
-						if (answ["accountId"].IsString())	naccountId = _strtoui64(answ["accountId"].GetString(), 0, 10);
+					if (answ.HasMember(L"accountId")) {
+						if (answ[L"accountId"].IsString())	naccountId = _wcstoui64(answ[L"accountId"].GetString(), 0, 10);
 						else
-							if (answ["accountId"].IsInt64()) naccountId = answ["accountId"].GetInt64();
+							if (answ[L"accountId"].IsInt64()) naccountId = answ[L"accountId"].GetInt64();
 					}
 
 					if ((naccountId != 0) && (ntargetDeadline != 0))
 					{
-						EnterCriticalSection(&coinInfo->locks->bestsLock);
-						coinInfo->mining->bests[Get_index_acc(naccountId, coinInfo, targetDeadlineInfo)].targetDeadline = ntargetDeadline;
-						LeaveCriticalSection(&coinInfo->locks->bestsLock);
+						{
+							std::lock_guard<std::mutex> lockGuard(coinInfo->locks->bestsLock);
+							coinInfo->mining->bests[Get_index_acc(naccountId, coinInfo)].targetDeadline = ntargetDeadline;
+						}
 
 						gui->printNetworkDeadlineConfirmed(true, naccountId, coinName, ndeadline);
 
@@ -1080,32 +1095,34 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 					}
 				}
 				else {
-					if (answ.HasMember("errorDescription")) {
+					if (answ.HasMember(L"errorDescription")) {
 						// TODO: 4398046511104, 240, etc - that are COIN PARAMETERS, these should not be HARDCODED
 						Log(L"Confirmer %s: Deadline %llu sent with error: %S", coinName, sessionX->deadline, find);
 						std::thread{ Csv_Fail, coinInfo, sessionX->body.height, sessionX->body.file_name, sessionX->body.baseTarget,
 								4398046511104 / 240 / sessionX->body.baseTarget, sessionX->body.nonce, sessionX->deadline, 0, find }.detach();
 						std::thread{ increaseConflictingDeadline, coinInfo, sessionX->body.height, sessionX->body.file_name }.detach();
+						unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
+						// TODO: what if targetDeadlineInfo != targetDeadlineInfo_beforeSending? also could we could check Height/Signature to detect false alarms (ie. GMI came when Confirm was alraedy sending data)
 						if (sessionX->deadline <= targetDeadlineInfo) {
 							Log(L"Confirmer %s: Deadline should have been accepted (%llu <= %llu). Fast block or corrupted file?", coinName, sessionX->deadline, targetDeadlineInfo);
 							gui->printToConsole(6, false, false, true, false,
 								L"----Fast block or corrupted file?----\n%s sent deadline:\t%llu\nTarget deadline:\t%llu \n----",
 								coinName, sessionX->deadline, targetDeadlineInfo);
 						}
-						if (answ["errorCode"].IsInt()) {
-							gui->printToConsole(15, true, false, true, false, L"[ERROR %i] %s: %S", answ["errorCode"].GetInt(), coinName, answ["errorDescription"].GetString());
-							if (answ["errorCode"].GetInt() == 1004) {
+						if (answ[L"errorCode"].IsInt()) {
+							gui->printToConsole(15, true, false, true, false, L"[ERROR %i] %s: %s", answ[L"errorCode"].GetInt(), coinName, answ[L"errorDescription"].GetString());
+							if (answ[L"errorCode"].GetInt() == 1004) {
 								gui->printToConsole(12, true, false, true, false, L"%s: You need change reward assignment and wait 4 blocks (~16 minutes)", coinName); //error 1004
 							}
 						}
-						else if (answ["errorCode"].IsString()) {
-							gui->printToConsole(15, true, false, true, false, L"[ERROR %S] %s: %S", answ["errorCode"].GetString(), coinName, answ["errorDescription"].GetString());
-							if (answ["errorCode"].GetString() == "1004") {
+						else if (answ[L"errorCode"].IsString()) {
+							gui->printToConsole(15, true, false, true, false, L"[ERROR %s] %s: %s", answ[L"errorCode"].GetString(), coinName, answ[L"errorDescription"].GetString());
+							if (answ[L"errorCode"].GetString() == L"1004") {
 								gui->printToConsole(12, true, false, true, false, L"%s: You need change reward assignment and wait 4 blocks (~16 minutes)", coinName); //error 1004
 							}
 						}
 						else {
-							gui->printToConsole(15, true, false, true, false, L"[ERROR] %s: %S", coinName, answ["errorDescription"].GetString());
+							gui->printToConsole(15, true, false, true, false, L"[ERROR] %s: %s", coinName, answ[L"errorDescription"].GetString());
 						}
 					}
 					else {
@@ -1116,7 +1133,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 		}
 		else if (!failedOrNoData && nonJsonSuccessDetected)
 		{
-				coinInfo->mining->deadline = coinInfo->mining->bests[Get_index_acc(sessionX->body.account_id, coinInfo, targetDeadlineInfo)].DL; //maybe better iter-> deadline?
+				coinInfo->mining->deadline = coinInfo->mining->bests[Get_index_acc(sessionX->body.account_id, coinInfo)].DL; //maybe better iter-> deadline?
 																			// if(deadline > iter->deadline) deadline = iter->deadline;
 				std::thread{ increaseMatchingDeadline, sessionX->body.file_name }.detach();
 				gui->printNetworkDeadlineConfirmed(false, sessionX->body.account_id, coinName, sessionX->deadline); // TODO: why pretty-time is disabled here?
@@ -1147,7 +1164,7 @@ void updater_i(std::shared_ptr<t_coin_info> coinInfo)
 	}
 }
 
-bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, std::string& rawResponse) {
+bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, DocumentUTF16LE& output, std::string& rawResponse) {
 	bool failed = false;
 
 	const wchar_t* updaterName = coinInfo->coinname.c_str();
@@ -1220,7 +1237,7 @@ bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, rapidjson
 						}
 
 						rawResponse = { buffer.begin(), buffer.end() };
-						rapidjson::Document& gmi = output;
+						DocumentUTF16LE& gmi = output;
 
 						// locate HTTP header
 						char const* find = strstr(buffer.data(), "\r\n\r\n");
@@ -1228,11 +1245,11 @@ bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, rapidjson
 							Log(L"*! GMI %s: error message from pool: %S", updaterName, Log_server(buffer.data()).c_str());
 							failed = true;
 						}
-						else if (loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(find).HasParseError()) {
+						else if (loggingConfig.logAllGetMiningInfos && parseJsonData<kParseNoFlags>(gmi, span{ find, buffer.size() - (find - buffer.data()) }).HasParseError()) {
 							Log(L"*! GMI %s: error parsing JSON message from pool", updaterName);
 							failed = true;
 						}
-						else if (!loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(find).HasParseError()) {
+						else if (!loggingConfig.logAllGetMiningInfos && parseJsonData<kParseNoFlags>(gmi, span{ find, buffer.size() - (find - buffer.data()) }).HasParseError()) {
 							Log(L"*! GMI %s: error parsing JSON message from pool: %S", updaterName, Log_server(buffer.data()).c_str());
 							failed = true;
 						}
@@ -1260,7 +1277,7 @@ static size_t __impl__pollLocal__curl__readcallback(void *contents, size_t size,
 
 	return delta;
 }
-bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, std::string& rawResponse) {
+bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, DocumentUTF16LE& output, std::string& rawResponse) {
 	bool failed = false;
 
 	const wchar_t* updaterName = coinInfo->coinname.c_str();
@@ -1326,12 +1343,12 @@ bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 			}
 
 			rawResponse.assign(chunk.begin(), chunk.end()); // TODO: not so 'raw', that's just the response BODY with no headers
-			rapidjson::Document& gmi = output;
-			if (loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(chunk.data(), chunk.size()).HasParseError()) {
+			DocumentUTF16LE& gmi = output;
+			if (loggingConfig.logAllGetMiningInfos && parseJsonData<kParseNoFlags>(gmi, chunk).HasParseError()) {
 				Log(L"*! GMI %s: error parsing JSON message from pool", updaterName);
 				failed = true;
 			}
-			else if (!loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(chunk.data(), chunk.size()).HasParseError()) {
+			else if (!loggingConfig.logAllGetMiningInfos && parseJsonData<kParseNoFlags>(gmi, chunk).HasParseError()) {
 				Log(L"*! GMI %s: error parsing JSON message from pool: %S", updaterName, Log_server(chunk.data()).c_str());
 				failed = true;
 			}
@@ -1346,7 +1363,7 @@ bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 
 bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 	std::string rawResponse;
-	rapidjson::Document gmi;
+	DocumentUTF16LE gmi;
 	bool failed;
 
 	if (coinInfo->network->usehttps)
@@ -1360,51 +1377,54 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 	const wchar_t* updaterName = coinInfo->coinname.c_str();
 	bool newBlock = false;
 
-	if (gmi.HasMember("baseTarget")) {
-		if (gmi["baseTarget"].IsString())	coinInfo->mining->baseTarget = _strtoui64(gmi["baseTarget"].GetString(), 0, 10);
+	if (gmi.HasMember(L"baseTarget")) {
+		if (gmi[L"baseTarget"].IsString())	coinInfo->mining->baseTarget = _wcstoui64(gmi[L"baseTarget"].GetString(), 0, 10);
 		else
-			if (gmi["baseTarget"].IsInt64())coinInfo->mining->baseTarget = gmi["baseTarget"].GetInt64();
+			if (gmi[L"baseTarget"].IsInt64())coinInfo->mining->baseTarget = gmi[L"baseTarget"].GetInt64();
 	}
 
 	uint64_t height = INTMAX_MAX;
-	if (gmi.HasMember("height")) {
-		if (gmi["height"].IsString())	setHeight(coinInfo, height = _strtoui64(gmi["height"].GetString(), 0, 10));
+	if (gmi.HasMember(L"height")) {
+		if (gmi[L"height"].IsString())	setHeight(coinInfo, height = _wcstoui64(gmi[L"height"].GetString(), 0, 10));
 		else
-			if (gmi["height"].IsInt64()) setHeight(coinInfo, height = gmi["height"].GetInt64());
+			if (gmi[L"height"].IsInt64()) setHeight(coinInfo, height = gmi[L"height"].GetInt64());
 	}
 
-	if (gmi.HasMember("generationSignature")) {
-		setStrSignature(coinInfo, gmi["generationSignature"].GetString());
-		char sig[33];
-		size_t sigLen = xstr2strr(sig, 33, gmi["generationSignature"].GetString());
+	if (gmi.HasMember(L"generationSignature")) {
+		setStrSignature(coinInfo, gmi[L"generationSignature"].GetString());
 
-		if (coinInfo->mining->enableDiskcoinGensigs) {
-			std::array<uint8_t, 32> tmp;
-			std::copy(sig, sig + 32, tmp.data());
-			auto newsig = diskcoin_generate_gensig_aes128(height, tmp);
-			std::copy(newsig->begin(), newsig->end(), sig);
+		std::unique_ptr<std::array<uint8_t, 32>> sig;
+		try
+		{
+			sig = HexString::arrayfrom<32>(gmi[L"generationSignature"].GetString());
 		}
-
-		bool sigDiffer = signaturesDiffer(coinInfo, sig);
-										
-		if (sigLen <= 1) {
+		catch (std::invalid_argument)
+		{
 			Log(L"*! GMI %s: Node response: Error decoding generationsignature: %S", updaterName, Log_server(rawResponse.c_str()).c_str());
+			return false;
 		}
-		else if (sigDiffer) {
+
+		if (coinInfo->mining->enableDiskcoinGensigs)
+			sig = diskcoin_generate_gensig_aes128(height, *sig);
+
+		bool sigDiffer = signaturesDiffer(coinInfo, *sig);
+		if (sigDiffer) {
 			newBlock = true;
-			setSignature(coinInfo, sig);
-			if (!loggingConfig.logAllGetMiningInfos) {
+			setSignature(coinInfo, *sig);
+			if (!loggingConfig.logAllGetMiningInfos) { // TODO: why is it negated? why is here a condition at all?
 				Log(L"*! GMI %s: Received new mining info: %S", updaterName, Log_server(rawResponse.c_str()).c_str());
 			}
 		}
 	}
-	if (gmi.HasMember("targetDeadline")) {
+	// TODO: else?
+
+	if (gmi.HasMember(L"targetDeadline")) {
 		unsigned long long newTargetDeadlineInfo = 0;
-		if (gmi["targetDeadline"].IsString()) {
-			newTargetDeadlineInfo = _strtoui64(gmi["targetDeadline"].GetString(), 0, 10);
+		if (gmi[L"targetDeadline"].IsString()) {
+			newTargetDeadlineInfo = _wcstoui64(gmi[L"targetDeadline"].GetString(), 0, 10);
 		}
 		else {
-			newTargetDeadlineInfo = gmi["targetDeadline"].GetInt64();
+			newTargetDeadlineInfo = gmi[L"targetDeadline"].GetInt64();
 		}
 		if (loggingConfig.logAllGetMiningInfos || newBlock) {
 			Log(L"*! GMI %s: newTargetDeadlineInfo: %llu", updaterName, newTargetDeadlineInfo);
@@ -1429,34 +1449,4 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 	}
 
 	return newBlock;
-}
-
-
-// Helper routines taken from http://stackoverflow.com/questions/1557400/hex-to-char-array-in-c
-int xdigit(char const digit) {
-	int val;
-	if ('0' <= digit && digit <= '9') val = digit - '0';
-	else if ('a' <= digit && digit <= 'f') val = digit - 'a' + 10;
-	else if ('A' <= digit && digit <= 'F') val = digit - 'A' + 10;
-	else val = -1;
-	return val;
-}
-
-size_t xstr2strr(char *buf, size_t const bufsize, const char *const in) {
-	if (!in) return 0; // missing input string
-
-	size_t inlen = (size_t)strlen(in);
-	if (inlen % 2 != 0) inlen--; // hex string must even sized
-
-	size_t i, j;
-	for (i = 0; i<inlen; i++)
-		if (xdigit(in[i])<0) return 0; // bad character in hex string
-
-	if (!buf || bufsize<inlen / 2 + 1) return 0; // no buffer or too small
-
-	for (i = 0, j = 0; i<inlen; i += 2, j++)
-		buf[j] = xdigit(in[i]) * 16 + xdigit(in[i + 1]);
-
-	buf[inlen / 2] = '\0';
-	return inlen / 2 + 1;
 }

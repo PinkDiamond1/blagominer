@@ -4,16 +4,16 @@
 BFSTOC bfsTOC;							// BFS Table of Contents
 unsigned int bfsTOCOffset = 5;			// 4k address of BFSTOC on harddisk. default = 5
 
-bool LoadBFSTOC(std::string drive) {
+bool LoadBFSTOC(std::wstring drive) {
 	//open drive
-	HANDLE iFile = CreateFileA(drive.c_str(), GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_FLAG_NO_BUFFERING, nullptr);
+	HANDLE iFile = CreateFile(drive.c_str(), GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_FLAG_NO_BUFFERING, nullptr);
 	if (iFile == INVALID_HANDLE_VALUE)
 	{
 		return false;
 	}
 	//seek to bfstoc start
 	LARGE_INTEGER liDistanceToMove;
-	liDistanceToMove.QuadPart = bfsTOCOffset * 4096;
+	liDistanceToMove.QuadPart = bfsTOCOffset * 4096ll;
 	if (!SetFilePointerEx(iFile, liDistanceToMove, nullptr, FILE_BEGIN))
 	{
 		return false;

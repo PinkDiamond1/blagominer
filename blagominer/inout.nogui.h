@@ -15,14 +15,32 @@ public:
 		bool trailingNewLine, bool fillLine, const wchar_t * format,
 		...
 	) override;
+
+	void printHeadlineTitle(
+		std::wstring const& appname,
+		std::wstring const& version,
+		bool elevated
+	) override;
+	void printWallOfCredits(
+		std::vector<std::wstring> const& history
+	) override;
+	void printHWInfo(
+		hwinfo const& info
+	) override;
+
+	void printPlotsStart() override;
+	void printPlotsInfo(std::wstring const& directory, size_t nfiles, unsigned long long size) override;
+	void printPlotsEnd(unsigned long long total_size) override;
+
 	void printThreadActivity(
 		std::wstring const& coinName,
 		std::wstring const& threadKind,
 		std::wstring const& threadAction
 	) override;
+
 	void debugWorkerStats(
 		std::wstring const& specialReadMode,
-		std::string const& directory,
+		std::wstring const& directory,
 		double proc_time, double work_time,
 		unsigned long long files_size_per_thread
 	) override;
@@ -31,17 +49,32 @@ public:
 		std::wstring const& coinname,
 		unsigned long long deadline
 	) override;
+	void printScanProgress(
+		size_t ncoins, std::wstring const& connQualInfo,
+		unsigned long long bytesRead, unsigned long long round_size,
+		double thread_time, double threads_speed,
+		unsigned long long deadline
+	) override;
+
+	void printNetworkHostResolution(
+		std::wstring const& lookupWhat,
+		std::wstring const& coinName,
+		std::string const& remoteName,
+		std::vector<char> const& resolvedIP,
+		std::string const& remotePost,
+		std::string const& remotePath
+	) override;
 	void printNetworkProxyDeadlineReceived(
 		unsigned long long account_id,
 		std::wstring const& coinName,
 		unsigned long long deadline,
-		char const (& const clientAddr)[22]
+		char const (&clientAddr)[22]
 	) override;
 	void debugNetworkProxyDeadlineAcked(
 		unsigned long long account_id,
 		std::wstring const& coinName,
 		unsigned long long deadline,
-		char const (& const clientAddr)[22]
+		char const (&clientAddr)[22]
 	) override;
 	void debugNetworkDeadlineDiscarded(
 		unsigned long long account_id,
@@ -65,8 +98,17 @@ public:
 		std::wstring const& coinName,
 		unsigned long long targetDeadline
 	) override;
+	void printConnQuality(
+		size_t ncoins, std::wstring const& connQualInfo
+	) override;
+
 	void debugRoundTime(
 		double theads_time
+	) override;
+	void printBlockEnqueued(
+		unsigned long long currentHeight,
+		std::wstring const& coinname,
+		bool atEnd, bool noQueue
 	) override;
 	void printRoundInterrupt(
 		unsigned long long currentHeight,
@@ -80,13 +122,7 @@ public:
 		bool isPoc2Round
 	) override;
 
-	void printConnQuality(int ncoins, std::wstring const& connQualInfo) override;
-	void printScanProgress(int ncoins, std::wstring const& connQualInfo,
-		unsigned long long bytesRead, unsigned long long round_size,
-		double thread_time, double threads_speed,
-		unsigned long long deadline) override;
-
-	void printFileStats(std::map<std::string, t_file_stats> const & fileStats);
+	void printFileStats(std::map<std::wstring, t_file_stats> const & fileStats);
 
 	bool currentlyDisplayingCorruptedPlotFiles();
 	void showNewVersion(std::string version);
@@ -96,8 +132,8 @@ public:
 private:
 
 	struct ConsoleOutput {
-		bool leadingNewLine, trailingNewLine;
-		bool fillLine;
+		bool leadingNewLine = false, trailingNewLine = false;
+		bool fillLine = false;
 		std::wstring message;
 	};
 

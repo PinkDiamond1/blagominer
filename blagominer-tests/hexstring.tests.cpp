@@ -50,7 +50,7 @@ TEST(HexStringTest_Array, ThrowsWhenInputSizeDoesntMatch) {
 		{
 			HexString::arrayfrom<16>(input);
 		}
-		catch (const std::invalid_argument& e)
+		catch (const std::invalid_argument&)
 		{
 			// EXPECT_...
 			throw;

@@ -26,3 +26,16 @@ std::wstring versionSuffix = L"_SSE";
 #endif 
 #endif 
 std::wstring version = std::to_wstring(versionMajor) + L"." + std::to_wstring(versionMinor) + L"." + std::to_wstring(versionRevision) + versionSuffix;
+
+// history
+std::vector<std::wstring> history =
+{
+	L"Programming: dcct (Linux) & Blago (Windows)",
+	L"POC2 mod: Quibus & Johnny (5/2018)",
+	L"Dual mining mod: andz (2/2019)",
+	L"HTTPS and patches: quetzalcoatl (6/2019)",
+	L"NTFS optimization: quetzalcoatl (6/2019)",
+	L"Multi mining mod: quetzalcoatl (7/2019)",
+	L"Test mode option: quetzalcoatl (8/2019)",
+	L"Headless mode option: quetzalcoatl (4/2020)",
+};
